@@ -1,0 +1,29 @@
+{
+  "name": "dpp-processor-backend",
+  "version": "1.0.0",
+  "description": "Score and replay processors for droid performance points backend",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Rian8337",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/cors": "^2.8.13",
+    "@types/express": "^4.17.17",
+    "@types/express-form-data": "^2.0.2",
+    "@types/node": "^18.16.3",
+    "typescript": "^5.0.4"
+  },
+  "dependencies": {
+    "@rian8337/osu-base": "^4.0.0-beta.6",
+    "@rian8337/osu-droid-replay-analyzer": "^4.0.0-beta.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "express-form-data": "^2.0.22",
+    "mongodb": "^5.3.0"
+  }
+}

@@ -393,9 +393,6 @@ export abstract class DPPUtil {
             {
                 method: "POST",
                 body: formData,
-                headers: {
-                    "Content-Type": "application/json",
-                },
             }
         )
             .then(() => true)

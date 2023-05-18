@@ -208,6 +208,10 @@ export abstract class DPPUtil {
             )
             .catch(() => null);
 
+        if (updateResult) {
+            await this.updateDiscordMetadata(databaseEntry.discordid);
+        }
+
         return !!updateResult;
     }
 
@@ -369,5 +373,34 @@ export abstract class DPPUtil {
         }
 
         return accSum / weight;
+    }
+
+    /**
+     * Updates the Discord metadata of a user.
+     *
+     * @param userId The ID of the user.
+     * @returns
+     */
+    private static async updateDiscordMetadata(
+        userId: string
+    ): Promise<boolean> {
+        const formData = new FormData();
+        formData.append("userId", userId);
+        formData.append("key", process.env.DISCORD_OAUTH_BACKEND_INTERNAL_KEY!);
+
+        const success = await fetch(
+            "https://droidpp.osudroid.moe/api/discord/update-metadata",
+            {
+                method: "POST",
+                body: formData,
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            }
+        )
+            .then(() => true)
+            .catch(() => false);
+
+        return success;
     }
 }

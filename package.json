@@ -18,8 +18,12 @@
     "typescript": "^5.0.4"
   },
   "dependencies": {
+    "@discordjs/collection": "^1.5.1",
     "@rian8337/osu-base": "^4.0.0-beta.6",
+    "@rian8337/osu-difficulty-calculator": "^4.0.0-beta.8",
     "@rian8337/osu-droid-replay-analyzer": "^4.0.0-beta.7",
+    "@rian8337/osu-droid-utilities": "^4.0.0-beta.7",
+    "@rian8337/osu-rebalance-difficulty-calculator": "^4.0.0-beta.8",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",

@@ -23,5 +23,5 @@ app.use("/forward-replay", forwardReplay);
 const port = parseInt(process.env.PORT || "3006");
 
 DatabaseManager.init().then(() => {
-    app.listen(port, () => console.log("Backend is up"));
+    app.listen(port, () => console.log("DPP processor backend is up"));
 });

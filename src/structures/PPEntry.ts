@@ -39,8 +39,10 @@ export interface PPEntry {
 
     /**
      * The ID of the score inside osu!droid game database.
+     *
+     * If this is 0, the score does not overwrite the player's highest score.
      */
-    scoreID?: number;
+    scoreID: number;
 
     /**
      * The forced AR used in the score.

@@ -15,11 +15,6 @@ export interface IUserBind {
     uid: number;
 
     /**
-     * The username of the osu!droid account binded to the user.
-     */
-    username: string;
-
-    /**
      * The total droid performance points (dpp) that the user has.
      */
     pptotal: number;
@@ -41,4 +36,9 @@ export interface IUserBind {
      * the maximum length of this array will never exceed 2.
      */
     previous_bind: number[];
+
+    /**
+     * The weighted accuracy of the player.
+     */
+    weightedAccuracy: number;
 }

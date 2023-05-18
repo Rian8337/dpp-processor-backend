@@ -3,6 +3,7 @@ import cors from "cors";
 import formData from "express-form-data";
 import { config } from "dotenv";
 import { DatabaseManager } from "./database/managers/DatabaseManager";
+import forwardReplay from "./routes/forward-replay";
 
 config();
 
@@ -17,19 +18,7 @@ app.use(formData.stream());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.post<
-    "/forward-replay",
-    unknown,
-    unknown,
-    {
-        filename: string;
-        replayID: string;
-        replayfile: string;
-    }
->("/forward-replay", async (req, res) => {
-    // Send response early
-    res.send("Success");
-});
+app.use("/forward-replay", forwardReplay);
 
 const port = parseInt(process.env.PORT || "3006");
 

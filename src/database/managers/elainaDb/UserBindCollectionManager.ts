@@ -1,4 +1,4 @@
-import { Collection, Filter } from "mongodb";
+import { Collection } from "mongodb";
 import { DatabaseCollectionManager } from "../DatabaseCollectionManager";
 import { IUserBind } from "../../structures/elainaDb/IUserBind";
 
@@ -14,7 +14,7 @@ export class UserBindCollectionManager extends DatabaseCollectionManager<IUserBi
             pptotal: 0,
             previous_bind: [],
             uid: 0,
-            username: "",
+            weightedAccuracy: 0,
         };
     }
 
@@ -36,8 +36,8 @@ export class UserBindCollectionManager extends DatabaseCollectionManager<IUserBi
             {
                 projection: {
                     _id: 0,
+                    discordid: 1,
                     uid: 1,
-                    username: 1,
                     pp: 1,
                     pptotal: 1,
                     playc: 1,

@@ -1,6 +1,6 @@
 import { IMapWhitelist } from "../../structures/elainaDb/IMapWhitelist";
 import { DatabaseCollectionManager } from "../DatabaseCollectionManager";
-import { Collection, Filter, Sort } from "mongodb";
+import { Collection } from "mongodb";
 
 /**
  * A manager for the `mapwhitelist` command.

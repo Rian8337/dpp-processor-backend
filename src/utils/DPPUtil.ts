@@ -1,4 +1,7 @@
-import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
+import {
+    ReplayAnalyzer,
+    ReplayData,
+} from "@rian8337/osu-droid-replay-analyzer";
 import { Player, Score } from "@rian8337/osu-droid-utilities";
 import {
     DroidDifficultyCalculator,
@@ -22,6 +25,7 @@ export abstract class DPPUtil {
      * Submits a replay to the dpp database.
      *
      * @param replay The replay to submit.
+     * @param replayFilename The name of the replay file.
      * @returns Whether the submission was successful.
      */
     static async submitReplay(replay: ReplayAnalyzer): Promise<boolean> {
@@ -67,6 +71,7 @@ export abstract class DPPUtil {
 
         return this.submitToDatabase(
             replay,
+            player.uid,
             bindInfo,
             performanceCalculationResult
         );
@@ -130,12 +135,14 @@ export abstract class DPPUtil {
      * Submits a replay to the database.
      *
      * @param replay The replay.
+     * @param playerId The ID of the player.
      * @param databaseEntry The database entry to submit the replay to.
      * @param result The calculation result of the replay.
      * @returns Whether the submission was successful.
      */
     private static async submitToDatabase(
         replay: ReplayAnalyzer,
+        playerId: number,
         databaseEntry: IUserBind,
         result: PerformanceCalculationResult<
             DroidDifficultyCalculator,
@@ -151,7 +158,13 @@ export abstract class DPPUtil {
             return false;
         }
 
-        const ppEntry = DPPUtil.scoreToPPEntry(beatmap, result, replay.scoreID);
+        const ppEntry = DPPUtil.scoreToPPEntry(
+            beatmap,
+            playerId,
+            replay.scoreID,
+            replay.data,
+            result
+        );
 
         if (this.checkScoreInsertion(databaseEntry.pp, ppEntry)) {
             await beatmap.retrieveBeatmapFile();
@@ -228,17 +241,34 @@ export abstract class DPPUtil {
      * Converts a calculation result to PP entry.
      *
      * @param beatmap The beatmap.
+     * @param playerId The ID of the player.
+     * @param scoreId The ID of the score.
+     * @param replayData The replay data.
      * @param calculationResult The dpp calculation result of the beatmap.
      * @returns A PP entry from the beatmap and calculation result.
      */
     private static scoreToPPEntry(
         beatmap: MapInfo,
+        playerId: number,
+        scoreId: number,
+        replayData: ReplayData,
         calculationResult: PerformanceCalculationResult<
             DroidDifficultyCalculator,
             DroidPerformanceCalculator
-        >,
-        scoreId: number
+        >
     ): PPEntry {
+        let replayFilename = `${playerId}_${replayData.hash}_${
+            replayData.convertedMods.map((v) => v.droidString) || "-"
+        }`;
+
+        if (replayData.speedModification !== 1) {
+            replayFilename += `_${replayData.speedModification}x`;
+        }
+
+        if (replayData.forcedAR !== undefined) {
+            replayFilename += `_AR${replayData.forcedAR}`;
+        }
+
         return {
             hash: beatmap.hash,
             title: beatmap.fullTitle,
@@ -254,6 +284,11 @@ export abstract class DPPUtil {
             combo: calculationResult.params.combo ?? beatmap.maxCombo,
             miss: calculationResult.params.accuracy.nmiss,
             scoreID: scoreId,
+            speedMultiplier:
+                replayData.speedModification !== 1
+                    ? replayData.speedModification
+                    : undefined,
+            replayFilename: replayFilename,
         };
     }
 

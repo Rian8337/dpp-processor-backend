@@ -45,6 +45,11 @@ export interface PPEntry {
     scoreID: number;
 
     /**
+     * The file name of the replay of this score.
+     */
+    replayFilename: string;
+
+    /**
      * The forced AR used in the score.
      */
     forcedAR?: number;

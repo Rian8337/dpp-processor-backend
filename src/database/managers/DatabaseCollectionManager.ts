@@ -68,7 +68,7 @@ export abstract class DatabaseCollectionManager<T extends Document> {
         filter: Filter<T>,
         query: UpdateFilter<T> | Partial<T>,
         options: UpdateOptions = {}
-    ): Promise<UpdateResult> {
+    ): Promise<UpdateResult<T>> {
         return this.collection.updateMany(filter, query, options);
     }
 
@@ -84,7 +84,7 @@ export abstract class DatabaseCollectionManager<T extends Document> {
         filter: Filter<T>,
         query: UpdateFilter<T> | Partial<T>,
         options: UpdateOptions = {}
-    ): Promise<UpdateResult> {
+    ): Promise<UpdateResult<T>> {
         return this.collection.updateOne(filter, query, options);
     }
 

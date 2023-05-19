@@ -303,7 +303,7 @@ export abstract class DPPUtil {
                 replayData.speedModification !== 1
                     ? replayData.speedModification
                     : undefined,
-            replayFilename: replayFilename,
+            forcedAR: replayData.forcedAR,
         };
     }
 

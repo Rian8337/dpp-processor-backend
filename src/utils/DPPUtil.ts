@@ -16,6 +16,7 @@ import { DPPSubmissionValidity } from "../enums/DPPSubmissionValidity";
 import { WhitelistUtil } from "./WhitelistUtil";
 import { IUserBind } from "../database/structures/elainaDb/IUserBind";
 import { PPEntry } from "../structures/PPEntry";
+import { PPSubmissionStatus } from "../structures/PPSubmissionStatus";
 
 /**
  * Utilities that are related to dpp.
@@ -28,27 +29,29 @@ export abstract class DPPUtil {
      * @param replayFilename The name of the replay file.
      * @returns Whether the submission was successful.
      */
-    static async submitReplay(replay: ReplayAnalyzer): Promise<boolean> {
+    static async submitReplay(
+        replay: ReplayAnalyzer
+    ): Promise<PPSubmissionStatus> {
         const { data } = replay;
         if (!data?.playerName) {
-            return false;
+            return { success: false };
         }
 
         const player = await Player.getInformation(data.playerName);
         if (!player) {
-            return false;
+            return { success: false };
         }
 
         const beatmapInfo = await getBeatmap(data.hash, { checkFile: false });
         if (!beatmapInfo) {
-            return false;
+            return { success: false };
         }
 
         if (
             (await this.checkSubmissionValidity(beatmapInfo)) !==
             DPPSubmissionValidity.valid
         ) {
-            return false;
+            return { success: false };
         }
 
         const bindInfo =
@@ -57,7 +60,7 @@ export abstract class DPPUtil {
             );
 
         if (!bindInfo) {
-            return false;
+            return { success: false };
         }
 
         const performanceCalculationResult =
@@ -66,7 +69,7 @@ export abstract class DPPUtil {
             );
 
         if (!performanceCalculationResult) {
-            return false;
+            return { success: false };
         }
 
         return this.submitToDatabase(
@@ -148,14 +151,14 @@ export abstract class DPPUtil {
             DroidDifficultyCalculator,
             DroidPerformanceCalculator
         >
-    ): Promise<boolean> {
+    ): Promise<PPSubmissionStatus> {
         if (!replay.data) {
-            return false;
+            return { success: false };
         }
 
         const beatmap = await getBeatmap(replay.data.hash);
         if (!beatmap) {
-            return false;
+            return { success: false };
         }
 
         const ppEntry = DPPUtil.scoreToPPEntry(
@@ -166,11 +169,13 @@ export abstract class DPPUtil {
             result
         );
 
+        let replayNeedsPersistence = false;
+
         if (this.checkScoreInsertion(databaseEntry.pp, ppEntry)) {
             await beatmap.retrieveBeatmapFile();
 
             if (!beatmap.hasDownloadedBeatmap()) {
-                return false;
+                return { success: false };
             }
 
             await BeatmapDroidDifficultyCalculator.applyTapPenalty(
@@ -185,7 +190,10 @@ export abstract class DPPUtil {
 
             ppEntry.pp = MathUtils.round(result.result.total, 2);
 
-            this.insertScore(databaseEntry.pp, [ppEntry]);
+            replayNeedsPersistence = this.insertScore(
+                databaseEntry.pp,
+                ppEntry
+            );
         }
 
         const updateResult = await DatabaseManager.elainaDb.collections.userBind
@@ -212,7 +220,10 @@ export abstract class DPPUtil {
             await this.updateDiscordMetadata(databaseEntry.discordid);
         }
 
-        return !!updateResult;
+        return {
+            success: !!updateResult,
+            replayNeedsPersistence: replayNeedsPersistence,
+        };
     }
 
     /**
@@ -300,43 +311,49 @@ export abstract class DPPUtil {
      * Inserts a score into a list of dpp plays.
      *
      * @param list The list of dpp plays.
-     * @param entries The plays to add.
+     * @param entry The play to add.
+     * @returns Whether the replay file associated with the play needs to be persisted.
      */
-    private static insertScore(list: PPEntry[], entries: PPEntry[]): void {
+    private static insertScore(list: PPEntry[], entry: PPEntry): boolean {
+        if (isNaN(entry.pp)) {
+            return false;
+        }
+
+        if (list.length >= 75 && list[list.length - 1].pp >= entry.pp) {
+            return false;
+        }
+
+        let found = false;
         let needsSorting = false;
 
-        for (const entry of entries) {
-            if (isNaN(entry.pp)) {
-                continue;
+        for (let i = 0; i < list.length; ++i) {
+            if (list[i].hash === entry.hash && list[i].pp < entry.pp) {
+                found = true;
+                list[i] = entry;
+                break;
             }
-
-            if (list.length >= 75 && list[list.length - 1].pp >= entry.pp) {
-                continue;
-            }
-
-            let found = false;
-            for (let i = 0; i < list.length; ++i) {
-                if (list[i].hash === entry.hash && list[i].pp < entry.pp) {
-                    found = true;
-                    list[i] = entry;
-                    break;
-                }
-            }
-
-            if (!found) {
-                list.push(entry);
-            }
-
-            needsSorting = true;
         }
+
+        if (!found) {
+            list.push(entry);
+        }
+
+        needsSorting = true;
 
         if (needsSorting) {
             list.sort((a, b) => b.pp - a.pp);
         }
 
+        let replayNeedsPersistence = true;
         while (list.length > 75) {
+            if (list[list.length - 1].hash === entry.hash) {
+                replayNeedsPersistence = false;
+            }
+
             list.pop();
         }
+
+        return replayNeedsPersistence;
     }
 
     /**

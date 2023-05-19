@@ -406,7 +406,7 @@ export abstract class DPPUtil {
         formData.append("key", process.env.DISCORD_OAUTH_BACKEND_INTERNAL_KEY!);
 
         const success = await fetch(
-            "https://droidpp.osudroid.moe/api/discord/update-metadata",
+            "http://127.0.0.1:3004/api/discord/update-metadata",
             {
                 method: "POST",
                 body: formData,

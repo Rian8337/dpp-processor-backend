@@ -396,7 +396,7 @@ export abstract class DPPUtil {
      * Updates the Discord metadata of a user.
      *
      * @param userId The ID of the user.
-     * @returns
+     * @returns Whether the request was successful.
      */
     private static async updateDiscordMetadata(
         userId: string

@@ -238,9 +238,9 @@ export abstract class DifficultyAttributesCacheManager<
                 join(this.folderPath, `${beatmapId}.json`),
                 JSON.stringify(cache)
             );
-        }
 
-        this.cacheToSave.clear();
+            this.cache.delete(beatmapId);
+        }
     }
 
     /**

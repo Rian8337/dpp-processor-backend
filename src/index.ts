@@ -3,6 +3,7 @@ import cors from "cors";
 import formData from "express-form-data";
 import { config } from "dotenv";
 import { DatabaseManager } from "./database/managers/DatabaseManager";
+import getDifficultyAttributes from "./routes/get-difficulty-attributes";
 import forwardReplay from "./routes/forward-replay";
 
 config();
@@ -18,6 +19,7 @@ app.use(formData.stream());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.use("/get-difficulty-attributes", getDifficultyAttributes);
 app.use("/forward-replay", forwardReplay);
 
 const port = parseInt(process.env.PORT || "3006");

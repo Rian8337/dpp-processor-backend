@@ -194,7 +194,12 @@ export abstract class DPPUtil {
             return { success: false, reason: "Beatmap not found" };
         }
 
-        const ppEntry = DPPUtil.scoreToPPEntry(beatmap, replay.data, result);
+        const ppEntry = DPPUtil.scoreToPPEntry(
+            beatmap,
+            playerId,
+            replay.data,
+            result
+        );
 
         let replayNeedsPersistence = false;
 
@@ -287,12 +292,14 @@ export abstract class DPPUtil {
      * Converts a calculation result to PP entry.
      *
      * @param beatmap The beatmap.
+     * @param playerId The ID of the player.
      * @param replayData The replay data.
      * @param calculationResult The dpp calculation result of the beatmap.
      * @returns A PP entry from the beatmap and calculation result.
      */
     private static scoreToPPEntry(
         beatmap: MapInfo,
+        playerId: number,
         replayData: ReplayData,
         calculationResult: PerformanceCalculationResult<
             DroidDifficultyCalculator,
@@ -300,6 +307,7 @@ export abstract class DPPUtil {
         >
     ): PPEntry {
         return {
+            uid: playerId,
             hash: beatmap.hash,
             title: beatmap.fullTitle,
             pp: MathUtils.round(calculationResult.result.total, 2),

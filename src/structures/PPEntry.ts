@@ -3,6 +3,11 @@
  */
 export interface PPEntry {
     /**
+     * The uid where this score belongs.
+     */
+    uid: number;
+
+    /**
      * The MD5 hash of the beatmap.
      */
     hash: string;

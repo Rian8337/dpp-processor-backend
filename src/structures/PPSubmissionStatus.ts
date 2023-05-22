@@ -8,6 +8,11 @@ export interface PPSubmissionStatus {
     success: boolean;
 
     /**
+     * The reason for failure.
+     */
+    reason?: string;
+
+    /**
      * Whether the replay file needs to be persisted.
      */
     replayNeedsPersistence?: boolean;

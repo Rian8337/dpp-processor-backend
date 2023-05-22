@@ -5,6 +5,7 @@ import { config } from "dotenv";
 import { DatabaseManager } from "./database/managers/DatabaseManager";
 import getDifficultyAttributes from "./routes/get-difficulty-attributes";
 import forwardReplay from "./routes/forward-replay";
+import submitScore from "./routes/submit-score";
 
 config();
 
@@ -21,6 +22,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/get-difficulty-attributes", getDifficultyAttributes);
 app.use("/forward-replay", forwardReplay);
+app.use("/submit-score", submitScore);
 
 const port = parseInt(process.env.PORT || "3006");
 

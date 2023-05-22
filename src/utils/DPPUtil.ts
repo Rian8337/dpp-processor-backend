@@ -26,41 +26,71 @@ export abstract class DPPUtil {
      * Submits a replay to the dpp database.
      *
      * @param replay The replay to submit.
-     * @param replayFilename The name of the replay file.
+     * @param uid The uid of the player, if any.
      * @returns Whether the submission was successful.
      */
     static async submitReplay(
-        replay: ReplayAnalyzer
+        replay: ReplayAnalyzer,
+        uid?: number
     ): Promise<PPSubmissionStatus> {
         const { data } = replay;
-        if (!data?.playerName) {
-            return { success: false };
+        if (!data) {
+            return { success: false, reason: "No replay data found" };
         }
 
-        const player = await Player.getInformation(data.playerName);
-        if (!player) {
-            return { success: false };
+        if (uid === undefined) {
+            if (!data.playerName) {
+                return {
+                    success: false,
+                    reason: "Replay does not have any player name",
+                };
+            }
+
+            const player = await Player.getInformation(data.playerName);
+
+            if (!player) {
+                return { success: false, reason: "Player not found" };
+            }
+
+            uid = player.uid;
         }
 
         const beatmapInfo = await getBeatmap(data.hash, { checkFile: false });
         if (!beatmapInfo) {
-            return { success: false };
+            return { success: false, reason: "Beatmap not found" };
         }
 
-        if (
-            (await this.checkSubmissionValidity(beatmapInfo)) !==
-            DPPSubmissionValidity.valid
-        ) {
-            return { success: false };
+        const submissionValidity = await this.checkSubmissionValidity(
+            beatmapInfo
+        );
+        if (submissionValidity !== DPPSubmissionValidity.valid) {
+            let reason: string;
+            switch (submissionValidity) {
+                case DPPSubmissionValidity.beatmapNotFound:
+                    reason = "Beatmap not found";
+                    break;
+                case DPPSubmissionValidity.beatmapTooShort:
+                    reason = "Beatmap too short";
+                    break;
+                case DPPSubmissionValidity.beatmapIsBlacklisted:
+                    reason = "Beatmap is blacklisted";
+                    break;
+                case DPPSubmissionValidity.beatmapNotWhitelisted:
+                    reason = "Beatmap is not whitelisted";
+                    break;
+                case DPPSubmissionValidity.scoreUsesForceAR:
+                    reason = "Score uses force AR";
+                    break;
+            }
+
+            return { success: false, reason: reason };
         }
 
         const bindInfo =
-            await DatabaseManager.elainaDb.collections.userBind.getFromUid(
-                player.uid
-            );
+            await DatabaseManager.elainaDb.collections.userBind.getFromUid(uid);
 
         if (!bindInfo) {
-            return { success: false };
+            return { success: false, reason: "Bind information not found" };
         }
 
         const performanceCalculationResult =
@@ -69,12 +99,15 @@ export abstract class DPPUtil {
             );
 
         if (!performanceCalculationResult) {
-            return { success: false };
+            return {
+                success: false,
+                reason: "Performance points calculation failed",
+            };
         }
 
         return this.submitToDatabase(
             replay,
-            player.uid,
+            uid,
             bindInfo,
             performanceCalculationResult
         );
@@ -153,21 +186,15 @@ export abstract class DPPUtil {
         >
     ): Promise<PPSubmissionStatus> {
         if (!replay.data) {
-            return { success: false };
+            return { success: false, reason: "Replay data not found" };
         }
 
         const beatmap = await getBeatmap(replay.data.hash);
         if (!beatmap) {
-            return { success: false };
+            return { success: false, reason: "Beatmap not found" };
         }
 
-        const ppEntry = DPPUtil.scoreToPPEntry(
-            beatmap,
-            playerId,
-            replay.scoreID,
-            replay.data,
-            result
-        );
+        const ppEntry = DPPUtil.scoreToPPEntry(beatmap, replay.data, result);
 
         let replayNeedsPersistence = false;
 
@@ -175,7 +202,10 @@ export abstract class DPPUtil {
             await beatmap.retrieveBeatmapFile();
 
             if (!beatmap.hasDownloadedBeatmap()) {
-                return { success: false };
+                return {
+                    success: false,
+                    reason: "Beatmap file could not be downloaded",
+                };
             }
 
             await BeatmapDroidDifficultyCalculator.applyTapPenalty(
@@ -222,6 +252,7 @@ export abstract class DPPUtil {
 
         return {
             success: !!updateResult,
+            reason: "Score submission to database failed",
             replayNeedsPersistence: replayNeedsPersistence,
         };
     }
@@ -256,34 +287,18 @@ export abstract class DPPUtil {
      * Converts a calculation result to PP entry.
      *
      * @param beatmap The beatmap.
-     * @param playerId The ID of the player.
-     * @param scoreId The ID of the score.
      * @param replayData The replay data.
      * @param calculationResult The dpp calculation result of the beatmap.
      * @returns A PP entry from the beatmap and calculation result.
      */
     private static scoreToPPEntry(
         beatmap: MapInfo,
-        playerId: number,
-        scoreId: number,
         replayData: ReplayData,
         calculationResult: PerformanceCalculationResult<
             DroidDifficultyCalculator,
             DroidPerformanceCalculator
         >
     ): PPEntry {
-        let replayFilename = `${playerId}_${replayData.hash}_${
-            replayData.convertedMods.map((v) => v.droidString) || "-"
-        }`;
-
-        if (replayData.speedModification !== 1) {
-            replayFilename += `_${replayData.speedModification}x`;
-        }
-
-        if (replayData.forcedAR !== undefined) {
-            replayFilename += `_AR${replayData.forcedAR}`;
-        }
-
         return {
             hash: beatmap.hash,
             title: beatmap.fullTitle,
@@ -298,7 +313,6 @@ export abstract class DPPUtil {
             ),
             combo: calculationResult.params.combo ?? beatmap.maxCombo,
             miss: calculationResult.params.accuracy.nmiss,
-            scoreID: scoreId,
             speedMultiplier:
                 replayData.speedModification !== 1
                     ? replayData.speedModification

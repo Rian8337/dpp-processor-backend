@@ -3,7 +3,7 @@
  */
 export interface PPEntry {
     /**
-     * The uid where this score belongs.
+     * The uid of the osu!droid account of which this score belongs to.
      */
     uid: number;
 

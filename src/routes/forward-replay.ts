@@ -33,7 +33,7 @@ router.post<
         const formData = new FormData();
         formData.append("filename", req.body.filename);
 
-        await fetch("http://127.0.0.1:3005/persist-replay", {
+        await fetch("http://127.0.0.1:3005/persist-local-replay", {
             method: "POST",
             body: formData,
         }).catch(() => null);

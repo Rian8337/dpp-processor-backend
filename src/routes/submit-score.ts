@@ -23,7 +23,28 @@ router.post<"/", unknown, unknown, { uid: string; scoreId: string }>(
         );
 
         if (!status.success) {
-            res.status(400);
+            return res.status(400).json({ error: status.reason });
+        }
+
+        if (status.replayNeedsPersistence) {
+            const formData = new FormData();
+            formData.append("uid", req.body.uid);
+            formData.append("scoreId", req.body.scoreId);
+
+            const persistResponse = await fetch(
+                "http://127.0.0.1:3005/persist-online-replay",
+                {
+                    method: "POST",
+                    body: formData,
+                }
+            ).catch(() => null);
+
+            if (!persistResponse || persistResponse.status !== 200) {
+                res.status(persistResponse?.status ?? 400);
+
+                const json = await persistResponse?.json();
+                return res.json(json ?? { error: "Replay persisting failed" });
+            }
         }
 
         res.json(status);

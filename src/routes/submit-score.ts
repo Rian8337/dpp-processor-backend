@@ -1,11 +1,13 @@
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import { Router } from "express";
 import { DPPUtil } from "../utils/DPPUtil";
+import { Util } from "../utils/Util";
 
 const router = Router();
 
-router.post<"/", unknown, unknown, { uid: string; scoreId: string }>(
+router.post<"/", unknown, unknown, { key: string; uid: string; scoreId: string }>(
     "/",
+    Util.validatePOSTInternalKey,
     async (req, res) => {
         const analyzer = new ReplayAnalyzer({
             scoreID: parseInt(req.body.scoreId),

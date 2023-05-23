@@ -7,6 +7,7 @@ import { CacheableDifficultyAttributes } from "../structures/difficultyattribute
 import { BeatmapDroidDifficultyCalculator } from "../utils/calculator/BeatmapDroidDifficultyCalculator";
 import { DifficultyCalculationParameters } from "../utils/calculator/DifficultyCalculationParameters";
 import { BeatmapOsuDifficultyCalculator } from "../utils/calculator/BeatmapOsuDifficultyCalculator";
+import { Util } from "../utils/Util";
 
 const router = Router();
 
@@ -16,6 +17,7 @@ router.get<
     unknown,
     unknown,
     {
+        key: string;
         beatmaphash: string;
         gamemode: string;
         calculationmethod: string;
@@ -24,7 +26,7 @@ router.get<
         customspeedmultiplier?: string;
         forcear?: string;
     }
->("/", async (req, res) => {
+>("/", Util.validateGETInternalKey, async (req, res) => {
     const mods = ModUtil.pcStringToMods(req.query.mods ?? "");
     const oldStatistics = req.query.oldstatistics !== undefined;
 

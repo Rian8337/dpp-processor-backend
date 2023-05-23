@@ -55,6 +55,14 @@ export abstract class DPPUtil {
             uid = player.uid;
         }
 
+        if (
+            await DatabaseManager.elainaDb.collections.dppBan.isPlayerBanned(
+                uid
+            )
+        ) {
+            return { success: false, reason: "Player is banned from system" };
+        }
+
         const beatmapInfo = await getBeatmap(data.hash, { checkFile: false });
         if (!beatmapInfo) {
             return { success: false, reason: "Beatmap not found" };

@@ -2,6 +2,7 @@ import { Db } from "mongodb";
 import { MapBlacklistCollectionManager } from "./elainaDb/MapBlacklistCollectionManager";
 import { MapWhitelistCollectionManager } from "./elainaDb/MapWhitelistCollectionManager";
 import { UserBindCollectionManager } from "./elainaDb/UserBindCollectionManager";
+import { DPPBanCollectionManager } from "./elainaDb/DPPBanCollectionManager";
 
 /**
  * Contains collections from Elaina DB.
@@ -18,6 +19,11 @@ export class ElainaDBCollection {
     readonly mapWhitelist: MapWhitelistCollectionManager;
 
     /**
+     * The database collection for dpp ban information of players.
+     */
+    readonly dppBan: DPPBanCollectionManager;
+
+    /**
      * The database collection for Discord users who have their osu!droid account(s) binded.
      */
     readonly userBind: UserBindCollectionManager;
@@ -32,6 +38,7 @@ export class ElainaDBCollection {
         this.mapWhitelist = new MapWhitelistCollectionManager(
             elainaDb.collection("mapwhitelist")
         );
+        this.dppBan = new DPPBanCollectionManager(elainaDb.collection("ppban"));
         this.userBind = new UserBindCollectionManager(
             elainaDb.collection("userbind")
         );

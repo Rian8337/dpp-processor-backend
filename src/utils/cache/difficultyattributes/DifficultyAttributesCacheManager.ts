@@ -4,9 +4,9 @@ import { Collection } from "@discordjs/collection";
 import { MapInfo, Mod, Modes } from "@rian8337/osu-base";
 import { Util } from "../../Util";
 import { PPCalculationMethod } from "../../../structures/PPCalculationMethod";
-import { RawDifficultyAttributes } from "../../../structures/difficultyattributes/RawDifficultyAttributes";
-import { CacheableDifficultyAttributes } from "../../../structures/difficultyattributes/CacheableDifficultyAttributes";
-import { CachedDifficultyAttributes } from "../../../structures/difficultyattributes/CachedDifficultyAttributes";
+import { RawDifficultyAttributes } from "../../../structures/attributes/RawDifficultyAttributes";
+import { CacheableDifficultyAttributes } from "../../../structures/attributes/CacheableDifficultyAttributes";
+import { CachedDifficultyAttributes } from "../../../structures/attributes/CachedDifficultyAttributes";
 
 /**
  * A cache manager for difficulty attributes.

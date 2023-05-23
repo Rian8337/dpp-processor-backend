@@ -4,6 +4,7 @@ import formData from "express-form-data";
 import { config } from "dotenv";
 import { DatabaseManager } from "./database/managers/DatabaseManager";
 import getDifficultyAttributes from "./routes/get-difficulty-attributes";
+import getOnlineScorePerformance from "./routes/get-online-score-performance";
 import forwardReplay from "./routes/forward-replay";
 import submitScore from "./routes/submit-score";
 
@@ -21,6 +22,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/get-difficulty-attributes", getDifficultyAttributes);
+app.use("/get-online-score-performance", getOnlineScorePerformance);
 app.use("/forward-replay", forwardReplay);
 app.use("/submit-score", submitScore);
 

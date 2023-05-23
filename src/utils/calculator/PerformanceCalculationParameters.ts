@@ -1,7 +1,7 @@
 import { Accuracy, MapStats } from "@rian8337/osu-base";
 import { SliderCheeseInformation } from "@rian8337/osu-droid-replay-analyzer";
 import { DifficultyCalculationParameters } from "./DifficultyCalculationParameters";
-import { RawDifficultyAttributes } from "../../structures/difficultyattributes/RawDifficultyAttributes";
+import { RawDifficultyAttributes } from "../../structures/attributes/RawDifficultyAttributes";
 
 /**
  * Represents a parameter to alter performance calculation result.

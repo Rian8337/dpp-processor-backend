@@ -4,7 +4,7 @@ import {
     DifficultyCalculator,
 } from "@rian8337/osu-difficulty-calculator";
 import { IDifficultyCalculationResult } from "../../structures/calculator/IDifficultyCalculationResult";
-import { CacheableDifficultyAttributes } from "../../structures/difficultyattributes/CacheableDifficultyAttributes";
+import { CacheableDifficultyAttributes } from "../../structures/attributes/CacheableDifficultyAttributes";
 
 /**
  * Represents a beatmap's difficulty calculation result.

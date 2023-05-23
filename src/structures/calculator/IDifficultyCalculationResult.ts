@@ -7,7 +7,7 @@ import {
     DifficultyCalculator as RebalanceDifficultyCalculator,
     DifficultyAttributes as RebalanceDifficultyAttributes,
 } from "@rian8337/osu-rebalance-difficulty-calculator";
-import { CacheableDifficultyAttributes } from "../difficultyattributes/CacheableDifficultyAttributes";
+import { CacheableDifficultyAttributes } from "../attributes/CacheableDifficultyAttributes";
 
 /**
  * A structure for implementing difficulty calculation results.

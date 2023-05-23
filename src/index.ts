@@ -4,6 +4,7 @@ import formData from "express-form-data";
 import { config } from "dotenv";
 import { DatabaseManager } from "./database/managers/DatabaseManager";
 import getDifficultyAttributes from "./routes/get-difficulty-attributes";
+import getBeatmapPerformance from "./routes/get-beatmap-performance";
 import getOnlineScorePerformance from "./routes/get-online-score-performance";
 import forwardReplay from "./routes/forward-replay";
 import submitScore from "./routes/submit-score";
@@ -22,6 +23,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/get-difficulty-attributes", getDifficultyAttributes);
+app.use("/get-beatmap-performance", getBeatmapPerformance);
 app.use("/get-online-score-performance", getOnlineScorePerformance);
 app.use("/forward-replay", forwardReplay);
 app.use("/submit-score", submitScore);

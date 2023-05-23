@@ -29,7 +29,6 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
 
     /**
      * @param accuracy The accuracy achieved.
-     * @param inputAccuracy The accuracy that a user inputs, if any.
      * @param combo The combo achieved.
      * @param tapPenalty The tap penalty to apply for penalized scores.
      * @param customStatistics The custom statistics that was used in difficulty calculation.

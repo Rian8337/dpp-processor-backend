@@ -136,30 +136,19 @@ router.get<
     );
 
     if (!difficultyAttributes) {
-        switch (calculationMethod) {
-            case PPCalculationMethod.live: {
-                const difficultyCalculationResult =
-                    await difficultyCalculator.calculateBeatmapDifficulty(
-                        beatmap,
-                        calculationParams
-                    );
+        const difficultyCalculationResult = await (calculationMethod ===
+        PPCalculationMethod.live
+            ? difficultyCalculator.calculateBeatmapDifficulty(
+                  beatmap,
+                  calculationParams
+              )
+            : difficultyCalculator.calculateBeatmapRebalanceDifficulty(
+                  beatmap,
+                  calculationParams
+              ));
 
-                difficultyAttributes =
-                    difficultyCalculationResult?.cachedAttributes ?? null;
-                break;
-            }
-            case PPCalculationMethod.rebalance: {
-                const difficultyCalculationResult =
-                    await difficultyCalculator.calculateBeatmapRebalanceDifficulty(
-                        beatmap,
-                        calculationParams
-                    );
-
-                difficultyAttributes =
-                    difficultyCalculationResult?.cachedAttributes ?? null;
-                break;
-            }
-        }
+        difficultyAttributes =
+            difficultyCalculationResult?.cachedAttributes ?? null;
     }
 
     if (!difficultyAttributes) {

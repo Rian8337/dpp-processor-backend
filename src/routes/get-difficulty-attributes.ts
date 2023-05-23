@@ -8,6 +8,13 @@ import { BeatmapDroidDifficultyCalculator } from "../utils/calculator/BeatmapDro
 import { DifficultyCalculationParameters } from "../utils/calculator/DifficultyCalculationParameters";
 import { BeatmapOsuDifficultyCalculator } from "../utils/calculator/BeatmapOsuDifficultyCalculator";
 import { Util } from "../utils/Util";
+import { DifficultyAttributesCacheManager } from "../utils/cache/difficultyattributes/DifficultyAttributesCacheManager";
+import {
+    liveDroidDifficultyCache,
+    liveOsuDifficultyCache,
+    rebalanceDroidDifficultyCache,
+    rebalanceOsuDifficultyCache,
+} from "../utils/cache/difficultyAtributesStorage";
 
 const router = Router();
 
@@ -38,28 +45,28 @@ router.get<
     if (Number.isNaN(customSpeedMultiplier)) {
         return res
             .status(400)
-            .json({ error: "Invalid custom speed multiplier." });
+            .json({ error: "Invalid custom speed multiplier" });
     }
 
     const forceAR = req.query.forcear
         ? MathUtils.clamp(parseFloat(req.query.forcear), 0, 12.5)
         : undefined;
     if (forceAR !== undefined && Number.isNaN(forceAR)) {
-        return res.status(400).json({ error: "Invalid force AR." });
+        return res.status(400).json({ error: "Invalid force AR" });
     }
 
     const { beatmaphash, gamemode } = req.query;
     const calculationMethod = parseInt(req.query.calculationmethod);
 
     if (gamemode !== Modes.droid && gamemode !== Modes.osu) {
-        return res.status(400).json({ error: "Invalid gamemode." });
+        return res.status(400).json({ error: "Invalid gamemode" });
     }
 
     if (
         calculationMethod !== PPCalculationMethod.live &&
         calculationMethod !== PPCalculationMethod.rebalance
     ) {
-        return res.status(400).json({ error: "Invalid calculation method." });
+        return res.status(400).json({ error: "Invalid calculation method" });
     }
 
     const beatmap = await getBeatmap(beatmaphash, {
@@ -67,10 +74,11 @@ router.get<
     });
 
     if (!beatmap) {
-        return res.status(404).json({ error: "Beatmap not found." });
+        return res.status(404).json({ error: "Beatmap not found" });
     }
 
     let difficultyAttributes: CacheableDifficultyAttributes<RawDifficultyAttributes> | null;
+    let difficultyCacheManager: DifficultyAttributesCacheManager<RawDifficultyAttributes>;
     let difficultyCalculator:
         | BeatmapDroidDifficultyCalculator
         | BeatmapOsuDifficultyCalculator;
@@ -84,42 +92,78 @@ router.get<
         })
     );
 
-    switch (gamemode) {
-        case Modes.droid:
-            difficultyCalculator = new BeatmapDroidDifficultyCalculator();
-            break;
-        case Modes.osu:
-            difficultyCalculator = new BeatmapOsuDifficultyCalculator();
-            break;
-    }
+    const { customStatistics } = calculationParams;
 
     switch (calculationMethod) {
         case PPCalculationMethod.live: {
-            const difficultyCalculationResult =
-                await difficultyCalculator.calculateBeatmapDifficulty(
-                    beatmap,
-                    calculationParams
-                );
-
-            difficultyAttributes =
-                difficultyCalculationResult?.cachedAttributes ?? null;
+            switch (gamemode) {
+                case Modes.droid:
+                    difficultyCalculator =
+                        new BeatmapDroidDifficultyCalculator();
+                    difficultyCacheManager = liveDroidDifficultyCache;
+                    break;
+                case Modes.osu:
+                    difficultyCalculator = new BeatmapOsuDifficultyCalculator();
+                    difficultyCacheManager = liveOsuDifficultyCache;
+                    break;
+            }
             break;
         }
         case PPCalculationMethod.rebalance: {
-            const difficultyCalculationResult =
-                await difficultyCalculator.calculateBeatmapRebalanceDifficulty(
-                    beatmap,
-                    calculationParams
-                );
-
-            difficultyAttributes =
-                difficultyCalculationResult?.cachedAttributes ?? null;
+            switch (gamemode) {
+                case Modes.droid:
+                    difficultyCalculator =
+                        new BeatmapDroidDifficultyCalculator();
+                    difficultyCacheManager = rebalanceDroidDifficultyCache;
+                    break;
+                case Modes.osu:
+                    difficultyCalculator = new BeatmapOsuDifficultyCalculator();
+                    difficultyCacheManager = rebalanceOsuDifficultyCache;
+                    break;
+            }
             break;
+        }
+    }
+
+    difficultyAttributes = difficultyCacheManager.getDifficultyAttributes(
+        beatmap,
+        difficultyCacheManager.getAttributeName(
+            customStatistics?.mods,
+            customStatistics?.oldStatistics,
+            customStatistics?.speedMultiplier,
+            customStatistics?.isForceAR ? customStatistics.ar : undefined
+        )
+    );
+
+    if (!difficultyAttributes) {
+        switch (calculationMethod) {
+            case PPCalculationMethod.live: {
+                const difficultyCalculationResult =
+                    await difficultyCalculator.calculateBeatmapDifficulty(
+                        beatmap,
+                        calculationParams
+                    );
+
+                difficultyAttributes =
+                    difficultyCalculationResult?.cachedAttributes ?? null;
+                break;
+            }
+            case PPCalculationMethod.rebalance: {
+                const difficultyCalculationResult =
+                    await difficultyCalculator.calculateBeatmapRebalanceDifficulty(
+                        beatmap,
+                        calculationParams
+                    );
+
+                difficultyAttributes =
+                    difficultyCalculationResult?.cachedAttributes ?? null;
+                break;
+            }
         }
     }
 
     if (!difficultyAttributes) {
-        return res.status(500).json({ error: "Internal server error." });
+        return res.status(503).json({ error: "Unable to calculate beatmap" });
     }
 
     res.json(difficultyAttributes);

@@ -168,6 +168,42 @@ export abstract class DPPUtil {
     }
 
     /**
+     * Calculates the final performance points from a list of pp entries.
+     *
+     * @param list The list.
+     * @returns The final performance points.
+     */
+    static calculateFinalPerformancePoints(list: PPEntry[]): number {
+        list.sort((a, b) => b.pp - a.pp);
+
+        return list.reduce((a, v, i) => a + v.pp * Math.pow(0.95, i), 0);
+    }
+
+    /**
+     * Calculates the weighted accuracy of a dpp list.
+     *
+     * @param list The list.
+     * @returns The weighted accuracy of the list.
+     */
+    static calculateWeightedAccuracy(list: PPEntry[]): number {
+        if (list.length === 0) {
+            return 0;
+        }
+
+        let accSum = 0;
+        let weight = 0;
+        let i = 0;
+
+        for (const pp of list.values()) {
+            accSum += pp.accuracy * Math.pow(0.95, i);
+            weight += Math.pow(0.95, i);
+            ++i;
+        }
+
+        return accSum / weight;
+    }
+
+    /**
      * Submits a replay to the database.
      *
      * @param replay The replay.
@@ -376,42 +412,6 @@ export abstract class DPPUtil {
         }
 
         return replayNeedsPersistence;
-    }
-
-    /**
-     * Calculates the final performance points from a list of pp entries.
-     *
-     * @param list The list.
-     * @returns The final performance points.
-     */
-    private static calculateFinalPerformancePoints(list: PPEntry[]): number {
-        list.sort((a, b) => b.pp - a.pp);
-
-        return list.reduce((a, v, i) => a + v.pp * Math.pow(0.95, i), 0);
-    }
-
-    /**
-     * Calculates the weighted accuracy of a dpp list.
-     *
-     * @param list The list.
-     * @returns The weighted accuracy of the list.
-     */
-    private static calculateWeightedAccuracy(list: PPEntry[]): number {
-        if (list.length === 0) {
-            return 0;
-        }
-
-        let accSum = 0;
-        let weight = 0;
-        let i = 0;
-
-        for (const pp of list.values()) {
-            accSum += pp.accuracy * Math.pow(0.95, i);
-            weight += Math.pow(0.95, i);
-            ++i;
-        }
-
-        return accSum / weight;
     }
 
     /**

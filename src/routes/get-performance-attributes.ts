@@ -32,7 +32,8 @@ router.get<
     unknown,
     {
         key: string;
-        beatmaphash: string;
+        beatmapid?: string;
+        beatmaphash?: string;
         gamemode: string;
         calculationmethod: string;
         mods?: string;
@@ -50,6 +51,12 @@ router.get<
         visualslidercheesepenalty?: string;
     }
 >("/", async (req, res) => {
+    if (!req.query.beatmapid && !req.query.beatmaphash) {
+        return res
+            .status(400)
+            .json({ error: "Neither beatmap ID or hash is specified" });
+    }
+
     const mods = ModUtil.pcStringToMods(req.query.mods ?? "");
     const oldStatistics = req.query.oldstatistics !== undefined;
 
@@ -71,7 +78,7 @@ router.get<
         return res.status(400).json({ error: "Invalid force AR" });
     }
 
-    const { beatmaphash, gamemode } = req.query;
+    const { beatmapid, beatmaphash, gamemode } = req.query;
     const calculationMethod = parseInt(req.query.calculationmethod);
 
     if (gamemode !== Modes.droid && gamemode !== Modes.osu) {
@@ -85,9 +92,12 @@ router.get<
         return res.status(400).json({ error: "Invalid calculation method" });
     }
 
-    const beatmap = await getBeatmap(beatmaphash, {
-        checkFile: false,
-    });
+    const beatmap = await getBeatmap(
+        beatmapid !== undefined ? parseInt(beatmapid) : beatmaphash!,
+        {
+            checkFile: false,
+        }
+    );
 
     if (!beatmap) {
         return res.status(404).json({ error: "Beatmap not found" });

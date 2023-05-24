@@ -12,7 +12,6 @@ import { BeatmapOsuDifficultyCalculator } from "../utils/calculator/BeatmapOsuDi
 import { BeatmapDroidDifficultyCalculator } from "../utils/calculator/BeatmapDroidDifficultyCalculator";
 import { PerformanceCalculationParameters } from "../utils/calculator/PerformanceCalculationParameters";
 import { DroidPerformanceAttributes } from "../structures/attributes/DroidPerformanceAttributes";
-import { CacheableDifficultyAttributes } from "../structures/attributes/CacheableDifficultyAttributes";
 import {
     DroidDifficultyAttributes,
     OsuDifficultyAttributes,
@@ -26,7 +25,6 @@ import { CompleteCalculationAttributes } from "../structures/attributes/Complete
 
 const router = Router();
 
-// Support both gamemode
 router.get<
     "/",
     unknown,
@@ -41,11 +39,11 @@ router.get<
         oldstatistics?: string;
         customspeedmultiplier?: string;
         forcear?: string;
-        n300: string;
-        n100: string;
-        n50: string;
-        nmiss: string;
-        maxcombo: string;
+        n300?: string;
+        n100?: string;
+        n50?: string;
+        nmiss?: string;
+        maxcombo?: string;
         aimslidercheesepenalty?: string;
         tappenalty?: string;
         flashlightslidercheesepenalty?: string;
@@ -97,12 +95,19 @@ router.get<
 
     const calculationParams = new PerformanceCalculationParameters(
         new Accuracy({
-            n300: Math.max(0, parseInt(req.query.n300)),
-            n100: Math.max(0, parseInt(req.query.n100)),
-            n50: Math.max(0, parseInt(req.query.n50)),
-            nmiss: Math.max(0, parseInt(req.query.nmiss)),
+            n300: Math.max(
+                0,
+                parseInt(req.query.n300 ?? beatmap.objects.toString())
+            ),
+            n100: Math.max(0, parseInt(req.query.n100 ?? "0")),
+            n50: Math.max(0, parseInt(req.query.n50 ?? "0")),
+            nmiss: Math.max(0, parseInt(req.query.nmiss ?? "0")),
         }),
-        MathUtils.clamp(parseInt(req.query.maxcombo), 0, beatmap.maxCombo),
+        MathUtils.clamp(
+            parseInt(req.query.maxcombo ?? beatmap.maxCombo.toString()),
+            0,
+            beatmap.maxCombo
+        ),
         parseInt(req.query.tappenalty ?? "1"),
         new MapStats({
             mods: mods,

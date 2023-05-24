@@ -6,7 +6,7 @@ import { DatabaseManager } from "./database/managers/DatabaseManager";
 import calculateBeatmapFile from "./routes/calculate-beatmap-file";
 import getDifficultyAttributes from "./routes/get-difficulty-attributes";
 import getPerformanceAttributes from "./routes/get-performance-attributes";
-import getOnlineScorePerformance from "./routes/get-online-score-performance";
+import getOnlineScoreAttributes from "./routes/get-online-score-attributes";
 import forwardReplay from "./routes/forward-replay";
 import submitScore from "./routes/submit-score";
 
@@ -26,7 +26,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/calculate-beatmap-file", calculateBeatmapFile);
 app.use("/get-difficulty-attributes", getDifficultyAttributes);
 app.use("/get-performance-attributes", getPerformanceAttributes);
-app.use("/get-online-score-performance", getOnlineScorePerformance);
+app.use("/get-online-score-attributes", getOnlineScoreAttributes);
 app.use("/forward-replay", forwardReplay);
 app.use("/submit-score", submitScore);
 

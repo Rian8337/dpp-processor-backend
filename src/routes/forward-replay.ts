@@ -28,17 +28,7 @@ router.post<
     replayAnalyzer.originalODR = await Util.readFile(fileStream);
     await replayAnalyzer.analyze();
 
-    const status = await DPPUtil.submitReplay(replayAnalyzer);
-    if (status.success && status.replayNeedsPersistence) {
-        // Request the replay server to persist the replay.
-        const formData = new FormData();
-        formData.append("filename", req.body.filename);
-
-        await fetch("http://127.0.0.1:3005/persist-local-replay", {
-            method: "POST",
-            body: formData,
-        }).catch(() => null);
-    }
+    await DPPUtil.submitReplay(replayAnalyzer);
 });
 
 export default router;

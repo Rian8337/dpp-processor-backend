@@ -17,6 +17,7 @@ import { WhitelistUtil } from "./WhitelistUtil";
 import { IUserBind } from "../database/structures/elainaDb/IUserBind";
 import { PPEntry } from "../structures/PPEntry";
 import { PPSubmissionStatus } from "../structures/PPSubmissionStatus";
+import { persistReplay, saveReplay } from "./replayBackendManager";
 
 /**
  * Utilities that are related to dpp.
@@ -33,8 +34,8 @@ export abstract class DPPUtil {
         replay: ReplayAnalyzer,
         uid?: number
     ): Promise<PPSubmissionStatus> {
-        const { data } = replay;
-        if (!data) {
+        const { data, originalODR } = replay;
+        if (!data || !originalODR) {
             return { success: false, reason: "No replay data found" };
         }
 
@@ -101,6 +102,12 @@ export abstract class DPPUtil {
             return { success: false, reason: "Bind information not found" };
         }
 
+        // Instruct the replay backend to save the replay.
+        const replayFilename = await saveReplay(uid, originalODR);
+        if (!replayFilename) {
+            return { success: false, reason: "Replay saving failed" };
+        }
+
         const performanceCalculationResult =
             await new BeatmapDroidDifficultyCalculator().calculateReplayPerformance(
                 replay
@@ -115,6 +122,7 @@ export abstract class DPPUtil {
 
         return this.submitToDatabase(
             replay,
+            replayFilename,
             uid,
             bindInfo,
             performanceCalculationResult
@@ -215,6 +223,7 @@ export abstract class DPPUtil {
      * Submits a replay to the database.
      *
      * @param replay The replay.
+     * @param replayFilename The name of the replay file in the replay backend.
      * @param playerId The ID of the player.
      * @param databaseEntry The database entry to submit the replay to.
      * @param result The calculation result of the replay.
@@ -222,6 +231,7 @@ export abstract class DPPUtil {
      */
     private static async submitToDatabase(
         replay: ReplayAnalyzer,
+        replayFilename: string,
         playerId: number,
         databaseEntry: IUserBind,
         result: PerformanceCalculationResult<
@@ -229,7 +239,7 @@ export abstract class DPPUtil {
             DroidPerformanceCalculator
         >
     ): Promise<PPSubmissionStatus> {
-        if (!replay.data) {
+        if (!replay.data || !replay.originalODR) {
             return { success: false, reason: "Replay data not found" };
         }
 
@@ -275,6 +285,14 @@ export abstract class DPPUtil {
             );
         }
 
+        if (replayNeedsPersistence) {
+            const persistenceResult = await persistReplay(replayFilename);
+
+            if (!persistenceResult) {
+                return { success: false, reason: "Replay persistence failed" };
+            }
+        }
+
         const updateResult = await DatabaseManager.elainaDb.collections.userBind
             .updateOne(
                 { discordid: databaseEntry.discordid },
@@ -295,13 +313,17 @@ export abstract class DPPUtil {
             )
             .catch(() => null);
 
-        if (updateResult) {
-            await this.updateDiscordMetadata(databaseEntry.discordid);
+        if (!updateResult) {
+            return {
+                success: false,
+                reason: "Score submission to database failed",
+            };
         }
 
+        await this.updateDiscordMetadata(databaseEntry.discordid);
+
         return {
-            success: !!updateResult,
-            reason: "Score submission to database failed",
+            success: true,
             replayNeedsPersistence: replayNeedsPersistence,
         };
     }
@@ -435,13 +457,10 @@ export abstract class DPPUtil {
         formData.append("userId", userId);
         formData.append("key", process.env.DISCORD_OAUTH_BACKEND_INTERNAL_KEY!);
 
-        return fetch(
-            "http://127.0.0.1:3004/api/discord/update-metadata",
-            {
-                method: "POST",
-                body: formData,
-            }
-        )
+        return fetch("http://127.0.0.1:3004/api/discord/update-metadata", {
+            method: "POST",
+            body: formData,
+        })
             .then(() => true)
             .catch(() => false);
     }

@@ -166,6 +166,15 @@ router.post<
                             accuracy: result.accuracy,
                             flashlight: result.flashlight,
                             visual: result.visual,
+                            deviation: result.deviation,
+                            tapDeviation: result.tapDeviation,
+                            tapPenalty: result.tapPenalty,
+                            aimSliderCheesePenalty:
+                                result.aimSliderCheesePenalty,
+                            flashlightSliderCheesePenalty:
+                                result.flashlightSliderCheesePenalty,
+                            visualSliderCheesePenalty:
+                                result.visualSliderCheesePenalty,
                         },
                     };
 
@@ -200,6 +209,15 @@ router.post<
                             accuracy: result.accuracy,
                             flashlight: result.flashlight,
                             visual: result.visual,
+                            deviation: result.deviation,
+                            tapDeviation: result.tapDeviation,
+                            tapPenalty: result.tapPenalty,
+                            aimSliderCheesePenalty:
+                                result.aimSliderCheesePenalty,
+                            flashlightSliderCheesePenalty:
+                                result.flashlightSliderCheesePenalty,
+                            visualSliderCheesePenalty:
+                                result.visualSliderCheesePenalty,
                         },
                     };
 

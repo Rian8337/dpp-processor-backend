@@ -22,6 +22,7 @@ import {
 } from "@rian8337/osu-rebalance-difficulty-calculator";
 import { OsuPerformanceAttributes } from "../structures/attributes/OsuPerformanceAttributes";
 import { CompleteCalculationAttributes } from "../structures/attributes/CompleteCalculationAttributes";
+import { RebalanceDroidPerformanceAttributes } from "../structures/attributes/RebalanceDroidPerformanceAttributes";
 
 const router = Router();
 
@@ -203,7 +204,7 @@ router.get<
 
                     const attributes: CompleteCalculationAttributes<
                         RebalanceDroidDifficultyAttributes,
-                        DroidPerformanceAttributes
+                        RebalanceDroidPerformanceAttributes
                     > = {
                         difficulty: {
                             ...result.difficultyAttributes,
@@ -225,6 +226,15 @@ router.get<
                                 result.flashlightSliderCheesePenalty,
                             visualSliderCheesePenalty:
                                 result.visualSliderCheesePenalty,
+                            calculatedUnstableRate: 0,
+                            estimatedUnstableRate: MathUtils.round(
+                                result.deviation * 10,
+                                2
+                            ),
+                            estimatedSpeedUnstableRate: MathUtils.round(
+                                result.tapDeviation * 10,
+                                2
+                            ),
                         },
                     };
 

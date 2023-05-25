@@ -2,7 +2,7 @@ import { Router } from "express";
 import { Util } from "../utils/Util";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import { getOnlineReplay } from "../utils/replayBackendManager";
-import { Modes } from "@rian8337/osu-base";
+import { MathUtils, Modes } from "@rian8337/osu-base";
 import { BeatmapDroidDifficultyCalculator } from "../utils/calculator/BeatmapDroidDifficultyCalculator";
 import { DroidPerformanceAttributes } from "../structures/attributes/DroidPerformanceAttributes";
 import { BeatmapOsuDifficultyCalculator } from "../utils/calculator/BeatmapOsuDifficultyCalculator";
@@ -17,6 +17,7 @@ import {
     OsuDifficultyAttributes as RebalanceOsuDifficultyAttributes,
 } from "@rian8337/osu-rebalance-difficulty-calculator";
 import { PPCalculationMethod } from "../structures/PPCalculationMethod";
+import { RebalanceDroidPerformanceAttributes } from "../structures/attributes/RebalanceDroidPerformanceAttributes";
 
 const router = Router();
 
@@ -137,7 +138,7 @@ router.get<
 
                     const attributes: CompleteCalculationAttributes<
                         RebalanceDroidDifficultyAttributes,
-                        DroidPerformanceAttributes
+                        RebalanceDroidPerformanceAttributes
                     > = {
                         difficulty: {
                             ...result.difficultyAttributes,
@@ -159,6 +160,16 @@ router.get<
                                 result.flashlightSliderCheesePenalty,
                             visualSliderCheesePenalty:
                                 result.visualSliderCheesePenalty,
+                            calculatedUnstableRate:
+                                analyzer.calculateHitError()?.unstableRate ?? 0,
+                            estimatedUnstableRate: MathUtils.round(
+                                result.deviation * 10,
+                                2
+                            ),
+                            estimatedSpeedUnstableRate: MathUtils.round(
+                                result.tapDeviation * 10,
+                                2
+                            ),
                         },
                     };
 

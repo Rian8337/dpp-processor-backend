@@ -6,9 +6,12 @@ import { readFile, readdir } from "fs/promises";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import { BeatmapDroidDifficultyCalculator } from "../utils/calculator/BeatmapDroidDifficultyCalculator";
 import { CompleteCalculationAttributes } from "../structures/attributes/CompleteCalculationAttributes";
-import { RawDifficultyAttributes } from "../structures/attributes/RawDifficultyAttributes";
 import { DroidPerformanceAttributes } from "../structures/attributes/DroidPerformanceAttributes";
 import { PPCalculationMethod } from "../structures/PPCalculationMethod";
+import { MathUtils } from "@rian8337/osu-base";
+import { DroidDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
+import { DroidDifficultyAttributes as RebalanceDroidDifficultyAttributes } from "@rian8337/osu-rebalance-difficulty-calculator";
+import { RebalanceDroidPerformanceAttributes } from "../structures/attributes/RebalanceDroidPerformanceAttributes";
 
 const router = Router();
 
@@ -53,7 +56,7 @@ router.get<
 
     let bestAttribs:
         | CompleteCalculationAttributes<
-              RawDifficultyAttributes,
+              DroidDifficultyAttributes | RebalanceDroidDifficultyAttributes,
               DroidPerformanceAttributes
           >
         | undefined;
@@ -95,27 +98,63 @@ router.get<
             !bestAttribs ||
             bestAttribs.performance.total < calcResult.result.total
         ) {
-            bestAttribs = {
-                difficulty: {
-                    ...result.difficultyAttributes,
-                    mods: undefined,
-                },
-                performance: {
-                    total: result.total,
-                    aim: result.aim,
-                    tap: result.tap,
-                    accuracy: result.accuracy,
-                    flashlight: result.flashlight,
-                    visual: result.visual,
-                    deviation: result.deviation,
-                    tapDeviation: result.tapDeviation,
-                    tapPenalty: result.tapPenalty,
-                    aimSliderCheesePenalty: result.aimSliderCheesePenalty,
-                    flashlightSliderCheesePenalty:
-                        result.flashlightSliderCheesePenalty,
-                    visualSliderCheesePenalty: result.visualSliderCheesePenalty,
-                },
-            };
+            if (calculationMethod === PPCalculationMethod.live) {
+                bestAttribs = {
+                    difficulty: {
+                        ...result.difficultyAttributes,
+                        mods: undefined,
+                    },
+                    performance: {
+                        total: result.total,
+                        aim: result.aim,
+                        tap: result.tap,
+                        accuracy: result.accuracy,
+                        flashlight: result.flashlight,
+                        visual: result.visual,
+                        deviation: result.deviation,
+                        tapDeviation: result.tapDeviation,
+                        tapPenalty: result.tapPenalty,
+                        aimSliderCheesePenalty: result.aimSliderCheesePenalty,
+                        flashlightSliderCheesePenalty:
+                            result.flashlightSliderCheesePenalty,
+                        visualSliderCheesePenalty:
+                            result.visualSliderCheesePenalty,
+                    },
+                };
+            } else {
+                bestAttribs = {
+                    difficulty: {
+                        ...result.difficultyAttributes,
+                        mods: undefined,
+                    },
+                    performance: <RebalanceDroidPerformanceAttributes>{
+                        total: result.total,
+                        aim: result.aim,
+                        tap: result.tap,
+                        accuracy: result.accuracy,
+                        flashlight: result.flashlight,
+                        visual: result.visual,
+                        deviation: result.deviation,
+                        tapDeviation: result.tapDeviation,
+                        tapPenalty: result.tapPenalty,
+                        aimSliderCheesePenalty: result.aimSliderCheesePenalty,
+                        flashlightSliderCheesePenalty:
+                            result.flashlightSliderCheesePenalty,
+                        visualSliderCheesePenalty:
+                            result.visualSliderCheesePenalty,
+                        calculatedUnstableRate:
+                            analyzer.calculateHitError()?.unstableRate ?? 0,
+                        estimatedUnstableRate: MathUtils.round(
+                            result.deviation * 10,
+                            2
+                        ),
+                        estimatedSpeedUnstableRate: MathUtils.round(
+                            result.tapDeviation * 10,
+                            2
+                        ),
+                    },
+                };
+            }
         }
     }
 

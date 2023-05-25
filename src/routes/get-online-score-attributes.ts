@@ -70,6 +70,15 @@ router.get<
                             .json({ error: "Unable to calculate beatmap" });
                     }
 
+                    await BeatmapDroidDifficultyCalculator.applyTapPenalty(
+                        analyzer,
+                        calculationResult
+                    );
+                    await BeatmapDroidDifficultyCalculator.applySliderCheesePenalty(
+                        analyzer,
+                        calculationResult
+                    );
+
                     const { result } = calculationResult;
 
                     const attributes: CompleteCalculationAttributes<
@@ -114,6 +123,15 @@ router.get<
                             .status(503)
                             .json({ error: "Unable to calculate beatmap" });
                     }
+
+                    await BeatmapDroidDifficultyCalculator.applyTapPenalty(
+                        analyzer,
+                        calculationResult
+                    );
+                    await BeatmapDroidDifficultyCalculator.applySliderCheesePenalty(
+                        analyzer,
+                        calculationResult
+                    );
 
                     const { result } = calculationResult;
 

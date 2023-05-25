@@ -80,6 +80,15 @@ router.get<
             continue;
         }
 
+        await BeatmapDroidDifficultyCalculator.applyTapPenalty(
+            analyzer,
+            calcResult
+        );
+        await BeatmapDroidDifficultyCalculator.applySliderCheesePenalty(
+            analyzer,
+            calcResult
+        );
+
         const { result } = calcResult;
 
         if (

@@ -9,7 +9,7 @@ import getPerformanceAttributes from "./routes/get-performance-attributes";
 import getPlayerBestScorePerformance from "./routes/get-player-best-score-performance";
 import getOnlineScoreAttributes from "./routes/get-online-score-attributes";
 import forwardReplay from "./routes/forward-replay";
-import submitScore from "./routes/submit-score";
+import submitScores from "./routes/submit-scores";
 
 config();
 
@@ -30,7 +30,7 @@ app.use("/get-performance-attributes", getPerformanceAttributes);
 app.use("/get-player-best-score-performance", getPlayerBestScorePerformance);
 app.use("/get-online-score-attributes", getOnlineScoreAttributes);
 app.use("/forward-replay", forwardReplay);
-app.use("/submit-score", submitScore);
+app.use("/submit-scores", submitScores);
 
 const port = parseInt(process.env.PORT || "3006");
 

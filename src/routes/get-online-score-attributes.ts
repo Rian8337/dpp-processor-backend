@@ -2,7 +2,7 @@ import { Router } from "express";
 import { Util } from "../utils/Util";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import { getOnlineReplay } from "../utils/replayBackendManager";
-import { MathUtils, Modes } from "@rian8337/osu-base";
+import { MapStats, MathUtils, Modes } from "@rian8337/osu-base";
 import { BeatmapDroidDifficultyCalculator } from "../utils/calculator/BeatmapDroidDifficultyCalculator";
 import { DroidPerformanceAttributes } from "../structures/attributes/DroidPerformanceAttributes";
 import { BeatmapOsuDifficultyCalculator } from "../utils/calculator/BeatmapOsuDifficultyCalculator";
@@ -18,6 +18,7 @@ import {
 } from "@rian8337/osu-rebalance-difficulty-calculator";
 import { PPCalculationMethod } from "../structures/PPCalculationMethod";
 import { RebalanceDroidPerformanceAttributes } from "../structures/attributes/RebalanceDroidPerformanceAttributes";
+import { BeatmapDifficultyCalculator } from "../utils/calculator/BeatmapDifficultyCalculator";
 
 const router = Router();
 
@@ -161,7 +162,12 @@ router.get<
                             visualSliderCheesePenalty:
                                 result.visualSliderCheesePenalty,
                             calculatedUnstableRate:
-                                analyzer.calculateHitError()?.unstableRate ?? 0,
+                                (analyzer.calculateHitError()?.unstableRate ??
+                                    0) /
+                                (BeatmapDifficultyCalculator.getCalculationParameters(
+                                    analyzer
+                                ).customStatistics?.calculate()
+                                    .speedMultiplier ?? 1),
                             estimatedUnstableRate: MathUtils.round(
                                 result.deviation * 10,
                                 2

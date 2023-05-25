@@ -39,7 +39,7 @@ export abstract class Util {
         next: NextFunction
     ): void {
         if (req.query.key !== process.env.DROID_SERVER_INTERNAL_KEY) {
-            res.status(400).json({
+            res.status(401).json({
                 message: "Please enter the correct API key.",
             });
 
@@ -58,7 +58,7 @@ export abstract class Util {
         next: NextFunction
     ): void {
         if (req.body.key !== process.env.DROID_SERVER_INTERNAL_KEY) {
-            res.status(400).json({
+            res.status(401).json({
                 message: "Please enter the correct API key.",
             });
 

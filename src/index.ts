@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Router } from "express";
 import cors from "cors";
 import formData from "express-form-data";
 import { config } from "dotenv";
@@ -24,13 +24,20 @@ app.use(formData.stream());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use("/calculate-beatmap-file", calculateBeatmapFile);
-app.use("/get-difficulty-attributes", getDifficultyAttributes);
-app.use("/get-performance-attributes", getPerformanceAttributes);
-app.use("/get-player-best-score-performance", getPlayerBestScorePerformance);
-app.use("/get-online-score-attributes", getOnlineScoreAttributes);
-app.use("/forward-replay", forwardReplay);
-app.use("/submit-scores", submitScores);
+const baseRouter = Router();
+
+baseRouter.use("/calculate-beatmap-file", calculateBeatmapFile);
+baseRouter.use("/get-difficulty-attributes", getDifficultyAttributes);
+baseRouter.use("/get-performance-attributes", getPerformanceAttributes);
+baseRouter.use(
+    "/get-player-best-score-performance",
+    getPlayerBestScorePerformance
+);
+baseRouter.use("/get-online-score-attributes", getOnlineScoreAttributes);
+baseRouter.use("/forward-replay", forwardReplay);
+baseRouter.use("/submit-scores", submitScores);
+
+app.use("/api/dpp/processor", baseRouter);
 
 const port = parseInt(process.env.PORT || "3006");
 

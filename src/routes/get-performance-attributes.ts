@@ -23,6 +23,7 @@ import {
 import { OsuPerformanceAttributes } from "../structures/attributes/OsuPerformanceAttributes";
 import { CompleteCalculationAttributes } from "../structures/attributes/CompleteCalculationAttributes";
 import { RebalanceDroidPerformanceAttributes } from "../structures/attributes/RebalanceDroidPerformanceAttributes";
+import { Util } from "../utils/Util";
 
 const router = Router();
 
@@ -51,7 +52,7 @@ router.get<
         flashlightslidercheesepenalty?: string;
         visualslidercheesepenalty?: string;
     }
->("/", async (req, res) => {
+>("/", Util.validateGETInternalKey, async (req, res) => {
     if (!req.query.beatmapid && !req.query.beatmaphash) {
         return res
             .status(400)

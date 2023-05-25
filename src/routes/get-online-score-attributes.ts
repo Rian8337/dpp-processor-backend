@@ -27,9 +27,17 @@ router.get<
     unknown,
     unknown,
     unknown,
-    { key: string; mode: string; calculationmethod: string; scoreid: string }
+    {
+        key: string;
+        gamemode: string;
+        calculationmethod: string;
+        scoreid: string;
+    }
 >("/", Util.validateGETInternalKey, async (req, res) => {
-    if (req.query.mode !== Modes.droid && req.query.mode !== Modes.osu) {
+    if (
+        req.query.gamemode !== Modes.droid &&
+        req.query.gamemode !== Modes.osu
+    ) {
         return res.status(400).json({ error: "Invalid gamemode" });
     }
 
@@ -55,7 +63,7 @@ router.get<
         return res.status(404).json({ error: "Replay not found" });
     }
 
-    switch (req.query.mode) {
+    switch (req.query.gamemode) {
         case Modes.droid: {
             const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
 

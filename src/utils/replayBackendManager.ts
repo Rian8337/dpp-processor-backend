@@ -50,7 +50,13 @@ export async function saveReplay(
         method: "POST",
         body: formData,
     })
-        .then((res) => res.text())
+        .then((res) => {
+            if (res.status !== 200) {
+                return null;
+            }
+
+            return res.text();
+        })
         .catch(() => null);
 }
 
@@ -70,6 +76,6 @@ export async function persistReplay(filename: string): Promise<boolean> {
         method: "POST",
         body: formData,
     })
-        .then(() => true)
+        .then((res) => res.status === 200)
         .catch(() => false);
 }

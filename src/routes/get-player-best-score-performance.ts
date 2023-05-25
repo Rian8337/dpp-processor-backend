@@ -9,9 +9,6 @@ import { CompleteCalculationAttributes } from "../structures/attributes/Complete
 import { RawDifficultyAttributes } from "../structures/attributes/RawDifficultyAttributes";
 import { DroidPerformanceAttributes } from "../structures/attributes/DroidPerformanceAttributes";
 import { PPCalculationMethod } from "../structures/PPCalculationMethod";
-import { CacheableDifficultyAttributes } from "../structures/attributes/CacheableDifficultyAttributes";
-import { DroidDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
-import { DroidDifficultyAttributes as RebalanceDroidDifficultyAttributes } from "@rian8337/osu-rebalance-difficulty-calculator";
 
 const router = Router();
 
@@ -89,53 +86,27 @@ router.get<
             !bestAttribs ||
             bestAttribs.performance.total < calcResult.result.total
         ) {
-            if (calculationMethod === PPCalculationMethod.live) {
-                bestAttribs = {
-                    difficulty: {
-                        ...result.difficultyAttributes,
-                        mods: undefined,
-                    } satisfies CacheableDifficultyAttributes<DroidDifficultyAttributes>,
-                    performance: {
-                        total: result.total,
-                        aim: result.aim,
-                        tap: result.tap,
-                        accuracy: result.accuracy,
-                        flashlight: result.flashlight,
-                        visual: result.visual,
-                        deviation: result.deviation,
-                        tapDeviation: result.tapDeviation,
-                        tapPenalty: result.tapPenalty,
-                        aimSliderCheesePenalty: result.aimSliderCheesePenalty,
-                        flashlightSliderCheesePenalty:
-                            result.flashlightSliderCheesePenalty,
-                        visualSliderCheesePenalty:
-                            result.visualSliderCheesePenalty,
-                    },
-                };
-            } else {
-                bestAttribs = {
-                    difficulty: {
-                        ...result.difficultyAttributes,
-                        mods: undefined,
-                    } satisfies CacheableDifficultyAttributes<RebalanceDroidDifficultyAttributes>,
-                    performance: {
-                        total: result.total,
-                        aim: result.aim,
-                        tap: result.tap,
-                        accuracy: result.accuracy,
-                        flashlight: result.flashlight,
-                        visual: result.visual,
-                        deviation: result.deviation,
-                        tapDeviation: result.tapDeviation,
-                        tapPenalty: result.tapPenalty,
-                        aimSliderCheesePenalty: result.aimSliderCheesePenalty,
-                        flashlightSliderCheesePenalty:
-                            result.flashlightSliderCheesePenalty,
-                        visualSliderCheesePenalty:
-                            result.visualSliderCheesePenalty,
-                    },
-                };
-            }
+            bestAttribs = {
+                difficulty: {
+                    ...result.difficultyAttributes,
+                    mods: undefined,
+                },
+                performance: {
+                    total: result.total,
+                    aim: result.aim,
+                    tap: result.tap,
+                    accuracy: result.accuracy,
+                    flashlight: result.flashlight,
+                    visual: result.visual,
+                    deviation: result.deviation,
+                    tapDeviation: result.tapDeviation,
+                    tapPenalty: result.tapPenalty,
+                    aimSliderCheesePenalty: result.aimSliderCheesePenalty,
+                    flashlightSliderCheesePenalty:
+                        result.flashlightSliderCheesePenalty,
+                    visualSliderCheesePenalty: result.visualSliderCheesePenalty,
+                },
+            };
         }
     }
 

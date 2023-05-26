@@ -53,6 +53,7 @@ export class BeatmapDroidDifficultyCalculator extends BeatmapDifficultyCalculato
      *
      * @param replay The replay associated with the calculation result.
      * @param calcResult The calculation result to apply the tap penalty to.
+     * @returns Whether the operation was successful.
      */
     static async applyTapPenalty(
         replay: ReplayAnalyzer,
@@ -65,9 +66,9 @@ export class BeatmapDroidDifficultyCalculator extends BeatmapDifficultyCalculato
                   RebalanceDroidDifficultyCalculator,
                   RebalanceDroidPerformanceCalculator
               >
-    ): Promise<void> {
+    ): Promise<boolean> {
         if (!replay.data) {
-            return;
+            return false;
         }
 
         const difficultyAttributes = <
@@ -75,13 +76,13 @@ export class BeatmapDroidDifficultyCalculator extends BeatmapDifficultyCalculato
             | RebalanceExtendedDroidDifficultyAttributes
         >calcResult.result.difficultyAttributes;
         if (!ThreeFingerChecker.isEligibleToDetect(difficultyAttributes)) {
-            return;
+            return false;
         }
 
         if (!replay.hasBeenCheckedFor3Finger) {
             const beatmap = await getBeatmap(replay.data.hash);
             if (!beatmap) {
-                return;
+                return false;
             }
 
             replay.beatmap ??= beatmap.beatmap;
@@ -91,6 +92,8 @@ export class BeatmapDroidDifficultyCalculator extends BeatmapDifficultyCalculato
         }
 
         calcResult.result.applyTapPenalty(replay.tapPenalty);
+
+        return true;
     }
 
     /**
@@ -170,6 +173,7 @@ export class BeatmapDroidDifficultyCalculator extends BeatmapDifficultyCalculato
      *
      * @param replay The replay associated with the calculation result.
      * @param calcResult The calculation result to apply the slider cheese penalty to.
+     * @returns Whether the operation was successful.
      */
     static async applySliderCheesePenalty(
         replay: ReplayAnalyzer,
@@ -182,15 +186,15 @@ export class BeatmapDroidDifficultyCalculator extends BeatmapDifficultyCalculato
                   RebalanceDroidDifficultyCalculator,
                   RebalanceDroidPerformanceCalculator
               >
-    ): Promise<void> {
+    ): Promise<boolean> {
         if (!replay.data) {
-            return;
+            return false;
         }
 
         if (!replay.hasBeenCheckedForSliderCheesing) {
             const beatmap = await getBeatmap(replay.data.hash);
             if (!beatmap) {
-                return;
+                return false;
             }
 
             replay.beatmap ??= beatmap.beatmap;
@@ -207,5 +211,7 @@ export class BeatmapDroidDifficultyCalculator extends BeatmapDifficultyCalculato
         calcResult.result.applyVisualSliderCheesePenalty(
             replay.sliderCheesePenalty.visualPenalty
         );
+
+        return true;
     }
 }

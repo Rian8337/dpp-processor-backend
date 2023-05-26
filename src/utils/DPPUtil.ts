@@ -203,17 +203,41 @@ export abstract class DPPUtil {
                         reason: "Beatmap file could not be downloaded",
                         pp: ppEntry.pp,
                     });
+
+                    continue;
                 }
 
-                await BeatmapDroidDifficultyCalculator.applyTapPenalty(
-                    replay,
-                    performanceCalculationResult
-                );
+                const tapPenaltyResult =
+                    await BeatmapDroidDifficultyCalculator.applyTapPenalty(
+                        replay,
+                        performanceCalculationResult
+                    );
 
-                await BeatmapDroidDifficultyCalculator.applySliderCheesePenalty(
-                    replay,
-                    performanceCalculationResult
-                );
+                if (!tapPenaltyResult) {
+                    statuses.push({
+                        success: false,
+                        reason: "Three-finger detection failed",
+                        pp: ppEntry.pp,
+                    });
+
+                    continue;
+                }
+
+                const sliderCheesePenaltyResult =
+                    await BeatmapDroidDifficultyCalculator.applySliderCheesePenalty(
+                        replay,
+                        performanceCalculationResult
+                    );
+
+                if (!sliderCheesePenaltyResult) {
+                    statuses.push({
+                        success: false,
+                        reason: "Slider cheesing detection failed",
+                        pp: ppEntry.pp,
+                    });
+
+                    continue;
+                }
 
                 ppEntry.pp = MathUtils.round(
                     performanceCalculationResult.result.total,

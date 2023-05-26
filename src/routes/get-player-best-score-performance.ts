@@ -84,14 +84,25 @@ router.get<
             continue;
         }
 
-        await BeatmapDroidDifficultyCalculator.applyTapPenalty(
-            analyzer,
-            calcResult
-        );
-        await BeatmapDroidDifficultyCalculator.applySliderCheesePenalty(
-            analyzer,
-            calcResult
-        );
+        const tapPenaltyResult =
+            await BeatmapDroidDifficultyCalculator.applyTapPenalty(
+                analyzer,
+                calcResult
+            );
+
+        if (!tapPenaltyResult) {
+            continue;
+        }
+
+        const sliderCheesePenaltyResult =
+            await BeatmapDroidDifficultyCalculator.applySliderCheesePenalty(
+                analyzer,
+                calcResult
+            );
+
+        if (!sliderCheesePenaltyResult) {
+            continue;
+        }
 
         const { result } = calcResult;
 

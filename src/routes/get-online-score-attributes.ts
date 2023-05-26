@@ -80,14 +80,29 @@ router.get<
                             .json({ error: "Unable to calculate beatmap" });
                     }
 
-                    await BeatmapDroidDifficultyCalculator.applyTapPenalty(
-                        analyzer,
-                        calculationResult
-                    );
-                    await BeatmapDroidDifficultyCalculator.applySliderCheesePenalty(
-                        analyzer,
-                        calculationResult
-                    );
+                    const tapPenaltyResult =
+                        await BeatmapDroidDifficultyCalculator.applyTapPenalty(
+                            analyzer,
+                            calculationResult
+                        );
+
+                    if (!tapPenaltyResult) {
+                        return res.status(500).json({
+                            error: "Unable to perform three-finger detection",
+                        });
+                    }
+
+                    const sliderCheesePenaltyResult =
+                        await BeatmapDroidDifficultyCalculator.applySliderCheesePenalty(
+                            analyzer,
+                            calculationResult
+                        );
+
+                    if (!sliderCheesePenaltyResult) {
+                        return res.status(500).json({
+                            error: "Unable to perform slider cheesing detection",
+                        });
+                    }
 
                     const { result } = calculationResult;
 

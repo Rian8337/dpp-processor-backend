@@ -58,7 +58,7 @@ router.get<
     let bestAttribs:
         | CompleteCalculationAttributes<
               DroidDifficultyAttributes | RebalanceDroidDifficultyAttributes,
-              DroidPerformanceAttributes
+              DroidPerformanceAttributes | RebalanceDroidPerformanceAttributes
           >
         | undefined;
 
@@ -128,7 +128,7 @@ router.get<
                         ...result.difficultyAttributes,
                         mods: undefined,
                     },
-                    performance: <RebalanceDroidPerformanceAttributes>{
+                    performance: {
                         total: result.total,
                         aim: result.aim,
                         tap: result.tap,

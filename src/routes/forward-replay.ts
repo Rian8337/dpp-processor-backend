@@ -12,12 +12,11 @@ router.post<
     unknown,
     {
         key: string;
-        filename: string;
         replayID: string;
     }
 >("/", Util.validatePOSTInternalKey, async (req, res) => {
     // Send response early
-    res.send("Success");
+    res.sendStatus(200);
 
     const { replayID } = req.body;
 

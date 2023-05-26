@@ -41,6 +41,10 @@ export async function getBeatmap<TCheckFile extends boolean = true>(
             await oldCache.retrieveBeatmapFile();
         }
 
+        if (!oldCache.hasDownloadedBeatmap()) {
+            return null;
+        }
+
         return oldCache;
     }
 
@@ -55,6 +59,10 @@ export async function getBeatmap<TCheckFile extends boolean = true>(
 
     if (options?.cacheBeatmap !== false) {
         beatmapCache.set(newCache.beatmapID, newCache);
+    }
+
+    if (options?.checkFile && !newCache.hasDownloadedBeatmap()) {
+        return null;
     }
 
     return <MapInfo>newCache;

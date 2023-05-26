@@ -54,11 +54,11 @@ router.post<
         oldstatistics?: string;
         customspeedmultiplier?: string;
         forcear?: string;
-        n300: string;
-        n100: string;
-        n50: string;
-        nmiss: string;
-        maxcombo: string;
+        n300?: string;
+        n100?: string;
+        n50?: string;
+        nmiss?: string;
+        maxcombo?: string;
         aimslidercheesepenalty?: string;
         tappenalty?: string;
         flashlightslidercheesepenalty?: string;
@@ -113,12 +113,17 @@ router.post<
 
     const calculationParams = new PerformanceCalculationParameters(
         new Accuracy({
-            n300: Math.max(0, parseInt(req.body.n300)),
-            n100: Math.max(0, parseInt(req.body.n100)),
-            n50: Math.max(0, parseInt(req.body.n50)),
-            nmiss: Math.max(0, parseInt(req.body.nmiss)),
+            n300: Math.max(0, parseInt(req.body.n300 ?? "-1")),
+            n100: Math.max(0, parseInt(req.body.n100 ?? "0")),
+            n50: Math.max(0, parseInt(req.body.n50 ?? "0")),
+            nmiss: Math.max(0, parseInt(req.body.nmiss ?? "0")),
+            nobjects: beatmap.hitObjects.objects.length,
         }),
-        MathUtils.clamp(parseInt(req.body.maxcombo), 0, beatmap.maxCombo),
+        MathUtils.clamp(
+            parseInt(req.body.maxcombo ?? beatmap.maxCombo.toString()),
+            0,
+            beatmap.maxCombo
+        ),
         parseInt(req.body.tappenalty ?? "1"),
         new MapStats({
             mods: mods,

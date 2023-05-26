@@ -5,7 +5,10 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "update-osu-libraries-beta": "npm i @rian8337/osu-base@beta @rian8337/osu-difficulty-calculator@beta @rian8337/osu-droid-replay-analyzer@beta @rian8337/osu-droid-utilities@beta @rian8337/osu-rebalance-difficulty-calculator@beta",
+    "update-osu-libraries-release": "npm i @rian8337/osu-base @rian8337/osu-difficulty-calculator @rian8337/osu-droid-replay-analyzer @rian8337/osu-droid-utilities @rian8337/osu-rebalance-difficulty-calculator",
+    "use-local-osu-module": "npm i ../osu-droid-module/packages/osu-base ../osu-droid-module/packages/osu-difficulty-calculator ../osu-droid-module/packages/osu-droid-replay-analyzer ../osu-droid-module/packages/osu-droid-utilities ../osu-droid-module/packages/osu-rebalance-difficulty-calculator"
   },
   "keywords": [],
   "author": "Rian8337",

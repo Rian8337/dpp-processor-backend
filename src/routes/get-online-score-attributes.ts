@@ -1,8 +1,7 @@
 import { Router } from "express";
 import { Util } from "../utils/Util";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
-import { getOnlineReplay } from "../utils/replayBackendManager";
-import { MapStats, MathUtils, Modes } from "@rian8337/osu-base";
+import { MathUtils, Modes } from "@rian8337/osu-base";
 import { BeatmapDroidDifficultyCalculator } from "../utils/calculator/BeatmapDroidDifficultyCalculator";
 import { DroidPerformanceAttributes } from "../structures/attributes/DroidPerformanceAttributes";
 import { BeatmapOsuDifficultyCalculator } from "../utils/calculator/BeatmapOsuDifficultyCalculator";
@@ -19,6 +18,7 @@ import {
 import { PPCalculationMethod } from "../structures/PPCalculationMethod";
 import { RebalanceDroidPerformanceAttributes } from "../structures/attributes/RebalanceDroidPerformanceAttributes";
 import { BeatmapDifficultyCalculator } from "../utils/calculator/BeatmapDifficultyCalculator";
+import { getOnlineReplay } from "../utils/replaySavingManager";
 
 const router = Router();
 

@@ -16,7 +16,7 @@ import { DPPSubmissionValidity } from "../enums/DPPSubmissionValidity";
 import { WhitelistUtil } from "./WhitelistUtil";
 import { PPEntry } from "../structures/PPEntry";
 import { PPSubmissionStatus } from "../structures/PPSubmissionStatus";
-import { persistReplay, saveReplay } from "./replayBackendManager";
+import { persistReplay, saveReplay } from "./replaySavingManager";
 
 /**
  * Utilities that are related to dpp.
@@ -148,8 +148,8 @@ export abstract class DPPUtil {
             }
 
             // Instruct the replay backend to save the replay.
-            const replayFilename = await saveReplay(uid, originalODR);
-            if (!replayFilename) {
+            const saveReplayStatus = await saveReplay(uid, replay);
+            if (!saveReplayStatus) {
                 statuses.push({
                     success: false,
                     reason: "Replay saving failed",
@@ -210,7 +210,10 @@ export abstract class DPPUtil {
             }
 
             if (replayNeedsPersistence) {
-                const persistenceResult = await persistReplay(replayFilename);
+                const persistenceResult = await persistReplay(
+                    bindInfo.uid,
+                    replay
+                );
 
                 if (!persistenceResult) {
                     statuses.push({

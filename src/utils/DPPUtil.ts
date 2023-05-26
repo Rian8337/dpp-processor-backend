@@ -14,7 +14,6 @@ import { MapInfo, MathUtils, RankedStatus } from "@rian8337/osu-base";
 import { PerformanceCalculationResult } from "./calculator/PerformanceCalculationResult";
 import { DPPSubmissionValidity } from "../enums/DPPSubmissionValidity";
 import { WhitelistUtil } from "./WhitelistUtil";
-import { IUserBind } from "../database/structures/elainaDb/IUserBind";
 import { PPEntry } from "../structures/PPEntry";
 import { PPSubmissionStatus } from "../structures/PPSubmissionStatus";
 import { persistReplay, saveReplay } from "./replayBackendManager";

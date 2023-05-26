@@ -64,6 +64,7 @@ export abstract class DPPUtil {
                 }
 
                 uid = player.uid;
+                break;
             }
 
             if (!uid) {

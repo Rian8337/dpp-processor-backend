@@ -47,6 +47,7 @@ export abstract class DPPUtil {
                     statuses.push({
                         success: false,
                         reason: "Replay does not have any player name",
+                        pp: 0,
                     });
                     continue;
                 }
@@ -59,6 +60,7 @@ export abstract class DPPUtil {
                     statuses.push({
                         success: false,
                         reason: "Player not found",
+                        pp: 0,
                     });
                     continue;
                 }
@@ -71,6 +73,7 @@ export abstract class DPPUtil {
                 preFillStatuses({
                     success: false,
                     reason: "Player not found",
+                    pp: 0,
                 });
 
                 return statuses;
@@ -85,6 +88,7 @@ export abstract class DPPUtil {
             preFillStatuses({
                 success: false,
                 reason: "Player is banned from system",
+                pp: 0,
             });
 
             return statuses;
@@ -97,6 +101,7 @@ export abstract class DPPUtil {
             preFillStatuses({
                 success: false,
                 reason: "Bind information not found",
+                pp: 0,
             });
 
             return statuses;
@@ -108,6 +113,7 @@ export abstract class DPPUtil {
                 statuses.push({
                     success: false,
                     reason: "No replay data found",
+                    pp: 0,
                 });
                 continue;
             }
@@ -117,7 +123,11 @@ export abstract class DPPUtil {
             });
 
             if (!beatmapInfo) {
-                statuses.push({ success: false, reason: "Beatmap not found" });
+                statuses.push({
+                    success: false,
+                    reason: "Beatmap not found",
+                    pp: 0,
+                });
                 continue;
             }
 
@@ -144,7 +154,7 @@ export abstract class DPPUtil {
                         break;
                 }
 
-                statuses.push({ success: false, reason: reason });
+                statuses.push({ success: false, reason: reason, pp: 0 });
                 continue;
             }
 
@@ -154,6 +164,7 @@ export abstract class DPPUtil {
                 statuses.push({
                     success: false,
                     reason: "Replay saving failed",
+                    pp: 0,
                 });
 
                 continue;
@@ -168,6 +179,7 @@ export abstract class DPPUtil {
                 statuses.push({
                     success: false,
                     reason: "Performance points calculation failed",
+                    pp: 0,
                 });
 
                 continue;
@@ -189,6 +201,7 @@ export abstract class DPPUtil {
                     statuses.push({
                         success: false,
                         reason: "Beatmap file could not be downloaded",
+                        pp: ppEntry.pp,
                     });
                 }
 
@@ -220,6 +233,7 @@ export abstract class DPPUtil {
                     statuses.push({
                         success: false,
                         reason: "Replay persistence failed",
+                        pp: ppEntry.pp,
                     });
 
                     continue;
@@ -229,6 +243,7 @@ export abstract class DPPUtil {
             statuses.push({
                 success: true,
                 replayNeedsPersistence: replayNeedsPersistence,
+                pp: ppEntry.pp,
             });
         }
 
@@ -253,12 +268,10 @@ export abstract class DPPUtil {
             .catch(() => null);
 
         if (!updateResult) {
-            statuses.length = 0;
-
-            preFillStatuses({
-                success: false,
-                reason: "Score submission to database failed",
-            });
+            for (const status of statuses) {
+                status.success = false;
+                status.reason = "Score submission to database failed";
+            }
 
             return statuses;
         }

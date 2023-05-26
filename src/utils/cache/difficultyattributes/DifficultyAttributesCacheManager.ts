@@ -204,6 +204,8 @@ export abstract class DifficultyAttributesCacheManager<
             this.mode
         );
 
+        const start = process.hrtime.bigint();
+
         try {
             for (const fileName of await readdir(this.folderPath)) {
                 const beatmapId = parseInt(fileName);
@@ -230,6 +232,8 @@ export abstract class DifficultyAttributesCacheManager<
             }
         }
 
+        const end = process.hrtime.bigint();
+
         setInterval(async () => await this.saveToDisk(), 60 * 5 * 1000);
 
         console.log(
@@ -237,7 +241,9 @@ export abstract class DifficultyAttributesCacheManager<
             PPCalculationMethod[this.attributeType],
             "and gamemode",
             this.mode,
-            "complete"
+            "complete (took",
+            Number(end - start) / 1e6,
+            "ms)"
         );
     }
 

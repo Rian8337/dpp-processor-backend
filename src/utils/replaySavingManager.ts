@@ -53,10 +53,11 @@ export async function saveReplay(
 
     // Compare accuracy and miss count to determine the incremental ID of the replay.
     let replayIncrementId = 0;
+    const { accuracy: newAccuracy } = data;
+
     for (let i = 1; i <= 5; ++i) {
-        const replayFile = await readFile(
-            join(localReplayDirectory, filePath + "_" + i + ".odr")
-        ).catch(() => null);
+        const replayPath = join(localReplayDirectory, `${filePath}_${i}.odr`);
+        const replayFile = await readFile(replayPath).catch(() => null);
         if (!replayFile) {
             replayIncrementId = i;
             break;
@@ -70,13 +71,38 @@ export async function saveReplay(
             continue;
         }
 
-        // Compare misses first as a more important part of the metric.
-        if (data.accuracy.nmiss < analyzer.data.accuracy.nmiss) {
-            replayIncrementId = i;
-            break;
+        const { accuracy: oldAccuracy } = analyzer.data;
+
+        if (newAccuracy.equals(oldAccuracy)) {
+            // Same accuracy and miss count found - compare combo if available,
+            // otherwise overwrite replay without changing increment ID.
+            if (data.replayVersion >= 3) {
+                // Combo data is available.
+                if (data.maxCombo > analyzer.data.maxCombo) {
+                    // New replay with better combo - increment replay ID.
+                    replayIncrementId = i;
+                    break;
+                } else if (data.maxCombo === analyzer.data.maxCombo) {
+                    // Same combo as well - overwrite replay without changing increment ID.
+                    return writeFile(replayPath, originalODR)
+                        .then(() => true)
+                        .catch(() => false);
+                }
+            } else {
+                // Combo data is not available - overwrite replay without changing increment ID.
+                return writeFile(replayPath, originalODR)
+                    .then(() => true)
+                    .catch(() => false);
+            }
+
+            continue;
         }
 
-        if (data.accuracy.value() > analyzer.data.accuracy.value()) {
+        // Compare misses first as a more important part of the metric.
+        if (
+            newAccuracy.nmiss < oldAccuracy.nmiss ||
+            newAccuracy.value() > oldAccuracy.value()
+        ) {
             replayIncrementId = i;
             break;
         }
@@ -90,17 +116,18 @@ export async function saveReplay(
     // Overwrite existing incremental IDs.
     for (let i = replayIncrementId; i < 5; ++i) {
         const name = join(localReplayDirectory, filePath);
-        const file = await readFile(name + "_" + i + ".odr").catch(() => null);
+        const nameWithIncrementId = `${name}_${i}.odr`;
+        const file = await readFile(nameWithIncrementId).catch(() => null);
 
         if (!file) {
             continue;
         }
 
-        await copyFile(name + "_" + i + ".odr", name + "_" + (i + 1) + ".odr");
+        await copyFile(nameWithIncrementId, `${name}_${i + 1}.odr`);
     }
 
     return writeFile(
-        join(localReplayDirectory, filePath + `_${replayIncrementId}.odr`),
+        join(localReplayDirectory, `${filePath}_${replayIncrementId}.odr`),
         originalODR
     )
         .then(() => true)

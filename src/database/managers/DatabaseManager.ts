@@ -28,6 +28,8 @@ export abstract class DatabaseManager {
     }
 
     private static async initElainaDB(): Promise<void> {
+        console.log("Connecting to Elaina DB");
+
         const elainaURI =
             "mongodb://" +
             process.env.ELAINA_DB_KEY +
@@ -41,5 +43,7 @@ export abstract class DatabaseManager {
             instance: db,
             collections: new ElainaDBCollection(db),
         };
+
+        console.log("Connection to Elaina DB established");
     }
 }

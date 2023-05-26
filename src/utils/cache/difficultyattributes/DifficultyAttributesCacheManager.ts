@@ -197,6 +197,13 @@ export abstract class DifficultyAttributesCacheManager<
      * Reads the existing cache from the disk.
      */
     async readCacheFromDisk(): Promise<void> {
+        console.log(
+            "Reading difficulty cache of attribute type",
+            PPCalculationMethod[this.attributeType],
+            "and gamemode",
+            this.mode
+        );
+
         try {
             for (const fileName of await readdir(this.folderPath)) {
                 const beatmapId = parseInt(fileName);
@@ -224,6 +231,14 @@ export abstract class DifficultyAttributesCacheManager<
         }
 
         setInterval(async () => await this.saveToDisk(), 60 * 5 * 1000);
+
+        console.log(
+            "Reading difficulty cache of attribute type",
+            PPCalculationMethod[this.attributeType],
+            "and gamemode",
+            this.mode,
+            "complete"
+        );
     }
 
     /**

@@ -15,6 +15,9 @@
     "@types/express": "^4.17.17",
     "@types/express-form-data": "^2.0.2",
     "@types/node": "^18.16.3",
+    "@typescript-eslint/eslint-plugin": "^5.59.7",
+    "@typescript-eslint/parser": "^5.59.7",
+    "eslint": "^8.41.0",
     "typescript": "^5.0.4"
   },
   "dependencies": {
@@ -29,5 +32,31 @@
     "express": "^4.18.2",
     "express-form-data": "^2.0.22",
     "mongodb": "^5.3.0"
+  },
+  "eslintConfig": {
+    "env": {
+      "es2022": true,
+      "node": true
+    },
+    "extends": [
+      "eslint:recommended",
+      "plugin:@typescript-eslint/recommended"
+    ],
+    "parser": "@typescript-eslint/parser",
+    "parserOptions": {
+      "ecmaVersion": 2022,
+      "sourceType": "module"
+    },
+    "plugins": [
+      "@typescript-eslint"
+    ],
+    "rules": {
+      "@typescript-eslint/no-inferrable-types": "off",
+      "@typescript-eslint/no-non-null-assertion": "off",
+      "no-prototype-builtins": "off"
+    }
+  },
+  "prettier": {
+    "tabWidth": 4
   }
 }

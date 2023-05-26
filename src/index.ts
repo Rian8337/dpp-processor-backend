@@ -10,6 +10,12 @@ import getPlayerBestScorePerformance from "./routes/get-player-best-score-perfor
 import getOnlineScoreAttributes from "./routes/get-online-score-attributes";
 import forwardReplay from "./routes/forward-replay";
 import submitScores from "./routes/submit-scores";
+import {
+    liveDroidDifficultyCache,
+    liveOsuDifficultyCache,
+    rebalanceDroidDifficultyCache,
+    rebalanceOsuDifficultyCache,
+} from "./utils/cache/difficultyAtributesStorage";
 
 config();
 
@@ -39,8 +45,16 @@ baseRouter.use("/submit-scores", submitScores);
 
 app.use("/api/dpp/processor", baseRouter);
 
-const port = parseInt(process.env.PORT || "3006");
+Promise.all([
+    DatabaseManager.init(),
+    liveDroidDifficultyCache.readCacheFromDisk(),
+    rebalanceDroidDifficultyCache.readCacheFromDisk(),
+    liveOsuDifficultyCache.readCacheFromDisk(),
+    rebalanceOsuDifficultyCache.readCacheFromDisk(),
+])
+    .then(() => {
+        const port = parseInt(process.env.PORT || "3006");
 
-DatabaseManager.init().then(() => {
-    app.listen(port, () => console.log("DPP processor backend is up"));
-});
+        app.listen(port, () => console.log("DPP processor backend is up"));
+    })
+    .catch((e) => console.error(e));

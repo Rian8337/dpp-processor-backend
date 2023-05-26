@@ -71,11 +71,6 @@ export abstract class DifficultyAttributesCacheManager<
         );
     }
 
-    constructor() {
-        setImmediate(async () => await this.readCacheFromDisk());
-        setInterval(async () => await this.saveToDisk(), 60 * 5 * 1000);
-    }
-
     /**
      * Gets all difficulty attributes cache of a beatmap.
      *
@@ -201,7 +196,7 @@ export abstract class DifficultyAttributesCacheManager<
     /**
      * Reads the existing cache from the disk.
      */
-    private async readCacheFromDisk(): Promise<void> {
+    async readCacheFromDisk(): Promise<void> {
         try {
             for (const fileName of await readdir(this.folderPath)) {
                 const beatmapId = parseInt(fileName);
@@ -227,6 +222,8 @@ export abstract class DifficultyAttributesCacheManager<
                 // Ignore mkdir error.
             }
         }
+
+        setInterval(async () => await this.saveToDisk(), 60 * 5 * 1000);
     }
 
     /**

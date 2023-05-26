@@ -39,10 +39,10 @@ export async function getBeatmap<TCheckFile extends boolean = true>(
     if (oldCache && !options?.forceCheck) {
         if (options?.checkFile !== false) {
             await oldCache.retrieveBeatmapFile();
-        }
 
-        if (!oldCache.hasDownloadedBeatmap()) {
-            return null;
+            if (!oldCache.hasDownloadedBeatmap()) {
+                return null;
+            }
         }
 
         return oldCache;

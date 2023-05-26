@@ -2,7 +2,7 @@ import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import { Router } from "express";
 import { DPPUtil } from "../utils/DPPUtil";
 import { Util } from "../utils/Util";
-import { getOnlineReplay } from "../utils/replayBackendManager";
+import { getOnlineReplay } from "../utils/replaySavingManager";
 
 const router = Router();
 

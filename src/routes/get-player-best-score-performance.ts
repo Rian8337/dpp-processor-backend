@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { Util } from "../utils/Util";
 import { join } from "path";
-import { homedir } from "os";
 import { readFile, readdir } from "fs/promises";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import { BeatmapDroidDifficultyCalculator } from "../utils/calculator/BeatmapDroidDifficultyCalculator";
@@ -13,6 +12,7 @@ import { DroidDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
 import { DroidDifficultyAttributes as RebalanceDroidDifficultyAttributes } from "@rian8337/osu-rebalance-difficulty-calculator";
 import { RebalanceDroidPerformanceAttributes } from "../structures/attributes/RebalanceDroidPerformanceAttributes";
 import { BeatmapDifficultyCalculator } from "../utils/calculator/BeatmapDifficultyCalculator";
+import { localReplayDirectory } from "../utils/replaySavingManager";
 
 const router = Router();
 
@@ -36,14 +36,8 @@ router.get<
         return res.status(400).json({ error: "Invalid gamemode" });
     }
 
-    // The processor backend is not supposed to access the replays folder, but
-    // this access will be read-only, so I guess it is fine.
     const replayDirectory = join(
-        homedir(),
-        "..",
-        "..",
-        "data",
-        "dpp-replays",
+        localReplayDirectory,
         req.query.playerid,
         req.query.beatmaphash
     );

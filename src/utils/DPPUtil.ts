@@ -479,8 +479,6 @@ export abstract class DPPUtil {
         }
 
         let found = false;
-        let needsSorting = false;
-
         for (let i = 0; i < list.length; ++i) {
             if (list[i].hash === entry.hash && list[i].pp < entry.pp) {
                 found = true;
@@ -493,12 +491,7 @@ export abstract class DPPUtil {
             list.push(entry);
         }
 
-        needsSorting = true;
-
-        if (needsSorting) {
-            list.sort((a, b) => b.pp - a.pp);
-        }
-
+        list.sort((a, b) => b.pp - a.pp);
         let replayNeedsPersistence = true;
         while (list.length > 75) {
             if (list[list.length - 1].hash === entry.hash) {

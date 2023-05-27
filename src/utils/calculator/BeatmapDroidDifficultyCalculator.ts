@@ -76,7 +76,8 @@ export class BeatmapDroidDifficultyCalculator extends BeatmapDifficultyCalculato
             | RebalanceExtendedDroidDifficultyAttributes
         >calcResult.result.difficultyAttributes;
         if (!ThreeFingerChecker.isEligibleToDetect(difficultyAttributes)) {
-            return false;
+            // No need to check for three-finger
+            return true;
         }
 
         if (!replay.hasBeenCheckedFor3Finger) {

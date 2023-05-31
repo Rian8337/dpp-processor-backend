@@ -12,7 +12,11 @@ import { DroidDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
 import { DroidDifficultyAttributes as RebalanceDroidDifficultyAttributes } from "@rian8337/osu-rebalance-difficulty-calculator";
 import { RebalanceDroidPerformanceAttributes } from "../structures/attributes/RebalanceDroidPerformanceAttributes";
 import { BeatmapDifficultyCalculator } from "../utils/calculator/BeatmapDifficultyCalculator";
-import { localReplayDirectory } from "../utils/replaySavingManager";
+import {
+    getOnlineReplay,
+    localReplayDirectory,
+} from "../utils/replaySavingManager";
+import { Score } from "@rian8337/osu-droid-utilities";
 
 const router = Router();
 
@@ -36,37 +40,16 @@ router.get<
         return res.status(400).json({ error: "Invalid gamemode" });
     }
 
-    const replayDirectory = join(
-        localReplayDirectory,
-        req.query.playerid,
-        req.query.beatmaphash
-    );
-    const replayFiles = await readdir(replayDirectory).catch(() => null);
-
-    if (!replayFiles) {
-        return res.status(404).json({ error: "No scores found from player" });
-    }
-
+    let bestAttribs: CompleteCalculationAttributes<
+        DroidDifficultyAttributes | RebalanceDroidDifficultyAttributes,
+        DroidPerformanceAttributes | RebalanceDroidPerformanceAttributes
+    > | null = null;
     const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
 
-    let bestAttribs:
-        | CompleteCalculationAttributes<
-              DroidDifficultyAttributes | RebalanceDroidDifficultyAttributes,
-              DroidPerformanceAttributes | RebalanceDroidPerformanceAttributes
-          >
-        | undefined;
-
-    for (const replayFilename of replayFiles) {
-        const analyzer = new ReplayAnalyzer({ scoreID: 0 });
-        analyzer.originalODR = await readFile(
-            join(replayDirectory, replayFilename)
-        ).catch(() => null);
-
+    const calculateReplay = async (analyzer: ReplayAnalyzer) => {
         if (!analyzer.originalODR) {
-            continue;
+            return;
         }
-
-        await analyzer.analyze();
 
         const calcResult = await (calculationMethod === PPCalculationMethod.live
             ? difficultyCalculator.calculateReplayPerformance(analyzer)
@@ -75,7 +58,7 @@ router.get<
               ));
 
         if (!calcResult) {
-            continue;
+            return;
         }
 
         const tapPenaltyResult =
@@ -85,7 +68,7 @@ router.get<
             );
 
         if (!tapPenaltyResult) {
-            continue;
+            return;
         }
 
         const sliderCheesePenaltyResult =
@@ -95,77 +78,109 @@ router.get<
             );
 
         if (!sliderCheesePenaltyResult) {
-            continue;
+            return;
         }
 
         const { result } = calcResult;
 
-        if (
-            !bestAttribs ||
-            bestAttribs.performance.total < calcResult.result.total
-        ) {
-            if (calculationMethod === PPCalculationMethod.live) {
-                bestAttribs = {
-                    difficulty: {
-                        ...result.difficultyAttributes,
-                        mods: undefined,
-                    },
-                    performance: {
-                        total: result.total,
-                        aim: result.aim,
-                        tap: result.tap,
-                        accuracy: result.accuracy,
-                        flashlight: result.flashlight,
-                        visual: result.visual,
-                        deviation: result.deviation,
-                        tapDeviation: result.tapDeviation,
-                        tapPenalty: result.tapPenalty,
-                        aimSliderCheesePenalty: result.aimSliderCheesePenalty,
-                        flashlightSliderCheesePenalty:
-                            result.flashlightSliderCheesePenalty,
-                        visualSliderCheesePenalty:
-                            result.visualSliderCheesePenalty,
-                    },
-                };
-            } else {
-                bestAttribs = {
-                    difficulty: {
-                        ...result.difficultyAttributes,
-                        mods: undefined,
-                    },
-                    performance: {
-                        total: result.total,
-                        aim: result.aim,
-                        tap: result.tap,
-                        accuracy: result.accuracy,
-                        flashlight: result.flashlight,
-                        visual: result.visual,
-                        deviation: result.deviation,
-                        tapDeviation: result.tapDeviation,
-                        tapPenalty: result.tapPenalty,
-                        aimSliderCheesePenalty: result.aimSliderCheesePenalty,
-                        flashlightSliderCheesePenalty:
-                            result.flashlightSliderCheesePenalty,
-                        visualSliderCheesePenalty:
-                            result.visualSliderCheesePenalty,
-                        calculatedUnstableRate:
-                            (analyzer.calculateHitError()?.unstableRate ?? 0) /
-                            (BeatmapDifficultyCalculator.getCalculationParameters(
-                                analyzer
-                            ).customStatistics?.calculate().speedMultiplier ??
-                                1),
-                        estimatedUnstableRate: MathUtils.round(
-                            result.deviation * 10,
-                            2
-                        ),
-                        estimatedSpeedUnstableRate: MathUtils.round(
-                            result.tapDeviation * 10,
-                            2
-                        ),
-                    },
-                };
-            }
+        if (bestAttribs && bestAttribs.performance.total >= result.total) {
+            return;
         }
+
+        if (calculationMethod === PPCalculationMethod.live) {
+            bestAttribs = {
+                difficulty: {
+                    ...result.difficultyAttributes,
+                    mods: undefined,
+                },
+                performance: {
+                    total: result.total,
+                    aim: result.aim,
+                    tap: result.tap,
+                    accuracy: result.accuracy,
+                    flashlight: result.flashlight,
+                    visual: result.visual,
+                    deviation: result.deviation,
+                    tapDeviation: result.tapDeviation,
+                    tapPenalty: result.tapPenalty,
+                    aimSliderCheesePenalty: result.aimSliderCheesePenalty,
+                    flashlightSliderCheesePenalty:
+                        result.flashlightSliderCheesePenalty,
+                    visualSliderCheesePenalty: result.visualSliderCheesePenalty,
+                },
+            };
+        } else {
+            bestAttribs = {
+                difficulty: {
+                    ...result.difficultyAttributes,
+                    mods: undefined,
+                },
+                performance: {
+                    total: result.total,
+                    aim: result.aim,
+                    tap: result.tap,
+                    accuracy: result.accuracy,
+                    flashlight: result.flashlight,
+                    visual: result.visual,
+                    deviation: result.deviation,
+                    tapDeviation: result.tapDeviation,
+                    tapPenalty: result.tapPenalty,
+                    aimSliderCheesePenalty: result.aimSliderCheesePenalty,
+                    flashlightSliderCheesePenalty:
+                        result.flashlightSliderCheesePenalty,
+                    visualSliderCheesePenalty: result.visualSliderCheesePenalty,
+                    calculatedUnstableRate:
+                        (analyzer.calculateHitError()?.unstableRate ?? 0) /
+                        (BeatmapDifficultyCalculator.getCalculationParameters(
+                            analyzer
+                        ).customStatistics?.calculate().speedMultiplier ?? 1),
+                    estimatedUnstableRate: MathUtils.round(
+                        result.deviation * 10,
+                        2
+                    ),
+                    estimatedSpeedUnstableRate: MathUtils.round(
+                        result.tapDeviation * 10,
+                        2
+                    ),
+                },
+            };
+        }
+    };
+
+    // Check for online replay first in case it is not submitted to the local replay directory.
+    const score = await Score.getFromHash(
+        parseInt(req.query.playerid),
+        req.query.beatmaphash
+    );
+
+    if (!score) {
+        return res.status(404).json({ error: "No scores found from player" });
+    }
+
+    const analyzer = new ReplayAnalyzer({
+        scoreID: score.scoreID,
+    });
+
+    // Retrieve replay locally.
+    analyzer.originalODR = await getOnlineReplay(score.scoreID);
+    await analyzer.analyze();
+    await calculateReplay(analyzer);
+
+    // After checking the online score, we check local replay directory.
+    const replayDirectory = join(
+        localReplayDirectory,
+        req.query.playerid,
+        req.query.beatmaphash
+    );
+    const replayFiles = await readdir(replayDirectory).catch(() => null);
+
+    for (const replayFilename of replayFiles ?? []) {
+        const analyzer = new ReplayAnalyzer({ scoreID: 0 });
+        analyzer.originalODR = await readFile(
+            join(replayDirectory, replayFilename)
+        ).catch(() => null);
+        await analyzer.analyze();
+        await calculateReplay(analyzer);
     }
 
     if (!bestAttribs) {

@@ -17,6 +17,7 @@ import { WhitelistUtil } from "./WhitelistUtil";
 import { PPEntry } from "../structures/PPEntry";
 import { PPSubmissionStatus } from "../structures/PPSubmissionStatus";
 import { persistReplay, saveReplay } from "./replaySavingManager";
+import { PPSubmissionOperationResult } from "../structures/PPSubmissionOperationResult";
 
 /**
  * Utilities that are related to dpp.
@@ -32,7 +33,7 @@ export abstract class DPPUtil {
     static async submitReplay(
         replays: ReplayAnalyzer[],
         uid?: number
-    ): Promise<PPSubmissionStatus[]> {
+    ): Promise<PPSubmissionOperationResult> {
         const statuses: PPSubmissionStatus[] = [];
 
         const preFillStatuses = (message: PPSubmissionStatus): void => {
@@ -76,7 +77,12 @@ export abstract class DPPUtil {
                     pp: 0,
                 });
 
-                return statuses;
+                return {
+                    ppGained: 0,
+                    newTotalPP: 0,
+                    playCountIncrement: 0,
+                    statuses: statuses,
+                };
             }
         }
 
@@ -91,7 +97,12 @@ export abstract class DPPUtil {
                 pp: 0,
             });
 
-            return statuses;
+            return {
+                ppGained: 0,
+                newTotalPP: 0,
+                playCountIncrement: 0,
+                statuses: statuses,
+            };
         }
 
         const bindInfo =
@@ -104,7 +115,12 @@ export abstract class DPPUtil {
                 pp: 0,
             });
 
-            return statuses;
+            return {
+                ppGained: 0,
+                newTotalPP: 0,
+                playCountIncrement: 0,
+                statuses: statuses,
+            };
         }
 
         for (const replay of replays) {
@@ -271,21 +287,22 @@ export abstract class DPPUtil {
             });
         }
 
+        const newTotal = this.calculateFinalPerformancePoints(bindInfo.pp);
+        const playCountIncrement = statuses.filter((v) => v.success).length;
+
         const updateResult = await DatabaseManager.elainaDb.collections.userBind
             .updateOne(
                 { discordid: bindInfo.discordid },
                 {
                     $set: {
-                        pptotal: this.calculateFinalPerformancePoints(
-                            bindInfo.pp
-                        ),
+                        pptotal: newTotal,
                         pp: bindInfo.pp,
                         weightedAccuracy: this.calculateWeightedAccuracy(
                             bindInfo.pp
                         ),
                     },
                     $inc: {
-                        playc: statuses.filter((v) => v.success).length,
+                        playc: playCountIncrement,
                     },
                 }
             )
@@ -297,12 +314,22 @@ export abstract class DPPUtil {
                 status.reason = "Score submission to database failed";
             }
 
-            return statuses;
+            return {
+                ppGained: 0,
+                newTotalPP: bindInfo.pptotal,
+                playCountIncrement: 0,
+                statuses: statuses,
+            };
         }
 
         await this.updateDiscordMetadata(bindInfo.discordid);
 
-        return statuses;
+        return {
+            ppGained: MathUtils.round(newTotal - bindInfo.pptotal, 2),
+            newTotalPP: MathUtils.round(newTotal, 2),
+            playCountIncrement: playCountIncrement,
+            statuses: statuses,
+        };
     }
 
     /**

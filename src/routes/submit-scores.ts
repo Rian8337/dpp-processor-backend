@@ -27,12 +27,9 @@ router.post<
         replays.push(analyzer);
     }
 
-    const statuses = await DPPUtil.submitReplay(
-        replays,
-        parseInt(req.body.uid)
-    );
+    const result = await DPPUtil.submitReplay(replays, parseInt(req.body.uid));
 
-    res.json(statuses);
+    res.json(result);
 });
 
 export default router;

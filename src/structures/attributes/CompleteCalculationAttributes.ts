@@ -15,7 +15,7 @@ export interface CompleteCalculationAttributes<
     readonly difficulty: CacheableDifficultyAttributes<TDiffAttr>;
 
     /**
-     * The difficulty attributes.
+     * The performance attributes.
      */
     readonly performance: TPerfAttr;
 }

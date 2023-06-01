@@ -55,21 +55,22 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
      * @param attributes The difficulty attributes.
      */
     applyFromAttributes(attributes: RawDifficultyAttributes): void {
-        const objectCount: number =
+        const objectCount =
             attributes.hitCircleCount +
             attributes.sliderCount +
             attributes.spinnerCount;
 
         if (this.accuracy.n50 || this.accuracy.n100) {
             this.accuracy = new Accuracy({
-                n300:
+                ...this.accuracy,
+                // Add remaining objects as misses.
+                nmiss: Math.max(
+                    0,
                     objectCount -
-                    this.accuracy.n100 -
-                    this.accuracy.n50 -
-                    this.accuracy.nmiss,
-                n100: this.accuracy.n100,
-                n50: this.accuracy.n50,
-                nmiss: this.accuracy.nmiss,
+                        this.accuracy.n300 -
+                        this.accuracy.n100 -
+                        this.accuracy.n50
+                ),
             });
         }
     }

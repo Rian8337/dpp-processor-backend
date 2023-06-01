@@ -113,7 +113,7 @@ router.post<
 
     const calculationParams = new PerformanceCalculationParameters(
         new Accuracy({
-            n300: Math.max(0, parseInt(req.body.n300 ?? "-1")),
+            n300: Math.max(-1, parseInt(req.body.n300 ?? "-1")),
             n100: Math.max(0, parseInt(req.body.n100 ?? "0")),
             n50: Math.max(0, parseInt(req.body.n50 ?? "0")),
             nmiss: Math.max(0, parseInt(req.body.nmiss ?? "0")),

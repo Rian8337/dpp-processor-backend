@@ -134,11 +134,9 @@ export abstract class DPPUtil {
                 continue;
             }
 
-            const beatmapInfo = await getBeatmap(data.hash, {
-                checkFile: false,
-            });
+            const apiBeatmap = await getBeatmap(data.hash);
 
-            if (!beatmapInfo) {
+            if (!apiBeatmap) {
                 statuses.push({
                     success: false,
                     reason: "Beatmap not found",
@@ -148,7 +146,7 @@ export abstract class DPPUtil {
             }
 
             const submissionValidity = await this.checkSubmissionValidity(
-                beatmapInfo
+                apiBeatmap
             );
             if (submissionValidity !== DPPSubmissionValidity.valid) {
                 let reason: string;
@@ -202,7 +200,7 @@ export abstract class DPPUtil {
             }
 
             const ppEntry = DPPUtil.scoreToPPEntry(
-                beatmapInfo,
+                apiBeatmap,
                 uid,
                 data,
                 performanceCalculationResult
@@ -211,9 +209,9 @@ export abstract class DPPUtil {
             let replayNeedsPersistence = false;
 
             if (this.checkScoreInsertion(bindInfo.pp, ppEntry)) {
-                await beatmapInfo.retrieveBeatmapFile();
+                await apiBeatmap.retrieveBeatmapFile();
 
-                if (!beatmapInfo.hasDownloadedBeatmap()) {
+                if (!apiBeatmap.hasDownloadedBeatmap()) {
                     statuses.push({
                         success: false,
                         reason: "Beatmap file could not be downloaded",
@@ -355,14 +353,12 @@ export abstract class DPPUtil {
     static async checkSubmissionValidity(
         beatmapOrScore: Score | MapInfo
     ): Promise<DPPSubmissionValidity> {
-        const beatmapInfo =
+        const apiBeatmap =
             beatmapOrScore instanceof MapInfo
                 ? beatmapOrScore
-                : await getBeatmap(beatmapOrScore.hash, {
-                      checkFile: false,
-                  });
+                : await getBeatmap(beatmapOrScore.hash);
 
-        if (!beatmapInfo) {
+        if (!apiBeatmap) {
             return DPPSubmissionValidity.beatmapNotFound;
         }
 
@@ -370,15 +366,15 @@ export abstract class DPPUtil {
             case beatmapOrScore instanceof Score &&
                 beatmapOrScore.forcedAR !== undefined:
                 return DPPSubmissionValidity.scoreUsesForceAR;
-            case beatmapInfo.approved === RankedStatus.loved &&
-                (beatmapInfo.hitLength < 30 ||
-                    beatmapInfo.hitLength / beatmapInfo.totalLength < 0.6):
+            case apiBeatmap.approved === RankedStatus.loved &&
+                (apiBeatmap.hitLength < 30 ||
+                    apiBeatmap.hitLength / apiBeatmap.totalLength < 0.6):
                 return DPPSubmissionValidity.beatmapTooShort;
-            case await WhitelistUtil.isBlacklisted(beatmapInfo.beatmapID):
+            case await WhitelistUtil.isBlacklisted(apiBeatmap.beatmapID):
                 return DPPSubmissionValidity.beatmapIsBlacklisted;
-            case WhitelistUtil.beatmapNeedsWhitelisting(beatmapInfo.approved) &&
+            case WhitelistUtil.beatmapNeedsWhitelisting(apiBeatmap.approved) &&
                 (await WhitelistUtil.getBeatmapWhitelistStatus(
-                    beatmapInfo.hash
+                    apiBeatmap.hash
                 )) !== "updated":
                 return DPPSubmissionValidity.beatmapNotWhitelisted;
             default:

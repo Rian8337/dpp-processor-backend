@@ -94,14 +94,11 @@ router.get<
         return res.status(400).json({ error: "Invalid calculation method" });
     }
 
-    const beatmap = await getBeatmap(
-        beatmapid !== undefined ? parseInt(beatmapid) : beatmaphash!,
-        {
-            checkFile: false,
-        }
+    const apiBeatmap = await getBeatmap(
+        beatmapid !== undefined ? parseInt(beatmapid) : beatmaphash!
     );
 
-    if (!beatmap) {
+    if (!apiBeatmap) {
         return res.status(404).json({ error: "Beatmap not found" });
     }
 
@@ -111,12 +108,12 @@ router.get<
             n100: Math.max(0, parseInt(req.query.n100 ?? "0")),
             n50: Math.max(0, parseInt(req.query.n50 ?? "0")),
             nmiss: Math.max(0, parseInt(req.query.nmiss ?? "0")),
-            nobjects: beatmap.objects,
+            nobjects: apiBeatmap.objects,
         }),
         MathUtils.clamp(
-            parseInt(req.query.maxcombo ?? beatmap.maxCombo.toString()),
+            parseInt(req.query.maxcombo ?? apiBeatmap.maxCombo.toString()),
             0,
-            beatmap.maxCombo
+            apiBeatmap.maxCombo
         ),
         parseInt(req.query.tappenalty ?? "1"),
         new MapStats({
@@ -143,7 +140,7 @@ router.get<
                 case PPCalculationMethod.live: {
                     const calculationResult =
                         await difficultyCalculator.calculateBeatmapPerformance(
-                            beatmap,
+                            apiBeatmap,
                             calculationParams
                         );
 
@@ -189,7 +186,7 @@ router.get<
                 case PPCalculationMethod.rebalance: {
                     const calculationResult =
                         await difficultyCalculator.calculateBeatmapRebalancePerformance(
-                            beatmap,
+                            apiBeatmap,
                             calculationParams
                         );
 
@@ -252,7 +249,7 @@ router.get<
                 case PPCalculationMethod.live: {
                     const calculationResult =
                         await difficultyCalculator.calculateBeatmapPerformance(
-                            beatmap,
+                            apiBeatmap,
                             calculationParams
                         );
 
@@ -288,7 +285,7 @@ router.get<
                 case PPCalculationMethod.rebalance: {
                     const calculationResult =
                         await difficultyCalculator.calculateBeatmapRebalancePerformance(
-                            beatmap,
+                            apiBeatmap,
                             calculationParams
                         );
 

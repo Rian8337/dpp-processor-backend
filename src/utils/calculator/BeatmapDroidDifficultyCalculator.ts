@@ -22,7 +22,8 @@ import {
 import { PerformanceCalculationParameters } from "./PerformanceCalculationParameters";
 import { PerformanceCalculationResult } from "./PerformanceCalculationResult";
 import { RebalancePerformanceCalculationResult } from "./RebalancePerformanceCalculationResult";
-import { getBeatmap } from "../cache/beatmapStorage";
+import { getBeatmap, getBeatmapFile } from "../cache/beatmapStorage";
+import { BeatmapDecoder } from "@rian8337/osu-base";
 
 /**
  * A helper class for calculating osu!droid difficulty and performance of beatmaps or scores.
@@ -81,12 +82,23 @@ export class BeatmapDroidDifficultyCalculator extends BeatmapDifficultyCalculato
         }
 
         if (!replay.hasBeenCheckedFor3Finger) {
-            const beatmap = await getBeatmap(replay.data.hash);
-            if (!beatmap) {
-                return false;
+            if (!replay.beatmap) {
+                const apiBeatmap = await getBeatmap(replay.data.hash);
+                if (!apiBeatmap) {
+                    return false;
+                }
+
+                const beatmapFile = await getBeatmapFile(apiBeatmap);
+                if (!beatmapFile) {
+                    return false;
+                }
+
+                replay.beatmap = new BeatmapDecoder().decode(
+                    beatmapFile,
+                    difficultyAttributes.mods
+                ).result;
             }
 
-            replay.beatmap ??= beatmap.beatmap;
             replay.difficultyAttributes = difficultyAttributes;
             replay.checkFor3Finger();
             calcResult.params.tapPenalty = replay.tapPenalty;
@@ -193,12 +205,22 @@ export class BeatmapDroidDifficultyCalculator extends BeatmapDifficultyCalculato
         }
 
         if (!replay.hasBeenCheckedForSliderCheesing) {
-            const beatmap = await getBeatmap(replay.data.hash);
-            if (!beatmap) {
-                return false;
-            }
+            if (!replay.beatmap) {
+                const apiBeatmap = await getBeatmap(replay.data.hash);
+                if (!apiBeatmap) {
+                    return false;
+                }
 
-            replay.beatmap ??= beatmap.beatmap;
+                const beatmapFile = await getBeatmapFile(apiBeatmap);
+                if (!beatmapFile) {
+                    return false;
+                }
+
+                replay.beatmap = new BeatmapDecoder().decode(
+                    beatmapFile,
+                    calcResult.result.difficultyAttributes.mods
+                ).result;
+            }
             replay.checkForSliderCheesing();
             calcResult.params.sliderCheesePenalty = replay.sliderCheesePenalty;
         }

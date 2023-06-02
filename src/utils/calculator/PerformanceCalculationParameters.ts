@@ -1,12 +1,33 @@
-import { Accuracy, MapStats } from "@rian8337/osu-base";
+import { Accuracy, MapStats, ModUtil } from "@rian8337/osu-base";
 import { SliderCheeseInformation } from "@rian8337/osu-droid-replay-analyzer";
 import { DifficultyCalculationParameters } from "./DifficultyCalculationParameters";
 import { RawDifficultyAttributes } from "../../structures/attributes/RawDifficultyAttributes";
+import { CloneablePerformanceCalculationParameters } from "./CloneablePerformanceCalculationParameters";
 
 /**
  * Represents a parameter to alter performance calculation result.
  */
 export class PerformanceCalculationParameters extends DifficultyCalculationParameters {
+    /**
+     * Constructs a `PerformanceCalculationParameters` object from raw data.
+     *
+     * @param data The data.
+     */
+    static from(
+        data: CloneablePerformanceCalculationParameters
+    ): PerformanceCalculationParameters {
+        return new this(
+            new Accuracy(data.accuracy),
+            data.combo,
+            data.tapPenalty,
+            new MapStats({
+                ...data.customStatistics,
+                mods: ModUtil.pcStringToMods(data.customStatistics?.mods ?? ""),
+            }),
+            data.sliderCheesePenalty
+        );
+    }
+
     /**
      * The combo achieved.
      */
@@ -73,5 +94,17 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
                 ),
             });
         }
+    }
+
+    override toCloneable(): CloneablePerformanceCalculationParameters {
+        return {
+            ...super.toCloneable(),
+            accuracy: {
+                ...this.accuracy,
+            },
+            combo: this.combo,
+            tapPenalty: this.tapPenalty,
+            sliderCheesePenalty: this.sliderCheesePenalty,
+        };
     }
 }

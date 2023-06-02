@@ -76,14 +76,11 @@ router.get<
         return res.status(400).json({ error: "Invalid calculation method" });
     }
 
-    const beatmap = await getBeatmap(
-        beatmapid !== undefined ? parseInt(beatmapid) : beatmaphash!,
-        {
-            checkFile: false,
-        }
+    const apiBeatmap = await getBeatmap(
+        beatmapid !== undefined ? parseInt(beatmapid) : beatmaphash!
     );
 
-    if (!beatmap) {
+    if (!apiBeatmap) {
         return res.status(404).json({ error: "Beatmap not found" });
     }
 
@@ -136,7 +133,7 @@ router.get<
     }
 
     difficultyAttributes = difficultyCacheManager.getDifficultyAttributes(
-        beatmap,
+        apiBeatmap,
         difficultyCacheManager.getAttributeName(
             customStatistics?.mods,
             customStatistics?.oldStatistics,
@@ -149,11 +146,11 @@ router.get<
         const difficultyCalculationResult = await (calculationMethod ===
         PPCalculationMethod.live
             ? difficultyCalculator.calculateBeatmapDifficulty(
-                  beatmap,
+                  apiBeatmap,
                   calculationParams
               )
             : difficultyCalculator.calculateBeatmapRebalanceDifficulty(
-                  beatmap,
+                  apiBeatmap,
                   calculationParams
               ));
 

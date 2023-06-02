@@ -4,12 +4,7 @@ import { LimitedCapacityCollection } from "../LimitedCapacityCollection";
 /**
  * Options for beatmap retrieval.
  */
-export interface BeatmapRetrievalOptions<TCheckFile extends boolean> {
-    /**
-     * Whether to check if the beatmap's `.osu` file is downloaded, and downloads it if it's not. Defaults to `true`.
-     */
-    checkFile?: TCheckFile;
-
+export interface BeatmapRetrievalOptions {
     /**
      * Whether to skip the cache check and request the osu! API. Defaults to `false`.
      */
@@ -28,47 +23,74 @@ export interface BeatmapRetrievalOptions<TCheckFile extends boolean> {
  * @param options Options for the retrieval of the beatmap.
  * @returns A `MapInfo` instance representing the beatmap.
  */
-export async function getBeatmap<TCheckFile extends boolean = true>(
+export async function getBeatmap(
     beatmapIdOrHash: number | string,
-    options?: BeatmapRetrievalOptions<TCheckFile>
-): Promise<MapInfo<TCheckFile> | null> {
-    const oldCache = beatmapCache.find(
+    options?: BeatmapRetrievalOptions
+): Promise<MapInfo<false> | null> {
+    const oldCache = beatmapAPICache.find(
         (v) => v.beatmapID === beatmapIdOrHash || v.hash === beatmapIdOrHash
     );
 
     if (oldCache && !options?.forceCheck) {
-        if (options?.checkFile !== false) {
-            await oldCache.retrieveBeatmapFile();
-
-            if (!oldCache.hasDownloadedBeatmap()) {
-                return null;
-            }
-        }
-
         return oldCache;
     }
 
-    const newCache = await MapInfo.getInformation(
-        beatmapIdOrHash,
-        options?.checkFile
-    );
+    const newCache = await MapInfo.getInformation(beatmapIdOrHash, false);
 
     if (!newCache) {
         return null;
     }
 
     if (options?.cacheBeatmap !== false) {
-        beatmapCache.set(newCache.beatmapID, newCache);
+        beatmapAPICache.set(newCache.beatmapID, newCache);
     }
 
-    if (options?.checkFile && !newCache.hasDownloadedBeatmap()) {
-        return null;
-    }
-
-    return <MapInfo>newCache;
+    return newCache;
 }
 
 /**
- * The beatmaps that have been cached, mapped by beatmap ID.
+ * Gets the beatmap file of a beatmap.
+ *
+ * @param beatmap The beatmap.
+ * @returns The beatmap file, `null` if the beatmap file cannot be downloaded.
  */
-const beatmapCache = new LimitedCapacityCollection<number, MapInfo>(150, 600);
+export async function getBeatmapFile(beatmap: MapInfo): Promise<string | null> {
+    const oldCache = beatmapFileCache.get(beatmap.hash);
+
+    if (oldCache) {
+        return oldCache;
+    }
+
+    const url = new URL(`https://osu.ppy.sh/osu/${beatmap.beatmapID}`);
+    const newCache = await fetch(url)
+        .then((res) => {
+            if (!res.ok) {
+                return null;
+            }
+
+            return res.text();
+        })
+        .catch(() => null);
+
+    if (newCache) {
+        beatmapFileCache.set(beatmap.hash, newCache);
+    }
+
+    return newCache;
+}
+
+/**
+ * The beatmap API responses cache, mapped by beatmap ID.
+ */
+const beatmapAPICache = new LimitedCapacityCollection<number, MapInfo>(
+    150,
+    600
+);
+
+/**
+ * The beatmap file cache, mapped by beatmap hash.
+ */
+const beatmapFileCache = new LimitedCapacityCollection<string, string>(
+    150,
+    600
+);

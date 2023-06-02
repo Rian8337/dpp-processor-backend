@@ -1,6 +1,6 @@
 import EventEmitter from "events";
 import { availableParallelism } from "os";
-import { Worker } from "worker_threads";
+import { Worker, isMainThread } from "worker_threads";
 import { resolve } from "path";
 import { CalculationWorkerTask } from "../../structures/workers/CalculationWorkerTask";
 import { CalculationWorker } from "../../structures/workers/CalculationWorker";
@@ -22,6 +22,12 @@ export class CalculationWorkerPool extends EventEmitter {
 
     constructor() {
         super();
+
+        if (!isMainThread) {
+            return;
+        }
+
+        console.log("Creating", this.threadAmount, "worker threads");
 
         for (let i = 0; i < this.threadAmount; ++i) {
             this.addNewWorker();

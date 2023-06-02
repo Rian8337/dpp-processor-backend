@@ -271,25 +271,26 @@ export abstract class BeatmapDifficultyCalculator<
 
                     const diffAttribs = <DA & RDA>{
                         ...result.difficulty,
-                        mods: calculationParams?.customStatistics?.mods ?? [],
+                        mods: calculationParams.customStatistics?.mods ?? [],
                     };
+
+                    const { customStatistics } = calculationParams;
 
                     if (!cachedAttributes) {
                         cacheManager.addAttribute(
-                            apiBeatmap!,
+                            apiBeatmap,
                             diffAttribs,
-                            calculationParams?.customStatistics?.oldStatistics,
-                            calculationParams?.customStatistics
-                                ?.speedMultiplier,
-                            calculationParams?.customStatistics?.isForceAR
-                                ? calculationParams.customStatistics.ar
+                            customStatistics?.oldStatistics,
+                            customStatistics?.speedMultiplier,
+                            customStatistics?.isForceAR
+                                ? customStatistics.ar
                                 : undefined
                         );
                     }
 
                     resolve(
                         new RebalancePerformanceCalculationResult(
-                            calculationParams!,
+                            calculationParams,
                             diffAttribs,
                             <RPA>result.performance
                         )

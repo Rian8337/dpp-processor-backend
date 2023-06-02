@@ -81,7 +81,7 @@ export abstract class BeatmapDifficultyCalculator<
         replay: ReplayAnalyzer,
         calculationParams?: PerformanceCalculationParameters
     ): Promise<PerformanceCalculationResult<DA, PA>> {
-        if (!replay.originalODR || !replay.data) {
+        if (!replay.data) {
             throw new Error("No replay data found");
         }
 
@@ -90,80 +90,15 @@ export abstract class BeatmapDifficultyCalculator<
             throw new Error("Beatmap not found");
         }
 
-        const beatmapFile = await getBeatmapFile(apiBeatmap);
-        if (!beatmapFile) {
-            throw new Error("Beatmap not found");
-        }
-
         calculationParams ??=
             BeatmapDifficultyCalculator.getCalculationParameters(replay);
-        const { customStatistics } = calculationParams;
 
-        const attributeName =
-            this.liveDifficultyAttributesCache.getAttributeName(
-                customStatistics?.mods,
-                customStatistics?.oldStatistics,
-                customStatistics?.speedMultiplier,
-                customStatistics?.isForceAR ? customStatistics.ar : undefined
-            );
-
-        const cachedAttributes =
-            this.liveDifficultyAttributesCache.getDifficultyAttributes(
-                apiBeatmap,
-                attributeName
-            );
-
-        const data: CalculationWorkerData = {
-            beatmapFile: beatmapFile,
-            gamemode: this.mode,
-            calculationMethod: PPCalculationMethod.live,
-            difficultyAttributes: cachedAttributes,
-            replayFile: new Blob([replay.originalODR]),
-            parameters: calculationParams.toCloneable(),
-        };
-
-        return new Promise((resolve, reject) => {
-            BeatmapDifficultyCalculator.calculatorPool.runTask({
-                data,
-                callback: (
-                    err,
-                    result: CompleteCalculationAttributes<
-                        DifficultyAttributes,
-                        PerformanceAttributes
-                    >
-                ) => {
-                    if (err) {
-                        return reject(err);
-                    }
-
-                    const diffAttribs = <DA>{
-                        ...result.difficulty,
-                        mods: calculationParams?.customStatistics?.mods ?? [],
-                    };
-
-                    if (!cachedAttributes) {
-                        this.liveDifficultyAttributesCache.addAttribute(
-                            apiBeatmap,
-                            diffAttribs,
-                            calculationParams?.customStatistics?.oldStatistics,
-                            calculationParams?.customStatistics
-                                ?.speedMultiplier,
-                            calculationParams?.customStatistics?.isForceAR
-                                ? calculationParams.customStatistics.ar
-                                : undefined
-                        );
-                    }
-
-                    resolve(
-                        new PerformanceCalculationResult(
-                            calculationParams!,
-                            diffAttribs,
-                            <PA>result.performance
-                        )
-                    );
-                },
-            });
-        });
+        return this.calculatePerformance(
+            apiBeatmap,
+            calculationParams,
+            PPCalculationMethod.live,
+            replay
+        );
     }
 
     /**
@@ -177,7 +112,7 @@ export abstract class BeatmapDifficultyCalculator<
         replay: ReplayAnalyzer,
         calculationParams?: PerformanceCalculationParameters
     ): Promise<RebalancePerformanceCalculationResult<RDA, RPA>> {
-        if (!replay.originalODR || !replay.data) {
+        if (!replay.data) {
             throw new Error("No replay data found");
         }
 
@@ -186,80 +121,15 @@ export abstract class BeatmapDifficultyCalculator<
             throw new Error("Beatmap not found");
         }
 
-        const beatmapFile = await getBeatmapFile(apiBeatmap);
-        if (!beatmapFile) {
-            throw new Error("Beatmap not found");
-        }
-
         calculationParams ??=
             BeatmapDifficultyCalculator.getCalculationParameters(replay);
-        const { customStatistics } = calculationParams;
 
-        const attributeName =
-            this.rebalanceDifficultyAttributesCache.getAttributeName(
-                customStatistics?.mods,
-                customStatistics?.oldStatistics,
-                customStatistics?.speedMultiplier,
-                customStatistics?.isForceAR ? customStatistics.ar : undefined
-            );
-
-        const cachedAttributes =
-            this.rebalanceDifficultyAttributesCache.getDifficultyAttributes(
-                apiBeatmap,
-                attributeName
-            );
-
-        const data: CalculationWorkerData = {
-            beatmapFile: beatmapFile,
-            gamemode: this.mode,
-            calculationMethod: PPCalculationMethod.live,
-            difficultyAttributes: cachedAttributes,
-            replayFile: new Blob([replay.originalODR]),
-            parameters: calculationParams.toCloneable(),
-        };
-
-        return new Promise((resolve, reject) => {
-            BeatmapDifficultyCalculator.calculatorPool.runTask({
-                data,
-                callback: (
-                    err,
-                    result: CompleteCalculationAttributes<
-                        RebalanceDifficultyAttributes,
-                        PerformanceAttributes
-                    >
-                ) => {
-                    if (err) {
-                        return reject(err);
-                    }
-
-                    const diffAttribs = <RDA>{
-                        ...result.difficulty,
-                        mods: calculationParams?.customStatistics?.mods ?? [],
-                    };
-
-                    if (!cachedAttributes) {
-                        this.rebalanceDifficultyAttributesCache.addAttribute(
-                            apiBeatmap,
-                            diffAttribs,
-                            calculationParams?.customStatistics?.oldStatistics,
-                            calculationParams?.customStatistics
-                                ?.speedMultiplier,
-                            calculationParams?.customStatistics?.isForceAR
-                                ? calculationParams.customStatistics.ar
-                                : undefined
-                        );
-                    }
-
-                    resolve(
-                        new RebalancePerformanceCalculationResult(
-                            calculationParams!,
-                            diffAttribs,
-                            <RPA>result.performance
-                        )
-                    );
-                },
-            });
-        });
+        return this.calculatePerformance(
+            apiBeatmap,
+            calculationParams,
+            PPCalculationMethod.rebalance,
+            replay
+        );
     }
 
     /**
@@ -270,40 +140,13 @@ export abstract class BeatmapDifficultyCalculator<
      * @returns The result of the calculation. Errors will be thrown whenever necessary.
      */
     async calculateBeatmapPerformance(
-        beatmap: MapInfo,
-        calculationParams?: PerformanceCalculationParameters
-    ): Promise<PerformanceCalculationResult<DA, PA>>;
-
-    /**
-     * Calculates the difficulty and/or performance value of a beatmap.
-     *
-     * @param beatmapIdOrHash The ID or MD5 hash of the beatmap.
-     * @param calculationParams Calculation parameters. If unspecified, will calculate for No Mod SS.
-     * @returns The result of the calculation. Errors will be thrown whenever necessary.
-     */
-    async calculateBeatmapPerformance(
-        beatmapIdOrHash: number | string,
-        calculationParams?: PerformanceCalculationParameters
-    ): Promise<PerformanceCalculationResult<DA, PA>>;
-
-    async calculateBeatmapPerformance(
-        beatmapOrHashOrDA: MapInfo | number | string,
+        beatmap: MapInfo | number | string,
         calculationParams?: PerformanceCalculationParameters
     ): Promise<PerformanceCalculationResult<DA, PA>> {
-        let apiBeatmap: MapInfo | null;
-
-        if (beatmapOrHashOrDA instanceof MapInfo) {
-            apiBeatmap = beatmapOrHashOrDA;
-        } else {
-            apiBeatmap = await getBeatmap(beatmapOrHashOrDA);
-        }
+        const apiBeatmap: MapInfo | null =
+            beatmap instanceof MapInfo ? beatmap : await getBeatmap(beatmap);
 
         if (!apiBeatmap) {
-            throw new Error("Beatmap not found");
-        }
-
-        const beatmapFile = await getBeatmapFile(apiBeatmap);
-        if (!beatmapFile) {
             throw new Error("Beatmap not found");
         }
 
@@ -315,72 +158,11 @@ export abstract class BeatmapDifficultyCalculator<
             apiBeatmap.maxCombo
         );
 
-        const { customStatistics } = calculationParams;
-
-        const attributeName =
-            this.liveDifficultyAttributesCache.getAttributeName(
-                customStatistics?.mods,
-                customStatistics?.oldStatistics,
-                customStatistics?.speedMultiplier,
-                customStatistics?.isForceAR ? customStatistics.ar : undefined
-            );
-
-        const cachedAttributes =
-            this.liveDifficultyAttributesCache.getDifficultyAttributes(
-                apiBeatmap,
-                attributeName
-            );
-
-        const data: CalculationWorkerData = {
-            beatmapFile: beatmapFile,
-            gamemode: this.mode,
-            calculationMethod: PPCalculationMethod.live,
-            difficultyAttributes: cachedAttributes,
-            parameters: calculationParams.toCloneable(),
-        };
-
-        return new Promise((resolve, reject) => {
-            BeatmapDifficultyCalculator.calculatorPool.runTask({
-                data,
-                callback: (
-                    err,
-                    result: CompleteCalculationAttributes<
-                        RebalanceDifficultyAttributes,
-                        PerformanceAttributes
-                    >
-                ) => {
-                    if (err) {
-                        return reject(err);
-                    }
-
-                    const diffAttribs = <DA>{
-                        ...result.difficulty,
-                        mods: calculationParams?.customStatistics?.mods ?? [],
-                    };
-
-                    if (!cachedAttributes) {
-                        this.liveDifficultyAttributesCache.addAttribute(
-                            apiBeatmap!,
-                            diffAttribs,
-                            calculationParams?.customStatistics?.oldStatistics,
-                            calculationParams?.customStatistics
-                                ?.speedMultiplier,
-                            calculationParams?.customStatistics?.isForceAR
-                                ? calculationParams.customStatistics.ar
-                                : undefined
-                        );
-                    }
-
-                    resolve(
-                        new PerformanceCalculationResult(
-                            calculationParams!,
-                            diffAttribs,
-                            <PA>result.performance
-                        )
-                    );
-                },
-            });
-        });
+        return this.calculatePerformance(
+            apiBeatmap,
+            calculationParams,
+            PPCalculationMethod.live
+        );
     }
 
     /**
@@ -391,40 +173,13 @@ export abstract class BeatmapDifficultyCalculator<
      * @returns The result of the calculation. Errors will be thrown whenever necessary.
      */
     async calculateBeatmapRebalancePerformance(
-        beatmap: MapInfo,
-        calculationParams?: PerformanceCalculationParameters
-    ): Promise<RebalancePerformanceCalculationResult<RDA, RPA>>;
-
-    /**
-     * Calculates the rebalance difficulty and/or performance value of a beatmap.
-     *
-     * @param beatmapIDorHash The ID or MD5 hash of the beatmap.
-     * @param calculationParams Calculation parameters. If unspecified, will calculate for No Mod SS.
-     * @returns The result of the calculation. Errors will be thrown whenever necessary.
-     */
-    async calculateBeatmapRebalancePerformance(
-        beatmapIDorHash: number | string,
-        calculationParams?: PerformanceCalculationParameters
-    ): Promise<RebalancePerformanceCalculationResult<RDA, RPA>>;
-
-    async calculateBeatmapRebalancePerformance(
-        beatmapOrHashOrDA: MapInfo | number | string,
+        beatmap: MapInfo | number | string,
         calculationParams?: PerformanceCalculationParameters
     ): Promise<RebalancePerformanceCalculationResult<RDA, RPA>> {
-        let apiBeatmap: MapInfo | null;
-
-        if (beatmapOrHashOrDA instanceof MapInfo) {
-            apiBeatmap = beatmapOrHashOrDA;
-        } else {
-            apiBeatmap = await getBeatmap(beatmapOrHashOrDA);
-        }
+        const apiBeatmap: MapInfo | null =
+            beatmap instanceof MapInfo ? beatmap : await getBeatmap(beatmap);
 
         if (!apiBeatmap) {
-            throw new Error("Beatmap not found");
-        }
-
-        const beatmapFile = await getBeatmapFile(apiBeatmap);
-        if (!beatmapFile) {
             throw new Error("Beatmap not found");
         }
 
@@ -436,27 +191,67 @@ export abstract class BeatmapDifficultyCalculator<
             apiBeatmap.maxCombo
         );
 
+        return this.calculatePerformance(
+            apiBeatmap,
+            calculationParams,
+            PPCalculationMethod.rebalance
+        );
+    }
+
+    private async calculatePerformance(
+        apiBeatmap: MapInfo,
+        calculationParams: PerformanceCalculationParameters,
+        calculationMethod: PPCalculationMethod.live,
+        replay?: ReplayAnalyzer
+    ): Promise<PerformanceCalculationResult<DA, PA>>;
+
+    private async calculatePerformance(
+        apiBeatmap: MapInfo,
+        calculationParams: PerformanceCalculationParameters,
+        calculationMethod: PPCalculationMethod.rebalance,
+        replay?: ReplayAnalyzer
+    ): Promise<RebalancePerformanceCalculationResult<RDA, RPA>>;
+
+    private async calculatePerformance(
+        apiBeatmap: MapInfo,
+        calculationParams: PerformanceCalculationParameters,
+        calculationMethod: PPCalculationMethod,
+        replay?: ReplayAnalyzer
+    ): Promise<
+        | PerformanceCalculationResult<DA, PA>
+        | RebalancePerformanceCalculationResult<RDA, RPA>
+    > {
+        const beatmapFile = await getBeatmapFile(apiBeatmap);
+        if (!beatmapFile) {
+            throw new Error("Beatmap not found");
+        }
+
         const { customStatistics } = calculationParams;
 
-        const attributeName =
-            this.rebalanceDifficultyAttributesCache.getAttributeName(
-                customStatistics?.mods,
-                customStatistics?.oldStatistics,
-                customStatistics?.speedMultiplier,
-                customStatistics?.isForceAR ? customStatistics.ar : undefined
-            );
+        const cacheManager =
+            calculationMethod === PPCalculationMethod.live
+                ? this.liveDifficultyAttributesCache
+                : this.rebalanceDifficultyAttributesCache;
 
-        const cachedAttributes =
-            this.rebalanceDifficultyAttributesCache.getDifficultyAttributes(
-                apiBeatmap,
-                attributeName
-            );
+        const attributeName = cacheManager.getAttributeName(
+            customStatistics?.mods,
+            customStatistics?.oldStatistics,
+            customStatistics?.speedMultiplier,
+            customStatistics?.isForceAR ? customStatistics.ar : undefined
+        );
+        const cachedAttributes = cacheManager.getDifficultyAttributes(
+            apiBeatmap,
+            attributeName
+        );
 
         const data: CalculationWorkerData = {
             beatmapFile: beatmapFile,
             gamemode: this.mode,
-            calculationMethod: PPCalculationMethod.rebalance,
+            calculationMethod: calculationMethod,
             difficultyAttributes: cachedAttributes,
+            replayFile: replay?.originalODR
+                ? new Blob([replay.originalODR])
+                : undefined,
             parameters: calculationParams.toCloneable(),
         };
 
@@ -466,7 +261,7 @@ export abstract class BeatmapDifficultyCalculator<
                 callback: (
                     err,
                     result: CompleteCalculationAttributes<
-                        RebalanceDifficultyAttributes,
+                        DifficultyAttributes | RebalanceDifficultyAttributes,
                         PerformanceAttributes
                     >
                 ) => {
@@ -474,13 +269,13 @@ export abstract class BeatmapDifficultyCalculator<
                         return reject(err);
                     }
 
-                    const diffAttribs = <RDA>{
+                    const diffAttribs = <DA & RDA>{
                         ...result.difficulty,
                         mods: calculationParams?.customStatistics?.mods ?? [],
                     };
 
                     if (!cachedAttributes) {
-                        this.rebalanceDifficultyAttributesCache.addAttribute(
+                        cacheManager.addAttribute(
                             apiBeatmap!,
                             diffAttribs,
                             calculationParams?.customStatistics?.oldStatistics,

@@ -1,8 +1,4 @@
-import { MapInfo } from "@rian8337/osu-base";
-import {
-    DifficultyAttributes as RebalanceDifficultyAttributes,
-    DifficultyCalculator as RebalanceDifficultyCalculator,
-} from "@rian8337/osu-rebalance-difficulty-calculator";
+import { DifficultyAttributes as RebalanceDifficultyAttributes } from "@rian8337/osu-rebalance-difficulty-calculator";
 import { IDifficultyCalculationResult } from "../../structures/calculator/IDifficultyCalculationResult";
 import { CacheableDifficultyAttributes } from "../../structures/attributes/CacheableDifficultyAttributes";
 
@@ -10,21 +6,17 @@ import { CacheableDifficultyAttributes } from "../../structures/attributes/Cache
  * Represents a beatmap's difficulty calculation result.
  */
 export class RebalanceDifficultyCalculationResult<
-    DA extends RebalanceDifficultyAttributes,
-    D extends RebalanceDifficultyCalculator
-> implements IDifficultyCalculationResult<DA, D>
+    DA extends RebalanceDifficultyAttributes
+> implements IDifficultyCalculationResult<DA>
 {
-    readonly map: MapInfo<true>;
-    readonly result: D;
+    readonly attributes: DA;
     readonly cachedAttributes: CacheableDifficultyAttributes<DA>;
 
     constructor(
-        map: MapInfo<true>,
-        result: D,
+        attributes: DA,
         cachedAttributes: CacheableDifficultyAttributes<DA>
     ) {
-        this.map = map;
-        this.result = result;
+        this.attributes = attributes;
         this.cachedAttributes = cachedAttributes;
     }
 }

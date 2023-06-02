@@ -69,39 +69,14 @@ router.get<
 
             switch (calculationMethod) {
                 case PPCalculationMethod.live: {
-                    const calculationResult =
-                        await difficultyCalculator.calculateReplayPerformance(
-                            analyzer
-                        );
+                    const calculationResult = await difficultyCalculator
+                        .calculateReplayPerformance(analyzer)
+                        .catch((e: Error) => e.message);
 
-                    if (!calculationResult) {
+                    if (typeof calculationResult === "string") {
                         return res
                             .status(503)
-                            .json({ error: "Unable to calculate beatmap" });
-                    }
-
-                    const tapPenaltyResult =
-                        await BeatmapDroidDifficultyCalculator.applyTapPenalty(
-                            analyzer,
-                            calculationResult
-                        );
-
-                    if (!tapPenaltyResult) {
-                        return res.status(500).json({
-                            error: "Unable to perform three-finger detection",
-                        });
-                    }
-
-                    const sliderCheesePenaltyResult =
-                        await BeatmapDroidDifficultyCalculator.applySliderCheesePenalty(
-                            analyzer,
-                            calculationResult
-                        );
-
-                    if (!sliderCheesePenaltyResult) {
-                        return res.status(500).json({
-                            error: "Unable to perform slider cheesing detection",
-                        });
+                            .json({ error: calculationResult });
                     }
 
                     const { result } = calculationResult;
@@ -111,7 +86,7 @@ router.get<
                         DroidPerformanceAttributes
                     > = {
                         difficulty: {
-                            ...result.difficultyAttributes,
+                            ...calculationResult.difficultyAttributes,
                             mods: undefined,
                         },
                         performance: {
@@ -138,25 +113,15 @@ router.get<
                     break;
                 }
                 case PPCalculationMethod.rebalance: {
-                    const calculationResult =
-                        await difficultyCalculator.calculateReplayRebalancePerformance(
-                            analyzer
-                        );
+                    const calculationResult = await difficultyCalculator
+                        .calculateReplayRebalancePerformance(analyzer)
+                        .catch((e: Error) => e.message);
 
-                    if (!calculationResult) {
+                    if (typeof calculationResult === "string") {
                         return res
                             .status(503)
-                            .json({ error: "Unable to calculate beatmap" });
+                            .json({ error: calculationResult });
                     }
-
-                    await BeatmapDroidDifficultyCalculator.applyTapPenalty(
-                        analyzer,
-                        calculationResult
-                    );
-                    await BeatmapDroidDifficultyCalculator.applySliderCheesePenalty(
-                        analyzer,
-                        calculationResult
-                    );
 
                     const { result } = calculationResult;
 
@@ -165,7 +130,7 @@ router.get<
                         RebalanceDroidPerformanceAttributes
                     > = {
                         difficulty: {
-                            ...result.difficultyAttributes,
+                            ...calculationResult.difficultyAttributes,
                             mods: undefined,
                         },
                         performance: {
@@ -215,15 +180,14 @@ router.get<
 
             switch (calculationMethod) {
                 case PPCalculationMethod.live: {
-                    const calculationResult =
-                        await difficultyCalculator.calculateReplayPerformance(
-                            analyzer
-                        );
+                    const calculationResult = await difficultyCalculator
+                        .calculateReplayPerformance(analyzer)
+                        .catch((e: Error) => e.message);
 
-                    if (!calculationResult) {
+                    if (typeof calculationResult === "string") {
                         return res
                             .status(503)
-                            .json({ error: "Unable to calculate beatmap" });
+                            .json({ error: calculationResult });
                     }
 
                     const { result } = calculationResult;
@@ -233,7 +197,7 @@ router.get<
                         OsuPerformanceAttributes
                     > = {
                         difficulty: {
-                            ...result.difficultyAttributes,
+                            ...calculationResult.difficultyAttributes,
                             mods: undefined,
                         },
                         performance: {
@@ -250,15 +214,14 @@ router.get<
                     break;
                 }
                 case PPCalculationMethod.rebalance: {
-                    const calculationResult =
-                        await difficultyCalculator.calculateReplayRebalancePerformance(
-                            analyzer
-                        );
+                    const calculationResult = await difficultyCalculator
+                        .calculateReplayRebalancePerformance(analyzer)
+                        .catch((e: Error) => e.message);
 
-                    if (!calculationResult) {
+                    if (typeof calculationResult === "string") {
                         return res
                             .status(503)
-                            .json({ error: "Unable to calculate beatmap" });
+                            .json({ error: calculationResult });
                     }
 
                     const { result } = calculationResult;
@@ -268,7 +231,7 @@ router.get<
                         OsuPerformanceAttributes
                     > = {
                         difficulty: {
-                            ...result.difficultyAttributes,
+                            ...calculationResult.difficultyAttributes,
                             mods: undefined,
                         },
                         performance: {

@@ -3,10 +3,7 @@ import {
     ReplayData,
 } from "@rian8337/osu-droid-replay-analyzer";
 import { Player, Score } from "@rian8337/osu-droid-utilities";
-import {
-    DroidDifficultyCalculator,
-    DroidPerformanceCalculator,
-} from "@rian8337/osu-difficulty-calculator";
+import { DroidDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
 import { getBeatmap } from "./cache/beatmapStorage";
 import { DatabaseManager } from "../database/managers/DatabaseManager";
 import { BeatmapDroidDifficultyCalculator } from "./calculator/BeatmapDroidDifficultyCalculator";
@@ -18,6 +15,7 @@ import { PPEntry } from "../structures/PPEntry";
 import { PPSubmissionStatus } from "../structures/PPSubmissionStatus";
 import { persistReplay, saveReplay } from "./replaySavingManager";
 import { PPSubmissionOperationResult } from "../structures/PPSubmissionOperationResult";
+import { DroidPerformanceAttributes } from "../structures/attributes/DroidPerformanceAttributes";
 
 /**
  * Utilities that are related to dpp.
@@ -185,14 +183,14 @@ export abstract class DPPUtil {
             }
 
             const performanceCalculationResult =
-                await new BeatmapDroidDifficultyCalculator().calculateReplayPerformance(
-                    replay
-                );
+                await new BeatmapDroidDifficultyCalculator()
+                    .calculateReplayPerformance(replay)
+                    .catch((e: Error) => e.message);
 
-            if (!performanceCalculationResult) {
+            if (typeof performanceCalculationResult === "string") {
                 statuses.push({
                     success: false,
-                    reason: "Performance points calculation failed",
+                    reason: performanceCalculationResult,
                     pp: 0,
                 });
 
@@ -209,50 +207,6 @@ export abstract class DPPUtil {
             let replayNeedsPersistence = false;
 
             if (this.checkScoreInsertion(bindInfo.pp, ppEntry)) {
-                await apiBeatmap.retrieveBeatmapFile();
-
-                if (!apiBeatmap.hasDownloadedBeatmap()) {
-                    statuses.push({
-                        success: false,
-                        reason: "Beatmap file could not be downloaded",
-                        pp: ppEntry.pp,
-                    });
-
-                    continue;
-                }
-
-                const tapPenaltyResult =
-                    await BeatmapDroidDifficultyCalculator.applyTapPenalty(
-                        replay,
-                        performanceCalculationResult
-                    );
-
-                if (!tapPenaltyResult) {
-                    statuses.push({
-                        success: false,
-                        reason: "Three-finger detection failed",
-                        pp: ppEntry.pp,
-                    });
-
-                    continue;
-                }
-
-                const sliderCheesePenaltyResult =
-                    await BeatmapDroidDifficultyCalculator.applySliderCheesePenalty(
-                        replay,
-                        performanceCalculationResult
-                    );
-
-                if (!sliderCheesePenaltyResult) {
-                    statuses.push({
-                        success: false,
-                        reason: "Slider cheesing detection failed",
-                        pp: ppEntry.pp,
-                    });
-
-                    continue;
-                }
-
                 ppEntry.pp = MathUtils.round(
                     performanceCalculationResult.result.total,
                     2
@@ -458,8 +412,8 @@ export abstract class DPPUtil {
         playerId: number,
         replayData: ReplayData,
         calculationResult: PerformanceCalculationResult<
-            DroidDifficultyCalculator,
-            DroidPerformanceCalculator
+            DroidDifficultyAttributes,
+            DroidPerformanceAttributes
         >
     ): PPEntry {
         return {
@@ -467,7 +421,7 @@ export abstract class DPPUtil {
             hash: beatmap.hash,
             title: beatmap.fullTitle,
             pp: MathUtils.round(calculationResult.result.total, 2),
-            mods: calculationResult.result.difficultyAttributes.mods.reduce(
+            mods: calculationResult.difficultyAttributes.mods.reduce(
                 (a, v) => a + v.acronym,
                 ""
             ),

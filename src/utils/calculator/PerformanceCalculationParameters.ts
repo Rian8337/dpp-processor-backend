@@ -3,6 +3,7 @@ import { SliderCheeseInformation } from "@rian8337/osu-droid-replay-analyzer";
 import { DifficultyCalculationParameters } from "./DifficultyCalculationParameters";
 import { RawDifficultyAttributes } from "../../structures/attributes/RawDifficultyAttributes";
 import { CloneablePerformanceCalculationParameters } from "./CloneablePerformanceCalculationParameters";
+import { CacheableDifficultyAttributes } from "../../structures/attributes/CacheableDifficultyAttributes";
 
 /**
  * Represents a parameter to alter performance calculation result.
@@ -75,7 +76,9 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
      *
      * @param attributes The difficulty attributes.
      */
-    applyFromAttributes(attributes: RawDifficultyAttributes): void {
+    applyFromAttributes(
+        attributes: CacheableDifficultyAttributes<RawDifficultyAttributes>
+    ): void {
         const objectCount =
             attributes.hitCircleCount +
             attributes.sliderCount +

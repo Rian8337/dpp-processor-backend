@@ -1,11 +1,16 @@
-import { MapStats, MathUtils, ModUtil, Modes } from "@rian8337/osu-base";
+import {
+    Accuracy,
+    MapStats,
+    MathUtils,
+    ModUtil,
+    Modes,
+} from "@rian8337/osu-base";
 import { Router } from "express";
 import { getBeatmap } from "../utils/cache/beatmapStorage";
 import { PPCalculationMethod } from "../structures/PPCalculationMethod";
 import { RawDifficultyAttributes } from "../structures/attributes/RawDifficultyAttributes";
 import { CacheableDifficultyAttributes } from "../structures/attributes/CacheableDifficultyAttributes";
 import { BeatmapDroidDifficultyCalculator } from "../utils/calculator/BeatmapDroidDifficultyCalculator";
-import { DifficultyCalculationParameters } from "../utils/calculator/DifficultyCalculationParameters";
 import { BeatmapOsuDifficultyCalculator } from "../utils/calculator/BeatmapOsuDifficultyCalculator";
 import { Util } from "../utils/Util";
 import { DifficultyAttributesCacheManager } from "../utils/cache/difficultyattributes/DifficultyAttributesCacheManager";
@@ -15,6 +20,7 @@ import {
     rebalanceDroidDifficultyCache,
     rebalanceOsuDifficultyCache,
 } from "../utils/cache/difficultyAtributesStorage";
+import { PerformanceCalculationParameters } from "../utils/calculator/PerformanceCalculationParameters";
 
 const router = Router();
 
@@ -89,7 +95,10 @@ router.get<
     let difficultyCalculator:
         | BeatmapDroidDifficultyCalculator
         | BeatmapOsuDifficultyCalculator;
-    const calculationParams = new DifficultyCalculationParameters(
+    const calculationParams = new PerformanceCalculationParameters(
+        new Accuracy({ n300: apiBeatmap.objects }),
+        apiBeatmap.maxCombo,
+        undefined,
         new MapStats({
             mods: mods,
             ar: forceAR,
@@ -143,23 +152,26 @@ router.get<
     );
 
     if (!difficultyAttributes) {
-        const difficultyCalculationResult = await (calculationMethod ===
+        const calculationResult = await (calculationMethod ===
         PPCalculationMethod.live
-            ? difficultyCalculator.calculateBeatmapDifficulty(
+            ? difficultyCalculator.calculateBeatmapPerformance(
                   apiBeatmap,
                   calculationParams
               )
-            : difficultyCalculator.calculateBeatmapRebalanceDifficulty(
+            : difficultyCalculator.calculateBeatmapRebalancePerformance(
                   apiBeatmap,
                   calculationParams
-              ));
+              )
+        ).catch((e: Error) => e.message);
 
-        difficultyAttributes =
-            difficultyCalculationResult?.cachedAttributes ?? null;
-    }
+        if (typeof calculationResult === "string") {
+            return res.status(503).json({ error: calculationResult });
+        }
 
-    if (!difficultyAttributes) {
-        return res.status(503).json({ error: "Unable to calculate beatmap" });
+        difficultyAttributes = {
+            ...calculationResult.difficultyAttributes,
+            mods: undefined,
+        };
     }
 
     res.json(difficultyAttributes);

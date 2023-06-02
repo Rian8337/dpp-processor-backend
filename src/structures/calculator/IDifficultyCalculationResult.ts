@@ -1,30 +1,17 @@
-import { MapInfo } from "@rian8337/osu-base";
-import {
-    DifficultyCalculator,
-    DifficultyAttributes,
-} from "@rian8337/osu-difficulty-calculator";
-import {
-    DifficultyCalculator as RebalanceDifficultyCalculator,
-    DifficultyAttributes as RebalanceDifficultyAttributes,
-} from "@rian8337/osu-rebalance-difficulty-calculator";
+import { DifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
+import { DifficultyAttributes as RebalanceDifficultyAttributes } from "@rian8337/osu-rebalance-difficulty-calculator";
 import { CacheableDifficultyAttributes } from "../attributes/CacheableDifficultyAttributes";
 
 /**
  * A structure for implementing difficulty calculation results.
  */
 export interface IDifficultyCalculationResult<
-    DA extends DifficultyAttributes | RebalanceDifficultyAttributes,
-    D extends DifficultyCalculator | RebalanceDifficultyCalculator
+    DA extends DifficultyAttributes | RebalanceDifficultyAttributes
 > {
     /**
-     * The beatmap being calculated.
+     * The difficulty attributes of the calculated beatmap.
      */
-    readonly map: MapInfo<true>;
-
-    /**
-     * The difficulty calculator that calculated the beatmap.
-     */
-    readonly result: D;
+    readonly attributes: DA;
 
     /**
      * The attributes that were cached into the cache manager as a result of this calculation.

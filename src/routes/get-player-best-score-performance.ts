@@ -61,26 +61,6 @@ router.get<
             return;
         }
 
-        const tapPenaltyResult =
-            await BeatmapDroidDifficultyCalculator.applyTapPenalty(
-                analyzer,
-                calcResult
-            );
-
-        if (!tapPenaltyResult) {
-            return;
-        }
-
-        const sliderCheesePenaltyResult =
-            await BeatmapDroidDifficultyCalculator.applySliderCheesePenalty(
-                analyzer,
-                calcResult
-            );
-
-        if (!sliderCheesePenaltyResult) {
-            return;
-        }
-
         const { result } = calcResult;
 
         if (bestAttribs && bestAttribs.performance.total >= result.total) {
@@ -90,7 +70,7 @@ router.get<
         if (calculationMethod === PPCalculationMethod.live) {
             bestAttribs = {
                 difficulty: {
-                    ...result.difficultyAttributes,
+                    ...calcResult.difficultyAttributes,
                     mods: undefined,
                 },
                 performance: {
@@ -112,7 +92,7 @@ router.get<
         } else {
             bestAttribs = {
                 difficulty: {
-                    ...result.difficultyAttributes,
+                    ...calcResult.difficultyAttributes,
                     mods: undefined,
                 },
                 performance: {

@@ -195,7 +195,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                 )
                             )
                         ) {
-                            parentPort?.postMessage(
+                            return parentPort?.postMessage(
                                 new Error(
                                     "Unable to analyze for slider cheesing"
                                 )

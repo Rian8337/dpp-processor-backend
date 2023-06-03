@@ -17,7 +17,6 @@ import {
 } from "@rian8337/osu-rebalance-difficulty-calculator";
 import { PPCalculationMethod } from "../structures/PPCalculationMethod";
 import { RebalanceDroidPerformanceAttributes } from "../structures/attributes/RebalanceDroidPerformanceAttributes";
-import { BeatmapDifficultyCalculator } from "../utils/calculator/BeatmapDifficultyCalculator";
 import { getOnlineReplay } from "../utils/replaySavingManager";
 
 const router = Router();
@@ -150,12 +149,7 @@ router.get<
                             visualSliderCheesePenalty:
                                 result.visualSliderCheesePenalty,
                             calculatedUnstableRate:
-                                (analyzer.calculateHitError()?.unstableRate ??
-                                    0) /
-                                (BeatmapDifficultyCalculator.getCalculationParameters(
-                                    analyzer
-                                ).customStatistics?.calculate()
-                                    .speedMultiplier ?? 1),
+                                result.calculatedUnstableRate,
                             estimatedUnstableRate: MathUtils.round(
                                 result.deviation * 10,
                                 2

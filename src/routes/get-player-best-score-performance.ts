@@ -11,7 +11,6 @@ import { MathUtils } from "@rian8337/osu-base";
 import { DroidDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
 import { DroidDifficultyAttributes as RebalanceDroidDifficultyAttributes } from "@rian8337/osu-rebalance-difficulty-calculator";
 import { RebalanceDroidPerformanceAttributes } from "../structures/attributes/RebalanceDroidPerformanceAttributes";
-import { BeatmapDifficultyCalculator } from "../utils/calculator/BeatmapDifficultyCalculator";
 import {
     getOnlineReplay,
     localReplayDirectory,
@@ -50,6 +49,8 @@ router.get<
         if (!analyzer.originalODR) {
             return;
         }
+
+        await analyzer.analyze();
 
         const calcResult = await (calculationMethod === PPCalculationMethod.live
             ? difficultyCalculator.calculateReplayPerformance(analyzer)
@@ -108,11 +109,9 @@ router.get<
                     flashlightSliderCheesePenalty:
                         result.flashlightSliderCheesePenalty,
                     visualSliderCheesePenalty: result.visualSliderCheesePenalty,
-                    calculatedUnstableRate:
-                        (analyzer.calculateHitError()?.unstableRate ?? 0) /
-                        (BeatmapDifficultyCalculator.getCalculationParameters(
-                            analyzer
-                        ).customStatistics?.calculate().speedMultiplier ?? 1),
+                    calculatedUnstableRate: (<
+                        RebalanceDroidPerformanceAttributes
+                    >result).calculatedUnstableRate,
                     estimatedUnstableRate: MathUtils.round(
                         result.deviation * 10,
                         2
@@ -142,7 +141,6 @@ router.get<
 
     // Retrieve replay locally.
     analyzer.originalODR = await getOnlineReplay(score.scoreID);
-    await analyzer.analyze();
     await calculateReplay(analyzer);
 
     // After checking the online score, we check local replay directory.
@@ -158,7 +156,6 @@ router.get<
         analyzer.originalODR = await readFile(
             join(replayDirectory, replayFilename)
         ).catch(() => null);
-        await analyzer.analyze();
         await calculateReplay(analyzer);
     }
 

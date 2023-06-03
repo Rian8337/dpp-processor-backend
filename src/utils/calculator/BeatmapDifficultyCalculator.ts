@@ -288,13 +288,23 @@ export abstract class BeatmapDifficultyCalculator<
                         );
                     }
 
-                    resolve(
-                        new RebalancePerformanceCalculationResult(
-                            calculationParams,
-                            diffAttribs,
-                            <RPA>result.performance
-                        )
-                    );
+                    if (calculationMethod === PPCalculationMethod.live) {
+                        resolve(
+                            new PerformanceCalculationResult(
+                                calculationParams,
+                                diffAttribs,
+                                <PA>result.performance
+                            )
+                        );
+                    } else {
+                        resolve(
+                            new RebalancePerformanceCalculationResult(
+                                calculationParams,
+                                diffAttribs,
+                                <RPA>result.performance
+                            )
+                        );
+                    }
                 },
             });
         });

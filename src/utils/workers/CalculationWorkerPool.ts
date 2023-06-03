@@ -90,7 +90,12 @@ export class CalculationWorkerPool extends EventEmitter {
             // In case of success: Call the callback that was passed to `runTask`,
             // remove the `TaskHandler` associated with the Worker, and mark it as free
             // again.
-            worker.taskHandler?.done(null, result);
+            if (result instanceof Error) {
+                worker.taskHandler?.done(result, null);
+            } else {
+                worker.taskHandler?.done(null, result);
+            }
+
             worker.taskHandler = null;
 
             this.freeWorkers.push(worker);

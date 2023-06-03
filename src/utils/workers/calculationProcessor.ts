@@ -47,7 +47,9 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
         await analyzer.analyze();
 
         if (!analyzer.data) {
-            throw new Error("Unable to obtain replay data");
+            return parentPort?.postMessage(
+                new Error("Unable to obtain replay data")
+            );
         }
     }
 
@@ -92,8 +94,8 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                 )
                             )
                         ) {
-                            throw new Error(
-                                "Unable to analyze for three-finger"
+                            return parentPort?.postMessage(
+                                new Error("Unable to analyze for three-finger")
                             );
                         }
 
@@ -107,8 +109,10 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                 )
                             )
                         ) {
-                            throw new Error(
-                                "Unable to analyze for slider cheesing"
+                            return parentPort?.postMessage(
+                                new Error(
+                                    "Unable to analyze for slider cheesing"
+                                )
                             );
                         }
                     }
@@ -176,8 +180,8 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                 )
                             )
                         ) {
-                            throw new Error(
-                                "Unable to analyze for three-finger"
+                            return parentPort?.postMessage(
+                                new Error("Unable to analyze for three-finger")
                             );
                         }
 
@@ -191,8 +195,10 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                 )
                             )
                         ) {
-                            throw new Error(
-                                "Unable to analyze for slider cheesing"
+                            parentPort?.postMessage(
+                                new Error(
+                                    "Unable to analyze for slider cheesing"
+                                )
                             );
                         }
                     }

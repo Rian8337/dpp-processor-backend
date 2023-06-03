@@ -53,11 +53,10 @@ router.get<
 
         const calcResult = await (calculationMethod === PPCalculationMethod.live
             ? difficultyCalculator.calculateReplayPerformance(analyzer)
-            : difficultyCalculator.calculateReplayRebalancePerformance(
-                  analyzer
-              ));
+            : difficultyCalculator.calculateReplayRebalancePerformance(analyzer)
+        ).catch((e: Error) => e.message);
 
-        if (!calcResult) {
+        if (typeof calcResult === "string") {
             return;
         }
 

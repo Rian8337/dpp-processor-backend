@@ -133,7 +133,10 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                     > = {
                         difficulty: {
                             ...result.difficultyAttributes,
-                            mods: undefined,
+                            mods: result.difficultyAttributes.mods.reduce(
+                                (a, v) => a + v.acronym,
+                                ""
+                            ),
                         },
                         performance: {
                             total: result.total,
@@ -224,7 +227,10 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                     > = {
                         difficulty: {
                             ...result.difficultyAttributes,
-                            mods: undefined,
+                            mods: result.difficultyAttributes.mods.reduce(
+                                (a, v) => a + v.acronym,
+                                ""
+                            ),
                         },
                         performance: {
                             total: result.total,
@@ -297,7 +303,10 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                     > = {
                         difficulty: {
                             ...result.difficultyAttributes,
-                            mods: undefined,
+                            mods: result.difficultyAttributes.mods.reduce(
+                                (a, v) => a + v.acronym,
+                                ""
+                            ),
                         },
                         performance: {
                             total: result.total,
@@ -344,7 +353,10 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                     > = {
                         difficulty: {
                             ...result.difficultyAttributes,
-                            mods: undefined,
+                            mods: result.difficultyAttributes.mods.reduce(
+                                (a, v) => a + v.acronym,
+                                ""
+                            ),
                         },
                         performance: {
                             total: result.total,

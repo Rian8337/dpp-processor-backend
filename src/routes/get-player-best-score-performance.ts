@@ -71,7 +71,10 @@ router.get<
             bestAttribs = {
                 difficulty: {
                     ...calcResult.difficultyAttributes,
-                    mods: undefined,
+                    mods: calcResult.difficultyAttributes.mods.reduce(
+                        (a, v) => a + v.acronym,
+                        ""
+                    ),
                 },
                 performance: {
                     total: result.total,
@@ -93,7 +96,10 @@ router.get<
             bestAttribs = {
                 difficulty: {
                     ...calcResult.difficultyAttributes,
-                    mods: undefined,
+                    mods: calcResult.difficultyAttributes.mods.reduce(
+                        (a, v) => a + v.acronym,
+                        ""
+                    ),
                 },
                 performance: {
                     total: result.total,

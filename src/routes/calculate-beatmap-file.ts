@@ -162,7 +162,10 @@ router.post<
                     > = {
                         difficulty: {
                             ...result.difficultyAttributes,
-                            mods: undefined,
+                            mods: result.difficultyAttributes.mods.reduce(
+                                (a, v) => a + v.acronym,
+                                ""
+                            ),
                         },
                         performance: {
                             total: result.total,
@@ -205,7 +208,10 @@ router.post<
                     > = {
                         difficulty: {
                             ...result.difficultyAttributes,
-                            mods: undefined,
+                            mods: result.difficultyAttributes.mods.reduce(
+                                (a, v) => a + v.acronym,
+                                ""
+                            ),
                         },
                         performance: {
                             total: result.total,
@@ -254,7 +260,10 @@ router.post<
                     > = {
                         difficulty: {
                             ...result.difficultyAttributes,
-                            mods: undefined,
+                            mods: result.difficultyAttributes.mods.reduce(
+                                (a, v) => a + v.acronym,
+                                ""
+                            ),
                         },
                         performance: {
                             total: result.total,
@@ -287,7 +296,10 @@ router.post<
                     > = {
                         difficulty: {
                             ...result.difficultyAttributes,
-                            mods: undefined,
+                            mods: result.difficultyAttributes.mods.reduce(
+                                (a, v) => a + v.acronym,
+                                ""
+                            ),
                         },
                         performance: {
                             total: result.total,

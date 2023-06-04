@@ -86,7 +86,10 @@ router.get<
                     > = {
                         difficulty: {
                             ...calculationResult.difficultyAttributes,
-                            mods: undefined,
+                            mods: calculationResult.difficultyAttributes.mods.reduce(
+                                (a, v) => a + v.acronym,
+                                ""
+                            ),
                         },
                         performance: {
                             total: result.total,
@@ -130,7 +133,10 @@ router.get<
                     > = {
                         difficulty: {
                             ...calculationResult.difficultyAttributes,
-                            mods: undefined,
+                            mods: calculationResult.difficultyAttributes.mods.reduce(
+                                (a, v) => a + v.acronym,
+                                ""
+                            ),
                         },
                         performance: {
                             total: result.total,
@@ -192,7 +198,10 @@ router.get<
                     > = {
                         difficulty: {
                             ...calculationResult.difficultyAttributes,
-                            mods: undefined,
+                            mods: calculationResult.difficultyAttributes.mods.reduce(
+                                (a, v) => a + v.acronym,
+                                ""
+                            ),
                         },
                         performance: {
                             total: result.total,
@@ -226,7 +235,10 @@ router.get<
                     > = {
                         difficulty: {
                             ...calculationResult.difficultyAttributes,
-                            mods: undefined,
+                            mods: calculationResult.difficultyAttributes.mods.reduce(
+                                (a, v) => a + v.acronym,
+                                ""
+                            ),
                         },
                         performance: {
                             total: result.total,

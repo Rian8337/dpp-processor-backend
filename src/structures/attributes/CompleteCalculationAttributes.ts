@@ -1,6 +1,6 @@
-import { CacheableDifficultyAttributes } from "./CacheableDifficultyAttributes";
 import { PerformanceAttributes } from "./PerformanceAttributes";
 import { RawDifficultyAttributes } from "./RawDifficultyAttributes";
+import { ResponseDifficultyAttributes } from "./ResponseDifficultyAttributes";
 
 /**
  * An attribute with complete calculation result.
@@ -12,7 +12,7 @@ export interface CompleteCalculationAttributes<
     /**
      * The difficulty attributes.
      */
-    readonly difficulty: CacheableDifficultyAttributes<TDiffAttr>;
+    readonly difficulty: ResponseDifficultyAttributes<TDiffAttr>;
 
     /**
      * The performance attributes.

@@ -83,14 +83,14 @@ export async function getBeatmapFile(beatmap: MapInfo): Promise<string | null> {
  * The beatmap API responses cache, mapped by beatmap ID.
  */
 const beatmapAPICache = new LimitedCapacityCollection<number, MapInfo>(
-    150,
-    600
+    500,
+    1800
 );
 
 /**
  * The beatmap file cache, mapped by beatmap hash.
  */
 const beatmapFileCache = new LimitedCapacityCollection<string, string>(
-    150,
-    600
+    500,
+    1800
 );

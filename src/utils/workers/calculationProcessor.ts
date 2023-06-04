@@ -131,6 +131,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                         DroidDifficultyAttributes,
                         DroidPerformanceAttributes
                     > = {
+                        params: calculationParams.toCloneable(),
                         difficulty: {
                             ...result.difficultyAttributes,
                             mods: result.difficultyAttributes.mods.reduce(
@@ -225,6 +226,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                         RebalanceDroidDifficultyAttributes,
                         RebalanceDroidPerformanceAttributes
                     > = {
+                        params: calculationParams.toCloneable(),
                         difficulty: {
                             ...result.difficultyAttributes,
                             mods: result.difficultyAttributes.mods.reduce(
@@ -301,6 +303,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                         OsuDifficultyAttributes,
                         OsuPerformanceAttributes
                     > = {
+                        params: calculationParams.toCloneable(),
                         difficulty: {
                             ...result.difficultyAttributes,
                             mods: result.difficultyAttributes.mods.reduce(
@@ -351,6 +354,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                         RebalanceOsuDifficultyAttributes,
                         OsuPerformanceAttributes
                     > = {
+                        params: calculationParams.toCloneable(),
                         difficulty: {
                             ...result.difficultyAttributes,
                             mods: result.difficultyAttributes.mods.reduce(

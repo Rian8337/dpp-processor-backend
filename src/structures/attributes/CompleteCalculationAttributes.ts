@@ -1,3 +1,4 @@
+import { CloneablePerformanceCalculationParameters } from "../../utils/calculator/CloneablePerformanceCalculationParameters";
 import { PerformanceAttributes } from "./PerformanceAttributes";
 import { RawDifficultyAttributes } from "./RawDifficultyAttributes";
 import { ResponseDifficultyAttributes } from "./ResponseDifficultyAttributes";
@@ -9,6 +10,11 @@ export interface CompleteCalculationAttributes<
     TDiffAttr extends RawDifficultyAttributes,
     TPerfAttr extends PerformanceAttributes
 > {
+    /**
+     * The parameters that were used to obtain the calculation result.
+     */
+    readonly params: CloneablePerformanceCalculationParameters;
+
     /**
      * The difficulty attributes.
      */

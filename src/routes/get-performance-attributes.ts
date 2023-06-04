@@ -157,6 +157,7 @@ router.get<
                         DroidDifficultyAttributes,
                         DroidPerformanceAttributes
                     > = {
+                        params: calculationParams.toCloneable(),
                         difficulty: {
                             ...calculationResult.difficultyAttributes,
                             mods: calculationResult.difficultyAttributes.mods.reduce(
@@ -207,6 +208,7 @@ router.get<
                         RebalanceDroidDifficultyAttributes,
                         RebalanceDroidPerformanceAttributes
                     > = {
+                        params: calculationParams.toCloneable(),
                         difficulty: {
                             ...calculationResult.difficultyAttributes,
                             mods: calculationResult.difficultyAttributes.mods.reduce(
@@ -274,6 +276,7 @@ router.get<
                         OsuDifficultyAttributes,
                         OsuPerformanceAttributes
                     > = {
+                        params: calculationParams.toCloneable(),
                         difficulty: {
                             ...calculationResult.difficultyAttributes,
                             mods: calculationResult.difficultyAttributes.mods.reduce(
@@ -314,6 +317,7 @@ router.get<
                         RebalanceOsuDifficultyAttributes,
                         OsuPerformanceAttributes
                     > = {
+                        params: calculationParams.toCloneable(),
                         difficulty: {
                             ...calculationResult.difficultyAttributes,
                             mods: calculationResult.difficultyAttributes.mods.reduce(

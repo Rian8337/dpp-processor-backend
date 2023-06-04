@@ -69,6 +69,7 @@ router.get<
 
         if (calculationMethod === PPCalculationMethod.live) {
             bestAttribs = {
+                params: calcResult.params.toCloneable(),
                 difficulty: {
                     ...calcResult.difficultyAttributes,
                     mods: calcResult.difficultyAttributes.mods.reduce(
@@ -94,6 +95,7 @@ router.get<
             };
         } else {
             bestAttribs = {
+                params: calcResult.params.toCloneable(),
                 difficulty: {
                     ...calcResult.difficultyAttributes,
                     mods: calcResult.difficultyAttributes.mods.reduce(

@@ -242,13 +242,14 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                 result.flashlightSliderCheesePenalty,
                             visualSliderCheesePenalty:
                                 result.visualSliderCheesePenalty,
-                            calculatedUnstableRate:
-                                (analyzer.calculateHitError()?.unstableRate ??
-                                    0) /
-                                (BeatmapDifficultyCalculator.getCalculationParameters(
-                                    analyzer
-                                ).customStatistics?.calculate()
-                                    .speedMultiplier ?? 1),
+                            calculatedUnstableRate: analyzer.data
+                                ? (analyzer.calculateHitError()?.unstableRate ??
+                                      0) /
+                                  (BeatmapDifficultyCalculator.getCalculationParameters(
+                                      analyzer
+                                  ).customStatistics?.calculate()
+                                      .speedMultiplier ?? 1)
+                                : 0,
                             estimatedUnstableRate: MathUtils.round(
                                 result.deviation * 10,
                                 2

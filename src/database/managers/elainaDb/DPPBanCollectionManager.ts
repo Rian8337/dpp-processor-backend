@@ -1,4 +1,3 @@
-import { FindOptions } from "mongodb";
 import { DatabaseCollectionManager } from "../DatabaseCollectionManager";
 import { IDPPBan } from "../../structures/elainaDb/IDPPBan";
 

@@ -16,21 +16,30 @@ import { PPSubmissionStatus } from "../structures/PPSubmissionStatus";
 import { persistReplay, saveReplay } from "./replaySavingManager";
 import { PPSubmissionOperationResult } from "../structures/PPSubmissionOperationResult";
 import { DroidPerformanceAttributes } from "../structures/attributes/DroidPerformanceAttributes";
+import { BeatmapOsuDifficultyCalculator } from "./calculator/BeatmapOsuDifficultyCalculator";
+import { IRecentPlay } from "../database/structures/aliceDb/IRecentPlay";
 
 /**
  * Utilities that are related to dpp.
  */
 export abstract class DPPUtil {
+    private static readonly droidDifficultyCalculator =
+        new BeatmapDroidDifficultyCalculator();
+    private static readonly osuDifficultyCalculator =
+        new BeatmapOsuDifficultyCalculator();
+
     /**
      * Submits replays to the dpp database.
      *
      * @param replays The replays to submit.
      * @param uid The uid of the player, if any.
+     * @param submitAsRecent Whether to submit these replays are recent plays. Defaults to `false`.
      * @returns Whether the submission for each replay was successful.
      */
     static async submitReplay(
         replays: ReplayAnalyzer[],
-        uid?: number
+        uid?: number,
+        submitAsRecent?: boolean
     ): Promise<PPSubmissionOperationResult> {
         const statuses: PPSubmissionStatus[] = [];
 
@@ -182,15 +191,14 @@ export abstract class DPPUtil {
                 continue;
             }
 
-            const performanceCalculationResult =
-                await new BeatmapDroidDifficultyCalculator()
-                    .calculateReplayPerformance(replay)
-                    .catch((e: Error) => e.message);
+            const droidAttribs = await this.droidDifficultyCalculator
+                .calculateReplayPerformance(replay)
+                .catch((e: Error) => e.message);
 
-            if (typeof performanceCalculationResult === "string") {
+            if (typeof droidAttribs === "string") {
                 statuses.push({
                     success: false,
-                    reason: performanceCalculationResult,
+                    reason: droidAttribs,
                     pp: 0,
                 });
 
@@ -201,16 +209,13 @@ export abstract class DPPUtil {
                 apiBeatmap,
                 uid,
                 data,
-                performanceCalculationResult
+                droidAttribs
             );
 
             let replayNeedsPersistence = false;
 
             if (this.checkScoreInsertion(bindInfo.pp, ppEntry)) {
-                ppEntry.pp = MathUtils.round(
-                    performanceCalculationResult.result.total,
-                    2
-                );
+                ppEntry.pp = MathUtils.round(droidAttribs.result.total, 2);
 
                 replayNeedsPersistence = this.insertScore(bindInfo.pp, ppEntry);
             }
@@ -229,6 +234,96 @@ export abstract class DPPUtil {
                     });
 
                     continue;
+                }
+            }
+
+            if (submitAsRecent) {
+                const osuAttribs = await this.osuDifficultyCalculator
+                    .calculateReplayPerformance(replay, droidAttribs.params)
+                    .catch((e: Error) => e.message);
+
+                if (typeof osuAttribs !== "string") {
+                    const recentPlay: IRecentPlay = {
+                        uid: uid,
+                        accuracy: {
+                            ...data.accuracy,
+                        },
+                        beatmapTitle: apiBeatmap.fullTitle,
+                        combo: data.maxCombo,
+                        date: new Date(),
+                        score: data.score,
+                        rank: data.rank,
+                        mods: data.convertedMods.reduce(
+                            (a, v) => a + v.acronym,
+                            ""
+                        ),
+                        hash: apiBeatmap.hash,
+                        droidAttribs: {
+                            params: droidAttribs.params.toCloneable(),
+                            difficulty: {
+                                ...droidAttribs.difficultyAttributes,
+                                mods: droidAttribs.difficultyAttributes.mods.reduce(
+                                    (a, v) => a + v.acronym,
+                                    ""
+                                ),
+                            },
+                            performance: {
+                                total: droidAttribs.result.total,
+                                aim: droidAttribs.result.aim,
+                                tap: droidAttribs.result.tap,
+                                accuracy: droidAttribs.result.accuracy,
+                                flashlight: droidAttribs.result.flashlight,
+                                visual: droidAttribs.result.visual,
+                                deviation: droidAttribs.result.deviation,
+                                tapDeviation: droidAttribs.result.tapDeviation,
+                                tapPenalty: droidAttribs.result.tapPenalty,
+                                aimSliderCheesePenalty:
+                                    droidAttribs.result.aimSliderCheesePenalty,
+                                flashlightSliderCheesePenalty:
+                                    droidAttribs.result
+                                        .flashlightSliderCheesePenalty,
+                                visualSliderCheesePenalty:
+                                    droidAttribs.result
+                                        .visualSliderCheesePenalty,
+                            },
+                        },
+                        osuAttribs: {
+                            params: osuAttribs.params.toCloneable(),
+                            difficulty: {
+                                ...osuAttribs.difficultyAttributes,
+                                mods: osuAttribs.difficultyAttributes.mods.reduce(
+                                    (a, v) => a + v.acronym,
+                                    ""
+                                ),
+                            },
+                            performance: {
+                                total: osuAttribs.result.total,
+                                aim: osuAttribs.result.aim,
+                                speed: osuAttribs.result.speed,
+                                accuracy: droidAttribs.result.accuracy,
+                                flashlight: droidAttribs.result.flashlight,
+                            },
+                        },
+                    };
+
+                    if (data.speedModification !== 1) {
+                        recentPlay.speedMultiplier = data.speedModification;
+                    }
+                    if (data.forcedAR !== undefined) {
+                        recentPlay.forcedAR = data.forcedAR;
+                    }
+
+                    const hitError = replay.calculateHitError();
+                    if (hitError) {
+                        recentPlay.hitError = hitError;
+                    }
+
+                    // Re-set date to update to current date
+                    recentPlay.date = new Date();
+
+                    await DatabaseManager.aliceDb.collections.recentPlays
+                        .insert(recentPlay)
+                        .catch(() => null);
                 }
             }
 

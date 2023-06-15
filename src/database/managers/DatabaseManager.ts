@@ -1,5 +1,6 @@
 import { Db, MongoClient } from "mongodb";
 import { ElainaDBCollection } from "./ElainaDBCollection";
+import { AliceDBCollection } from "./AliceDBCollection";
 
 /**
  * A manager for database.
@@ -21,10 +22,26 @@ export abstract class DatabaseManager {
     };
 
     /**
+     * Manager for Alice DB.
+     */
+    static aliceDb: {
+        /**
+         * The instance of the database.
+         */
+        instance: Db;
+
+        /**
+         * The collections from Alice DB.
+         */
+        collections: AliceDBCollection;
+    };
+
+    /**
      * Initializes the manager.
      */
     static async init(): Promise<void> {
         await this.initElainaDB();
+        await this.initAliceDB();
     }
 
     private static async initElainaDB(): Promise<void> {
@@ -45,5 +62,22 @@ export abstract class DatabaseManager {
         };
 
         console.log("Connection to Elaina DB established");
+    }
+
+    private static async initAliceDB(): Promise<void> {
+        const aliceURI =
+            "mongodb+srv://" +
+            process.env.ALICE_DB_KEY +
+            "@alicedb-hoexz.gcp.mongodb.net/test?retryWrites=true&w=majority";
+        const aliceDb = await new MongoClient(aliceURI).connect();
+
+        const db = aliceDb.db("AliceDB");
+
+        this.aliceDb = {
+            instance: db,
+            collections: new AliceDBCollection(db),
+        };
+
+        console.log("Connection to Alice DB established");
     }
 }

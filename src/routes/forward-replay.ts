@@ -27,7 +27,7 @@ router.post<
     replayAnalyzer.originalODR = await Util.readFile(fileStream);
     await replayAnalyzer.analyze();
 
-    await DPPUtil.submitReplay([replayAnalyzer]);
+    await DPPUtil.submitReplay([replayAnalyzer], undefined, true);
 });
 
 export default router;

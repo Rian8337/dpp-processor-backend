@@ -12,17 +12,22 @@ import { OsuPerformanceAttributes } from "../../../structures/attributes/OsuPerf
  */
 export interface IRecentPlay {
     /**
-     * The uid of the player who submitted ths score.
+     * The uid of the player who submitted ths play.
      */
     uid: number;
 
     /**
-     * The title of the beatmap in this score.
+     * The ID of the replay of this play, if it was submitted to the game server.
+     */
+    replayID?: number;
+
+    /**
+     * The title of the beatmap in this play.
      */
     beatmapTitle: string;
 
     /**
-     * The maximum combo achieved in this score.
+     * The maximum combo achieved in this play.
      */
     combo: number;
 

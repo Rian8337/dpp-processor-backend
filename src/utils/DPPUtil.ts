@@ -306,6 +306,9 @@ export abstract class DPPUtil {
                         },
                     };
 
+                    if (replay.scoreID > 0) {
+                        recentPlay.replayID = replay.scoreID;
+                    }
                     if (data.speedModification !== 1) {
                         recentPlay.speedMultiplier = data.speedModification;
                     }

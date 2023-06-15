@@ -6,6 +6,7 @@ import {
 } from "@rian8337/osu-difficulty-calculator";
 import { DroidPerformanceAttributes } from "../../../structures/attributes/DroidPerformanceAttributes";
 import { OsuPerformanceAttributes } from "../../../structures/attributes/OsuPerformanceAttributes";
+import { SliderTickInformation } from "../../../structures/SliderTickInformation";
 
 /**
  * Represents a recent play.
@@ -95,6 +96,16 @@ export interface IRecentPlay {
      * Information about this play's hit error.
      */
     hitError?: HitErrorInformation;
+
+    /**
+     * Information about this play's slider tick collection.
+     */
+    sliderTickInformation?: SliderTickInformation;
+
+    /**
+     * Information about this play's slider end collection.
+     */
+    sliderEndInformation?: SliderTickInformation;
 
     /**
      * The osu!droid difficulty attributes of this play.

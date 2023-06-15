@@ -315,8 +315,14 @@ export abstract class DPPUtil {
                     if (data.forcedAR !== undefined) {
                         recentPlay.forcedAR = data.forcedAR;
                     }
-                    if (droidAttribs.replay?.hitError) {
-                        recentPlay.hitError = droidAttribs.replay.hitError;
+                    if (droidAttribs.replay) {
+                        if (droidAttribs.replay.hitError) {
+                            recentPlay.hitError = droidAttribs.replay.hitError;
+                        }
+                        recentPlay.sliderTickInformation =
+                            droidAttribs.replay.sliderTickInformation;
+                        recentPlay.sliderEndInformation =
+                            droidAttribs.replay.sliderEndInformation;
                     }
 
                     // Re-set date to update to current date

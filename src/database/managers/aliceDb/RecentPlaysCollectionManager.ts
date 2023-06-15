@@ -13,7 +13,6 @@ export class RecentPlaysCollectionManager extends DatabaseCollectionManager<IRec
                 n50: 0,
                 nmiss: 0,
             },
-            beatmapTitle: "",
             combo: 0,
             date: new Date(),
             hash: "",
@@ -21,6 +20,7 @@ export class RecentPlaysCollectionManager extends DatabaseCollectionManager<IRec
             rank: "",
             score: 0,
             uid: 0,
+            title: "",
         };
     }
 }

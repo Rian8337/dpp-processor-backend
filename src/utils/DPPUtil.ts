@@ -248,7 +248,7 @@ export abstract class DPPUtil {
                         accuracy: {
                             ...data.accuracy,
                         },
-                        beatmapTitle: apiBeatmap.fullTitle,
+                        title: apiBeatmap.fullTitle,
                         combo: data.maxCombo,
                         date: new Date(),
                         score: data.score,

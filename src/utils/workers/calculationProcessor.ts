@@ -156,6 +156,12 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                             visualSliderCheesePenalty:
                                 result.visualSliderCheesePenalty,
                         },
+                        replay: analyzer.data
+                            ? {
+                                  hitError:
+                                      analyzer.calculateHitError() ?? undefined,
+                              }
+                            : undefined,
                     };
 
                     parentPort?.postMessage(attributes);
@@ -221,6 +227,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                         );
 
                     const { result } = calcResult;
+                    const hitError = analyzer.calculateHitError();
 
                     const attributes: CompleteCalculationAttributes<
                         RebalanceDroidDifficultyAttributes,
@@ -251,8 +258,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                             visualSliderCheesePenalty:
                                 result.visualSliderCheesePenalty,
                             calculatedUnstableRate: analyzer.data
-                                ? (analyzer.calculateHitError()?.unstableRate ??
-                                      0) /
+                                ? (hitError?.unstableRate ?? 0) /
                                   (BeatmapDifficultyCalculator.getCalculationParameters(
                                       analyzer
                                   ).customStatistics?.calculate()
@@ -267,6 +273,11 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                 2
                             ),
                         },
+                        replay: analyzer.data
+                            ? {
+                                  hitError: hitError ?? undefined,
+                              }
+                            : undefined,
                     };
 
                     parentPort?.postMessage(attributes);

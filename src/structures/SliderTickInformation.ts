@@ -10,5 +10,5 @@ export interface SliderTickInformation {
     /**
      * The total amount of ticks.
      */
-    total: number;
+    readonly total: number;
 }

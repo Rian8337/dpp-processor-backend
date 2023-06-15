@@ -92,6 +92,7 @@ router.get<
                         result.flashlightSliderCheesePenalty,
                     visualSliderCheesePenalty: result.visualSliderCheesePenalty,
                 },
+                replay: calcResult.replay,
             };
         } else {
             bestAttribs = {
@@ -129,6 +130,7 @@ router.get<
                         2
                     ),
                 },
+                replay: calcResult.replay,
             };
         }
     };

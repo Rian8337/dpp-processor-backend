@@ -293,7 +293,8 @@ export abstract class BeatmapDifficultyCalculator<
                             new PerformanceCalculationResult(
                                 calculationParams,
                                 diffAttribs,
-                                <PA>result.performance
+                                <PA>result.performance,
+                                result.replay
                             )
                         );
                     } else {
@@ -301,7 +302,8 @@ export abstract class BeatmapDifficultyCalculator<
                             new RebalancePerformanceCalculationResult(
                                 calculationParams,
                                 diffAttribs,
-                                <RPA>result.performance
+                                <RPA>result.performance,
+                                result.replay
                             )
                         );
                     }

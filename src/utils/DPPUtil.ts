@@ -315,10 +315,8 @@ export abstract class DPPUtil {
                     if (data.forcedAR !== undefined) {
                         recentPlay.forcedAR = data.forcedAR;
                     }
-
-                    const hitError = replay.calculateHitError();
-                    if (hitError) {
-                        recentPlay.hitError = hitError;
+                    if (droidAttribs.replay?.hitError) {
+                        recentPlay.hitError = droidAttribs.replay.hitError;
                     }
 
                     // Re-set date to update to current date

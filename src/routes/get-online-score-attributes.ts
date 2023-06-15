@@ -109,6 +109,7 @@ router.get<
                             visualSliderCheesePenalty:
                                 result.visualSliderCheesePenalty,
                         },
+                        replay: calculationResult.replay,
                     };
 
                     res.json(attributes);
@@ -167,6 +168,7 @@ router.get<
                                 2
                             ),
                         },
+                        replay: calculationResult.replay,
                     };
 
                     res.json(attributes);

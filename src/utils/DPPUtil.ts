@@ -3,7 +3,10 @@ import {
     ReplayData,
 } from "@rian8337/osu-droid-replay-analyzer";
 import { Player, Score } from "@rian8337/osu-droid-utilities";
-import { DroidDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
+import {
+    DroidDifficultyAttributes,
+    OsuDifficultyAttributes,
+} from "@rian8337/osu-difficulty-calculator";
 import { getBeatmap } from "./cache/beatmapStorage";
 import { DatabaseManager } from "../database/managers/DatabaseManager";
 import { BeatmapDroidDifficultyCalculator } from "./calculator/BeatmapDroidDifficultyCalculator";
@@ -18,6 +21,7 @@ import { PPSubmissionOperationResult } from "../structures/PPSubmissionOperation
 import { DroidPerformanceAttributes } from "../structures/attributes/DroidPerformanceAttributes";
 import { BeatmapOsuDifficultyCalculator } from "./calculator/BeatmapOsuDifficultyCalculator";
 import { IRecentPlay } from "../database/structures/aliceDb/IRecentPlay";
+import { OsuPerformanceAttributes } from "../structures/attributes/OsuPerformanceAttributes";
 
 /**
  * Utilities that are related to dpp.
@@ -42,11 +46,117 @@ export abstract class DPPUtil {
         submitAsRecent?: boolean
     ): Promise<PPSubmissionOperationResult> {
         const statuses: PPSubmissionStatus[] = [];
+        const recentPlays: IRecentPlay[] = [];
 
         const preFillStatuses = (message: PPSubmissionStatus): void => {
             while (statuses.length < replays.length) {
                 statuses.push(message);
             }
+        };
+
+        const insertRecentScore = (
+            scoreId: number,
+            replayData: ReplayData,
+            apiBeatmap?: MapInfo,
+            droidAttribs?: PerformanceCalculationResult<
+                DroidDifficultyAttributes,
+                DroidPerformanceAttributes
+            >,
+            osuAttribs?: PerformanceCalculationResult<
+                OsuDifficultyAttributes,
+                OsuPerformanceAttributes
+            >
+        ) => {
+            const recentPlay: IRecentPlay = {
+                uid: uid!,
+                accuracy: {
+                    ...replayData.accuracy,
+                },
+                title: apiBeatmap?.fullTitle ?? replayData.fileName,
+                combo: replayData.maxCombo,
+                date: new Date(),
+                score: replayData.score,
+                rank: replayData.rank,
+                mods: replayData.convertedMods.reduce(
+                    (a, v) => a + v.acronym,
+                    ""
+                ),
+                hash: apiBeatmap?.hash ?? replayData.hash,
+            };
+
+            if (droidAttribs) {
+                recentPlay.droidAttribs = {
+                    params: droidAttribs.params.toCloneable(),
+                    difficulty: {
+                        ...droidAttribs.difficultyAttributes,
+                        mods: droidAttribs.difficultyAttributes.mods.reduce(
+                            (a, v) => a + v.acronym,
+                            ""
+                        ),
+                    },
+                    performance: {
+                        total: droidAttribs.result.total,
+                        aim: droidAttribs.result.aim,
+                        tap: droidAttribs.result.tap,
+                        accuracy: droidAttribs.result.accuracy,
+                        flashlight: droidAttribs.result.flashlight,
+                        visual: droidAttribs.result.visual,
+                        deviation: droidAttribs.result.deviation,
+                        tapDeviation: droidAttribs.result.tapDeviation,
+                        tapPenalty: droidAttribs.result.tapPenalty,
+                        aimSliderCheesePenalty:
+                            droidAttribs.result.aimSliderCheesePenalty,
+                        flashlightSliderCheesePenalty:
+                            droidAttribs.result.flashlightSliderCheesePenalty,
+                        visualSliderCheesePenalty:
+                            droidAttribs.result.visualSliderCheesePenalty,
+                    },
+                };
+
+                if (droidAttribs.replay) {
+                    if (droidAttribs.replay.hitError) {
+                        recentPlay.hitError = droidAttribs.replay.hitError;
+                    }
+                    recentPlay.sliderTickInformation =
+                        droidAttribs.replay.sliderTickInformation;
+                    recentPlay.sliderEndInformation =
+                        droidAttribs.replay.sliderEndInformation;
+                }
+            }
+
+            if (osuAttribs) {
+                recentPlay.osuAttribs = {
+                    params: osuAttribs.params.toCloneable(),
+                    difficulty: {
+                        ...osuAttribs.difficultyAttributes,
+                        mods: osuAttribs.difficultyAttributes.mods.reduce(
+                            (a, v) => a + v.acronym,
+                            ""
+                        ),
+                    },
+                    performance: {
+                        total: osuAttribs.result.total,
+                        aim: osuAttribs.result.aim,
+                        speed: osuAttribs.result.speed,
+                        accuracy: osuAttribs.result.accuracy,
+                        flashlight: osuAttribs.result.flashlight,
+                    },
+                };
+            }
+
+            if (scoreId > 0) {
+                recentPlay.replayID = scoreId;
+            }
+            if (replayData.speedModification !== 1) {
+                recentPlay.speedMultiplier = replayData.speedModification;
+            }
+            if (replayData.forcedAR !== undefined) {
+                recentPlay.forcedAR = replayData.forcedAR;
+            }
+
+            // Re-set date to update to current date
+            recentPlay.date = new Date();
+            recentPlays.push(recentPlay);
         };
 
         if (uid === undefined) {
@@ -93,11 +203,12 @@ export abstract class DPPUtil {
             }
         }
 
-        if (
+        const isBanned =
             await DatabaseManager.elainaDb.collections.dppBan.isPlayerBanned(
                 uid
-            )
-        ) {
+            );
+
+        if (isBanned && !submitAsRecent) {
             preFillStatuses({
                 success: false,
                 reason: "Player is banned from system",
@@ -149,6 +260,53 @@ export abstract class DPPUtil {
                     reason: "Beatmap not found",
                     pp: 0,
                 });
+
+                if (submitAsRecent) {
+                    insertRecentScore(replay.scoreID, data);
+                }
+
+                continue;
+            }
+
+            const droidAttribs = await this.droidDifficultyCalculator
+                .calculateReplayPerformance(replay)
+                .catch((e: Error) => e.message);
+
+            if (typeof droidAttribs === "string") {
+                statuses.push({
+                    success: false,
+                    reason: droidAttribs,
+                    pp: 0,
+                });
+
+                if (submitAsRecent) {
+                    insertRecentScore(replay.scoreID, data);
+                }
+
+                continue;
+            }
+
+            if (submitAsRecent) {
+                const osuAttribs = await this.osuDifficultyCalculator
+                    .calculateReplayPerformance(replay, droidAttribs.params)
+                    .catch((e: Error) => e.message);
+
+                insertRecentScore(
+                    replay.scoreID,
+                    data,
+                    apiBeatmap,
+                    droidAttribs,
+                    typeof osuAttribs === "string" ? undefined : osuAttribs
+                );
+            }
+
+            if (isBanned) {
+                // No need to continue with submission if the player is dpp-banned.
+                preFillStatuses({
+                    success: false,
+                    reason: "Player is banned from system",
+                    pp: 0,
+                });
                 continue;
             }
 
@@ -191,20 +349,6 @@ export abstract class DPPUtil {
                 continue;
             }
 
-            const droidAttribs = await this.droidDifficultyCalculator
-                .calculateReplayPerformance(replay)
-                .catch((e: Error) => e.message);
-
-            if (typeof droidAttribs === "string") {
-                statuses.push({
-                    success: false,
-                    reason: droidAttribs,
-                    pp: 0,
-                });
-
-                continue;
-            }
-
             const ppEntry = DPPUtil.scoreToPPEntry(
                 apiBeatmap,
                 uid,
@@ -237,103 +381,6 @@ export abstract class DPPUtil {
                 }
             }
 
-            if (submitAsRecent) {
-                const osuAttribs = await this.osuDifficultyCalculator
-                    .calculateReplayPerformance(replay, droidAttribs.params)
-                    .catch((e: Error) => e.message);
-
-                if (typeof osuAttribs !== "string") {
-                    const recentPlay: IRecentPlay = {
-                        uid: uid,
-                        accuracy: {
-                            ...data.accuracy,
-                        },
-                        title: apiBeatmap.fullTitle,
-                        combo: data.maxCombo,
-                        date: new Date(),
-                        score: data.score,
-                        rank: data.rank,
-                        mods: data.convertedMods.reduce(
-                            (a, v) => a + v.acronym,
-                            ""
-                        ),
-                        hash: apiBeatmap.hash,
-                        droidAttribs: {
-                            params: droidAttribs.params.toCloneable(),
-                            difficulty: {
-                                ...droidAttribs.difficultyAttributes,
-                                mods: droidAttribs.difficultyAttributes.mods.reduce(
-                                    (a, v) => a + v.acronym,
-                                    ""
-                                ),
-                            },
-                            performance: {
-                                total: droidAttribs.result.total,
-                                aim: droidAttribs.result.aim,
-                                tap: droidAttribs.result.tap,
-                                accuracy: droidAttribs.result.accuracy,
-                                flashlight: droidAttribs.result.flashlight,
-                                visual: droidAttribs.result.visual,
-                                deviation: droidAttribs.result.deviation,
-                                tapDeviation: droidAttribs.result.tapDeviation,
-                                tapPenalty: droidAttribs.result.tapPenalty,
-                                aimSliderCheesePenalty:
-                                    droidAttribs.result.aimSliderCheesePenalty,
-                                flashlightSliderCheesePenalty:
-                                    droidAttribs.result
-                                        .flashlightSliderCheesePenalty,
-                                visualSliderCheesePenalty:
-                                    droidAttribs.result
-                                        .visualSliderCheesePenalty,
-                            },
-                        },
-                        osuAttribs: {
-                            params: osuAttribs.params.toCloneable(),
-                            difficulty: {
-                                ...osuAttribs.difficultyAttributes,
-                                mods: osuAttribs.difficultyAttributes.mods.reduce(
-                                    (a, v) => a + v.acronym,
-                                    ""
-                                ),
-                            },
-                            performance: {
-                                total: osuAttribs.result.total,
-                                aim: osuAttribs.result.aim,
-                                speed: osuAttribs.result.speed,
-                                accuracy: droidAttribs.result.accuracy,
-                                flashlight: droidAttribs.result.flashlight,
-                            },
-                        },
-                    };
-
-                    if (replay.scoreID > 0) {
-                        recentPlay.replayID = replay.scoreID;
-                    }
-                    if (data.speedModification !== 1) {
-                        recentPlay.speedMultiplier = data.speedModification;
-                    }
-                    if (data.forcedAR !== undefined) {
-                        recentPlay.forcedAR = data.forcedAR;
-                    }
-                    if (droidAttribs.replay) {
-                        if (droidAttribs.replay.hitError) {
-                            recentPlay.hitError = droidAttribs.replay.hitError;
-                        }
-                        recentPlay.sliderTickInformation =
-                            droidAttribs.replay.sliderTickInformation;
-                        recentPlay.sliderEndInformation =
-                            droidAttribs.replay.sliderEndInformation;
-                    }
-
-                    // Re-set date to update to current date
-                    recentPlay.date = new Date();
-
-                    await DatabaseManager.aliceDb.collections.recentPlays
-                        .insert(recentPlay)
-                        .catch(() => null);
-                }
-            }
-
             statuses.push({
                 success: true,
                 replayNeedsPersistence: replayNeedsPersistence,
@@ -343,6 +390,12 @@ export abstract class DPPUtil {
 
         const newTotal = this.calculateFinalPerformancePoints(bindInfo.pp);
         const playCountIncrement = statuses.filter((v) => v.success).length;
+
+        if (recentPlays.length > 0) {
+            await DatabaseManager.aliceDb.collections.recentPlays
+                .insert(...recentPlays)
+                .catch(() => null);
+        }
 
         const updateResult = await DatabaseManager.elainaDb.collections.userBind
             .updateOne(

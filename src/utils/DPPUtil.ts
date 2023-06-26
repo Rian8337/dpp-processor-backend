@@ -72,7 +72,7 @@ export abstract class DPPUtil {
                 accuracy: {
                     ...replayData.accuracy,
                 },
-                title: apiBeatmap?.fullTitle ?? replayData.fileName,
+                title: apiBeatmap?.fullTitle ?? replayData.fileName.replace(".osu", ""),
                 combo: replayData.maxCombo,
                 date: new Date(),
                 score: replayData.score,

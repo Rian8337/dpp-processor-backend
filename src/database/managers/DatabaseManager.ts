@@ -65,6 +65,8 @@ export abstract class DatabaseManager {
     }
 
     private static async initAliceDB(): Promise<void> {
+        console.log("Connecting to Alice DB");
+
         const aliceURI =
             "mongodb+srv://" +
             process.env.ALICE_DB_KEY +

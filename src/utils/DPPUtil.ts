@@ -72,7 +72,9 @@ export abstract class DPPUtil {
                 accuracy: {
                     ...replayData.accuracy,
                 },
-                title: apiBeatmap?.fullTitle ?? replayData.fileName.replace(".osu", ""),
+                title:
+                    apiBeatmap?.fullTitle ??
+                    replayData.fileName.replace(".osu", ""),
                 combo: replayData.maxCombo,
                 date: new Date(),
                 score: replayData.score,
@@ -440,58 +442,6 @@ export abstract class DPPUtil {
     }
 
     /**
-     * Checks a beatmap's submission validity.
-     *
-     * @param beatmap The beatmap.
-     * @returns The validity of the beatmap.
-     */
-    static async checkSubmissionValidity(
-        beatmap: MapInfo
-    ): Promise<DPPSubmissionValidity>;
-
-    /**
-     * Checks a score's submission validity.
-     *
-     * @param score The score.
-     * @returns The validity of the score.
-     */
-    static async checkSubmissionValidity(
-        score: Score
-    ): Promise<DPPSubmissionValidity>;
-
-    static async checkSubmissionValidity(
-        beatmapOrScore: Score | MapInfo
-    ): Promise<DPPSubmissionValidity> {
-        const apiBeatmap =
-            beatmapOrScore instanceof MapInfo
-                ? beatmapOrScore
-                : await getBeatmap(beatmapOrScore.hash);
-
-        if (!apiBeatmap) {
-            return DPPSubmissionValidity.beatmapNotFound;
-        }
-
-        switch (true) {
-            case beatmapOrScore instanceof Score &&
-                beatmapOrScore.forcedAR !== undefined:
-                return DPPSubmissionValidity.scoreUsesForceAR;
-            case apiBeatmap.approved === RankedStatus.loved &&
-                (apiBeatmap.hitLength < 30 ||
-                    apiBeatmap.hitLength / apiBeatmap.totalLength < 0.6):
-                return DPPSubmissionValidity.beatmapTooShort;
-            case await WhitelistUtil.isBlacklisted(apiBeatmap.beatmapID):
-                return DPPSubmissionValidity.beatmapIsBlacklisted;
-            case WhitelistUtil.beatmapNeedsWhitelisting(apiBeatmap.approved) &&
-                (await WhitelistUtil.getBeatmapWhitelistStatus(
-                    apiBeatmap.hash
-                )) !== "updated":
-                return DPPSubmissionValidity.beatmapNotWhitelisted;
-            default:
-                return DPPSubmissionValidity.valid;
-        }
-    }
-
-    /**
      * Calculates the final performance points from a list of pp entries.
      *
      * @param list The list.
@@ -525,6 +475,106 @@ export abstract class DPPUtil {
         }
 
         return accSum / weight;
+    }
+
+    /**
+     * Deletes the score of a player from the database.
+     *
+     * @param uid The uid of the player.
+     * @param hash The MD5 hash of the played beatmap.
+     */
+    static async deleteScore(uid: number, hash: string): Promise<void> {
+        const bindInfo =
+            await DatabaseManager.elainaDb.collections.userBind.getFromUid(uid);
+
+        if (!bindInfo) {
+            return;
+        }
+
+        const scoreIndex = bindInfo.pp.findIndex((p) => p.hash === hash);
+        if (scoreIndex === -1) {
+            return;
+        }
+
+        bindInfo.pp.splice(scoreIndex, 1);
+
+        const updateResult = await DatabaseManager.elainaDb.collections.userBind
+            .updateOne(
+                { discordid: bindInfo.discordid },
+                {
+                    $set: {
+                        pptotal: this.calculateFinalPerformancePoints(
+                            bindInfo.pp
+                        ),
+                        pp: bindInfo.pp,
+                        weightedAccuracy: this.calculateWeightedAccuracy(
+                            bindInfo.pp
+                        ),
+                    },
+                    $inc: {
+                        playc: -1,
+                    },
+                }
+            )
+            .catch(() => null);
+
+        if (!updateResult) {
+            return;
+        }
+
+        await this.updateDiscordMetadata(bindInfo.discordid);
+    }
+
+    /**
+     * Checks a beatmap's submission validity.
+     *
+     * @param beatmap The beatmap.
+     * @returns The validity of the beatmap.
+     */
+    private static async checkSubmissionValidity(
+        beatmap: MapInfo
+    ): Promise<DPPSubmissionValidity>;
+
+    /**
+     * Checks a score's submission validity.
+     *
+     * @param score The score.
+     * @returns The validity of the score.
+     */
+    private static async checkSubmissionValidity(
+        score: Score
+    ): Promise<DPPSubmissionValidity>;
+
+    private static async checkSubmissionValidity(
+        beatmapOrScore: Score | MapInfo
+    ): Promise<DPPSubmissionValidity> {
+        const apiBeatmap =
+            beatmapOrScore instanceof MapInfo
+                ? beatmapOrScore
+                : await getBeatmap(beatmapOrScore.hash);
+
+        if (!apiBeatmap) {
+            return DPPSubmissionValidity.beatmapNotFound;
+        }
+
+        switch (true) {
+            case beatmapOrScore instanceof Score &&
+                beatmapOrScore.forcedAR !== undefined:
+                return DPPSubmissionValidity.scoreUsesForceAR;
+            case apiBeatmap.approved === RankedStatus.loved &&
+                (apiBeatmap.hitLength < 30 ||
+                    apiBeatmap.hitLength / apiBeatmap.totalLength < 0.6):
+                return DPPSubmissionValidity.beatmapTooShort;
+            case await WhitelistUtil.isBlacklisted(apiBeatmap.beatmapID):
+                return DPPSubmissionValidity.beatmapIsBlacklisted;
+            case WhitelistUtil.beatmapNeedsWhitelisting(apiBeatmap.approved) &&
+                (await WhitelistUtil.getBeatmapWhitelistStatus(
+                    apiBeatmap.hash
+                )) !== "updated":
+                return DPPSubmissionValidity.beatmapNotWhitelisted;
+            default:
+                return DPPSubmissionValidity.valid;
+        }
     }
 
     /**

@@ -1,7 +1,7 @@
 import { IModApplicableToDroid, Mod } from "@rian8337/osu-base";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import { ReadStream } from "fs";
-import { readFile, copyFile, writeFile, mkdir } from "fs/promises";
+import { readFile, rm, copyFile, writeFile, mkdir } from "fs/promises";
 import { homedir } from "os";
 import { join } from "path";
 import { Util } from "./Util";
@@ -261,6 +261,23 @@ export async function persistOnlineReplay(
         )
         .then(() => true)
         .catch(() => false);
+}
+
+/**
+ * Deletes all replays of a player from a beatmap.
+ *
+ * @param uid The uid of the player.
+ * @param hash The MD5 hash of the beatmap.
+ */
+export async function deleteReplays(
+    uid: number | string,
+    hash: string
+): Promise<void> {
+    try {
+        await rm(join(localReplayDirectory, uid.toString(), hash));
+    } catch {
+        // Ignore error
+    }
 }
 
 /**

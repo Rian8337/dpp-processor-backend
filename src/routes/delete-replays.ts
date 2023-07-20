@@ -18,6 +18,8 @@ router.get<
 
     await deleteReplays(req.query.uid, req.query.hash);
     await DPPUtil.deleteScore(parseInt(req.query.uid), req.query.hash);
+
+    res.sendStatus(200);
 });
 
 export default router;

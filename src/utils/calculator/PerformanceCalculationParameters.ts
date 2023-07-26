@@ -4,6 +4,8 @@ import { DifficultyCalculationParameters } from "./DifficultyCalculationParamete
 import { RawDifficultyAttributes } from "../../structures/attributes/RawDifficultyAttributes";
 import { CloneablePerformanceCalculationParameters } from "./CloneablePerformanceCalculationParameters";
 import { CacheableDifficultyAttributes } from "../../structures/attributes/CacheableDifficultyAttributes";
+import { PerformanceCalculationOptions } from "@rian8337/osu-difficulty-calculator";
+import { PerformanceCalculationOptions as RebalancePerformanceCalculationOptions } from "@rian8337/osu-rebalance-difficulty-calculator";
 
 /**
  * Represents a parameter to alter performance calculation result.
@@ -97,6 +99,27 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
                 ),
             });
         }
+    }
+
+    /**
+     * Applies this calculation parameters to a calculation options.
+     *
+     * @param options The options to apply to.
+     */
+    applyToOptions(
+        options:
+            | PerformanceCalculationOptions
+            | RebalancePerformanceCalculationOptions
+    ): void {
+        options.combo = this.combo;
+        options.accPercent = this.accuracy;
+        options.tapPenalty = this.tapPenalty;
+        options.aimSliderCheesePenalty =
+            this.sliderCheesePenalty?.aimPenalty ?? 1;
+        options.flashlightSliderCheesePenalty =
+            this.sliderCheesePenalty?.flashlightPenalty ?? 1;
+        options.visualSliderCheesePenalty =
+            this.sliderCheesePenalty?.visualPenalty ?? 1;
     }
 
     override toCloneable(): CloneablePerformanceCalculationParameters {

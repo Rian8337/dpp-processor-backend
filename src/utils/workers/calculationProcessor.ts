@@ -101,17 +101,8 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
         }
     }
 
-    const calculationOptions: PerformanceCalculationOptions = {
-        combo: calculationParams.combo,
-        accPercent: calculationParams.accuracy,
-        tapPenalty: calculationParams.tapPenalty,
-        aimSliderCheesePenalty:
-            calculationParams.sliderCheesePenalty?.aimPenalty,
-        flashlightSliderCheesePenalty:
-            calculationParams.sliderCheesePenalty?.flashlightPenalty,
-        visualSliderCheesePenalty:
-            calculationParams.sliderCheesePenalty?.visualPenalty,
-    };
+    const calculationOptions: PerformanceCalculationOptions = {};
+    calculationParams.applyToOptions(calculationOptions);
 
     switch (gamemode) {
         case Modes.droid: {
@@ -163,6 +154,8 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                 )
                             );
                         }
+
+                        calculationParams.applyToOptions(calculationOptions);
                     }
 
                     const calcResult = new PerformanceCalculationResult(
@@ -279,6 +272,8 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                 )
                             );
                         }
+
+                        calculationParams.applyToOptions(calculationOptions);
                     }
 
                     const calcResult =

@@ -1,5 +1,6 @@
 import {
     Collection,
+    DeleteResult,
     Document,
     Filter,
     FindOptions,
@@ -102,5 +103,15 @@ export abstract class DatabaseCollectionManager<T extends Document> {
                     )
             )
         );
+    }
+
+    /**
+     * Delete multiple documents from the collection.
+     *
+     * @param filter The filter used to select the documents to remove.
+     * @returns An object containing information about the operation.
+     */
+    deleteMany(filter: Filter<T>): Promise<DeleteResult> {
+        return this.collection.deleteMany(filter);
     }
 }

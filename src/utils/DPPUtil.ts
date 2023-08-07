@@ -498,27 +498,38 @@ export abstract class DPPUtil {
 
         bindInfo.pp.splice(scoreIndex, 1);
 
-        const updateResult = await DatabaseManager.elainaDb.collections.userBind
-            .updateOne(
-                { discordid: bindInfo.discordid },
-                {
-                    $set: {
-                        pptotal: this.calculateFinalPerformancePoints(
-                            bindInfo.pp
-                        ),
-                        pp: bindInfo.pp,
-                        weightedAccuracy: this.calculateWeightedAccuracy(
-                            bindInfo.pp
-                        ),
-                    },
-                    $inc: {
-                        playc: -1,
-                    },
-                }
-            )
-            .catch(() => null);
+        const bindUpdateResult =
+            await DatabaseManager.elainaDb.collections.userBind
+                .updateOne(
+                    { discordid: bindInfo.discordid },
+                    {
+                        $set: {
+                            pptotal: this.calculateFinalPerformancePoints(
+                                bindInfo.pp
+                            ),
+                            pp: bindInfo.pp,
+                            weightedAccuracy: this.calculateWeightedAccuracy(
+                                bindInfo.pp
+                            ),
+                        },
+                        $inc: {
+                            playc: -1,
+                        },
+                    }
+                )
+                .catch(() => null);
 
-        if (!updateResult) {
+        if (!bindUpdateResult) {
+            return;
+        }
+
+        const recentUpdateResult =
+            await DatabaseManager.aliceDb.collections.recentPlays.deleteMany({
+                uid: uid,
+                hash: hash,
+            });
+
+        if (!recentUpdateResult) {
             return;
         }
 

@@ -16,12 +16,18 @@ import { DPPSubmissionValidity } from "../enums/DPPSubmissionValidity";
 import { WhitelistUtil } from "./WhitelistUtil";
 import { PPEntry } from "../structures/PPEntry";
 import { PPSubmissionStatus } from "../structures/PPSubmissionStatus";
-import { persistReplay, saveReplay } from "./replayManager";
+import {
+    persistReplay,
+    saveReplay,
+    unprocessedReplayDirectory,
+} from "./replayManager";
 import { PPSubmissionOperationResult } from "../structures/PPSubmissionOperationResult";
 import { DroidPerformanceAttributes } from "../structures/attributes/DroidPerformanceAttributes";
 import { BeatmapOsuDifficultyCalculator } from "./calculator/BeatmapOsuDifficultyCalculator";
 import { IRecentPlay } from "../database/structures/aliceDb/IRecentPlay";
 import { OsuPerformanceAttributes } from "../structures/attributes/OsuPerformanceAttributes";
+import { readFile, readdir } from "fs/promises";
+import { join } from "path";
 
 /**
  * Utilities that are related to dpp.
@@ -37,7 +43,7 @@ export abstract class DPPUtil {
      *
      * @param replays The replays to submit.
      * @param uid The uid of the player, if any.
-     * @param submitAsRecent Whether to submit these replays are recent plays. Defaults to `false`.
+     * @param submitAsRecent Whether to submit these replays as recent plays. Defaults to `false`.
      * @returns Whether the submission for each replay was successful.
      */
     static async submitReplay(
@@ -533,6 +539,42 @@ export abstract class DPPUtil {
         }
 
         await this.updateDiscordMetadata(bindInfo.discordid);
+    }
+
+    /**
+     * Processes unprocessed replays.
+     */
+    static async processUnprocessedReplays(): Promise<void> {
+        const replayFiles = await readdir(unprocessedReplayDirectory).catch(
+            () => null
+        );
+
+        if (!replayFiles) {
+            return;
+        }
+
+        console.log(
+            "Processing",
+            replayFiles?.length ?? 0,
+            "unprocessed replay file(s)"
+        );
+
+        for (const replayFile of replayFiles ?? []) {
+            const file = await readFile(
+                join(unprocessedReplayDirectory, replayFile)
+            ).catch(() => null);
+            if (!file) {
+                continue;
+            }
+
+            const analyzer = new ReplayAnalyzer({ scoreID: 0 });
+            analyzer.originalODR = file;
+            await analyzer.analyze();
+
+            await this.submitReplay([analyzer], undefined, true);
+        }
+
+        console.log("Unprocessed replay file(s) processing complete");
     }
 
     /**

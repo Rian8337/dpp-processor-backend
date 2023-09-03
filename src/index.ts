@@ -19,6 +19,7 @@ import {
     rebalanceDroidDifficultyCache,
     rebalanceOsuDifficultyCache,
 } from "./utils/cache/difficultyAtributesStorage";
+import { DPPUtil } from "./utils/DPPUtil";
 
 config();
 
@@ -52,9 +53,11 @@ Promise.all([
     liveOsuDifficultyCache.readCacheFromDisk(),
     rebalanceOsuDifficultyCache.readCacheFromDisk(),
 ])
-    .then(() => {
+    .then(async () => {
         const port = parseInt(process.env.PORT || "3006");
 
         app.listen(port, () => console.log("DPP processor backend is up"));
+
+        await DPPUtil.processUnprocessedReplays();
     })
     .catch((e) => console.error(e));

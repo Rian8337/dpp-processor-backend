@@ -30,4 +30,9 @@ export interface CompleteCalculationAttributes<
      * The replay attributes, if any.
      */
     readonly replay?: ReplayAttributes;
+
+    /**
+     * The MD5 hash of the local replay file, if the file is present.
+     */
+    localReplayMD5?: string;
 }

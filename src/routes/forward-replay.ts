@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { ReadStream } from "fs";
 import { Util } from "../utils/Util";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import { DPPUtil } from "../utils/DPPUtil";
+import { getUnprocessedReplay } from "../utils/replayManager";
 
 const router = Router();
 
@@ -12,19 +12,17 @@ router.post<
     unknown,
     {
         key: string;
-        replayID: string;
+        replayId: string;
+        filename: string;
     }
 >("/", Util.validatePOSTInternalKey, async (req, res) => {
     // Send response early
     res.sendStatus(200);
 
-    const { replayID } = req.body;
+    const { replayId } = req.body;
 
-    // @ts-expect-error: Bad typings
-    const fileStream: ReadStream = req.files.replayfile;
-
-    const replayAnalyzer = new ReplayAnalyzer({ scoreID: parseInt(replayID) });
-    replayAnalyzer.originalODR = await Util.readFile(fileStream);
+    const replayAnalyzer = new ReplayAnalyzer({ scoreID: parseInt(replayId) });
+    replayAnalyzer.originalODR = await getUnprocessedReplay(req.body.filename);
     await replayAnalyzer.analyze();
 
     await DPPUtil.submitReplay([replayAnalyzer], undefined, true);

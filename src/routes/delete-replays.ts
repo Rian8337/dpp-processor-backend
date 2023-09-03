@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { Util } from "../utils/Util";
-import { deleteReplays } from "../utils/replaySavingManager";
+import { deleteReplays } from "../utils/replayManager";
 import { DPPUtil } from "../utils/DPPUtil";
 
 const router = Router();

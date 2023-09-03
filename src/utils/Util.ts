@@ -1,4 +1,4 @@
-import { ReadStream } from "fs";
+import { createHash } from "crypto";
 import { Request, Response, NextFunction } from "express";
 
 /**
@@ -6,18 +6,13 @@ import { Request, Response, NextFunction } from "express";
  */
 export abstract class Util {
     /**
-     * Reads a file stream and returns it as a `Buffer`.
+     * Computes the MD5 hash of a buffer.
      *
-     * @param stream The stream.
+     * @param buf The buffer.
+     * @returns The MD5 hash of the buffer.
      */
-    static readFile(stream: ReadStream): Promise<Buffer> {
-        const chunks: Buffer[] = [];
-
-        return new Promise((resolve, reject) => {
-            stream.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
-            stream.on("error", (err) => reject(err));
-            stream.on("end", () => resolve(Buffer.concat(chunks)));
-        });
+    static computeMD5(buf: Buffer): string {
+        return createHash("md5").update(buf).digest("hex");
     }
 
     /**

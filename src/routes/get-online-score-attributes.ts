@@ -17,7 +17,7 @@ import {
 } from "@rian8337/osu-rebalance-difficulty-calculator";
 import { PPCalculationMethod } from "../structures/PPCalculationMethod";
 import { RebalanceDroidPerformanceAttributes } from "../structures/attributes/RebalanceDroidPerformanceAttributes";
-import { getOnlineReplay } from "../utils/replaySavingManager";
+import { getOnlineReplay } from "../utils/replayManager";
 
 const router = Router();
 

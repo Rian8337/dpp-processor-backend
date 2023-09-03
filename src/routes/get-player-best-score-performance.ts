@@ -11,10 +11,7 @@ import { MathUtils } from "@rian8337/osu-base";
 import { DroidDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
 import { DroidDifficultyAttributes as RebalanceDroidDifficultyAttributes } from "@rian8337/osu-rebalance-difficulty-calculator";
 import { RebalanceDroidPerformanceAttributes } from "../structures/attributes/RebalanceDroidPerformanceAttributes";
-import {
-    getOnlineReplay,
-    localReplayDirectory,
-} from "../utils/replaySavingManager";
+import { getOnlineReplay, localReplayDirectory } from "../utils/replayManager";
 import { Score } from "@rian8337/osu-droid-utilities";
 
 const router = Router();
@@ -132,6 +129,10 @@ router.get<
                 },
                 replay: calcResult.replay,
             };
+        }
+
+        if (analyzer.scoreID === 0) {
+            bestAttribs.localReplayMD5 = Util.computeMD5(analyzer.originalODR);
         }
     };
 

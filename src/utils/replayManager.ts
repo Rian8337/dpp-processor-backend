@@ -1,6 +1,5 @@
 import { IModApplicableToDroid, Mod } from "@rian8337/osu-base";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
-import { ReadStream } from "fs";
 import { readFile, rm, copyFile, writeFile, mkdir } from "fs/promises";
 import { homedir } from "os";
 import { join } from "path";
@@ -12,6 +11,14 @@ const mainDirectory = join(homedir(), "..", "..");
  * The directory of local replays.
  */
 export const localReplayDirectory = join(mainDirectory, "data", "dpp-replays");
+
+/**
+ * The directory of replays that have not been processed.
+ */
+export const unprocessedReplayDirectory = join(
+    localReplayDirectory,
+    "unprocessed"
+);
 
 /**
  * The directory of online replays.
@@ -206,6 +213,18 @@ export async function persistReplay(
 }
 
 /**
+ * Gets a replay file from the unprocessed replay folder.
+ *
+ * @param filename The name of the replay file.
+ * @returns The replay file, `null` if not found.
+ */
+export function getUnprocessedReplay(filename: string): Promise<Buffer | null> {
+    return readFile(join(unprocessedReplayDirectory, filename)).catch(
+        () => null
+    );
+}
+
+/**
  * Gets an online replay file.
  *
  * @param scoreId The ID of the score associated with the replay.
@@ -217,50 +236,6 @@ export function getOnlineReplay(
     return readFile(join(onlineReplayDirectory, `${scoreId}.odr`)).catch(
         () => null
     );
-}
-
-/**
- * Persists an online replay file.
- *
- * @param playerId The ID of the player.
- * @param scoreId The ID of the score.
- */
-export async function persistOnlineReplay(
-    playerId: number,
-    scoreId: number
-): Promise<boolean> {
-    const onlineReplayPath = join(onlineReplayDirectory, `${scoreId}.odr`);
-    const analyzer = new ReplayAnalyzer({ scoreID: scoreId });
-    analyzer.originalODR = await readFile(onlineReplayPath).catch(() => null);
-
-    if (!analyzer.originalODR) {
-        return false;
-    }
-
-    await analyzer.analyze();
-    const { data } = analyzer;
-    if (!data) {
-        return false;
-    }
-
-    const filePath =
-        generateReplayFilePath(
-            playerId,
-            data.hash,
-            data.convertedMods,
-            data.speedModification,
-            data.forcedAR
-        ) + "_persisted.odr";
-
-    return ensureBeatmapDirectoryExists(filePath)
-        .then(() =>
-            writeFile(
-                join(localReplayDirectory, filePath),
-                analyzer.originalODR!
-            )
-        )
-        .then(() => true)
-        .catch(() => false);
 }
 
 /**
@@ -278,22 +253,6 @@ export async function deleteReplays(
     } catch {
         // Ignore error
     }
-}
-
-/**
- * Reads a file stream and returns it as a buffer.
- *
- * @param stream The stream to read.
- * @returns The buffer represented by the read stream.
- */
-export function readFileStream(stream: ReadStream): Promise<Buffer> {
-    const chunks: Buffer[] = [];
-
-    return new Promise((resolve, reject) => {
-        stream.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
-        stream.on("error", (err) => reject(err));
-        stream.on("end", () => resolve(Buffer.concat(chunks)));
-    });
 }
 
 /**

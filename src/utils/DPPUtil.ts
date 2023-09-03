@@ -16,7 +16,7 @@ import { DPPSubmissionValidity } from "../enums/DPPSubmissionValidity";
 import { WhitelistUtil } from "./WhitelistUtil";
 import { PPEntry } from "../structures/PPEntry";
 import { PPSubmissionStatus } from "../structures/PPSubmissionStatus";
-import { persistReplay, saveReplay } from "./replaySavingManager";
+import { persistReplay, saveReplay } from "./replayManager";
 import { PPSubmissionOperationResult } from "../structures/PPSubmissionOperationResult";
 import { DroidPerformanceAttributes } from "../structures/attributes/DroidPerformanceAttributes";
 import { BeatmapOsuDifficultyCalculator } from "./calculator/BeatmapOsuDifficultyCalculator";
@@ -339,7 +339,6 @@ export abstract class DPPUtil {
                 continue;
             }
 
-            // Instruct the replay backend to save the replay.
             const saveReplayStatus = await saveReplay(uid, replay);
             if (!saveReplayStatus) {
                 statuses.push({

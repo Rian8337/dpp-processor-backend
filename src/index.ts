@@ -10,6 +10,8 @@ import getPerformanceAttributes from "./routes/get-performance-attributes";
 import getPlayerBestScorePerformance from "./routes/get-player-best-score-performance";
 import getOnlineScoreAttributes from "./routes/get-online-score-attributes";
 import forwardReplay from "./routes/forward-replay";
+import persistLocalReplay from "./routes/persist-local-replay";
+import persistOnlineReplay from "./routes/persist-online-replay";
 import submitScores from "./routes/submit-scores";
 import {
     liveDroidDifficultyCache,
@@ -20,30 +22,26 @@ import {
 
 config();
 
-const app = express();
+const app = express()
+    .set("trust proxy", 1)
+    .use(cors())
+    .use(formData.parse())
+    .use(formData.format())
+    .use(formData.stream())
+    .use(express.json())
+    .use(express.urlencoded({ extended: true }));
 
-app.set("trust proxy", 1);
-
-app.use(cors());
-app.use(formData.parse());
-app.use(formData.format());
-app.use(formData.stream());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-const baseRouter = Router();
-
-baseRouter.use("/calculate-beatmap-file", calculateBeatmapFile);
-baseRouter.use("/delete-replays", deleteReplays);
-baseRouter.use("/get-difficulty-attributes", getDifficultyAttributes);
-baseRouter.use("/get-performance-attributes", getPerformanceAttributes);
-baseRouter.use(
-    "/get-player-best-score-performance",
-    getPlayerBestScorePerformance
-);
-baseRouter.use("/get-online-score-attributes", getOnlineScoreAttributes);
-baseRouter.use("/forward-replay", forwardReplay);
-baseRouter.use("/submit-scores", submitScores);
+const baseRouter = Router()
+    .use("/calculate-beatmap-file", calculateBeatmapFile)
+    .use("/delete-replays", deleteReplays)
+    .use("/get-difficulty-attributes", getDifficultyAttributes)
+    .use("/get-performance-attributes", getPerformanceAttributes)
+    .use("/get-player-best-score-performance", getPlayerBestScorePerformance)
+    .use("/get-online-score-attributes", getOnlineScoreAttributes)
+    .use("/forward-replay", forwardReplay)
+    .use("/persist-local-replay", persistLocalReplay)
+    .use("/persist-online-replay", persistOnlineReplay)
+    .use("/submit-scores", submitScores);
 
 app.use("/api/dpp/processor", baseRouter);
 

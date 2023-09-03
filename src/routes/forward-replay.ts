@@ -2,7 +2,10 @@ import { Router } from "express";
 import { Util } from "../utils/Util";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import { DPPUtil } from "../utils/DPPUtil";
-import { getUnprocessedReplay } from "../utils/replayManager";
+import {
+    deleteUnprocessedReplay,
+    getUnprocessedReplay,
+} from "../utils/replayManager";
 
 const router = Router();
 
@@ -26,6 +29,7 @@ router.post<
     await replayAnalyzer.analyze();
 
     await DPPUtil.submitReplay([replayAnalyzer], undefined, true);
+    await deleteUnprocessedReplay(req.body.filename);
 });
 
 export default router;

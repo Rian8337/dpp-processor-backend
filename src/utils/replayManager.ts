@@ -1,6 +1,6 @@
 import { IModApplicableToDroid, Mod } from "@rian8337/osu-base";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
-import { readFile, rm, copyFile, writeFile, mkdir } from "fs/promises";
+import { readFile, rm, copyFile, writeFile, mkdir, unlink } from "fs/promises";
 import { homedir } from "os";
 import { join } from "path";
 import { Util } from "./Util";
@@ -222,6 +222,15 @@ export function getUnprocessedReplay(filename: string): Promise<Buffer | null> {
     return readFile(join(unprocessedReplayDirectory, filename)).catch(
         () => null
     );
+}
+
+/**
+ * Deletes a replay file from the unprocessed replay folder.
+ *
+ * @param filename The name of the replay file.
+ */
+export function deleteUnprocessedReplay(filename: string): Promise<void> {
+    return unlink(join(unprocessedReplayDirectory, filename));
 }
 
 /**

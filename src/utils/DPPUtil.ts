@@ -17,6 +17,7 @@ import { WhitelistUtil } from "./WhitelistUtil";
 import { PPEntry } from "../structures/PPEntry";
 import { PPSubmissionStatus } from "../structures/PPSubmissionStatus";
 import {
+    deleteUnprocessedReplay,
     persistReplay,
     saveReplay,
     unprocessedReplayDirectory,
@@ -572,6 +573,7 @@ export abstract class DPPUtil {
             await analyzer.analyze();
 
             await this.submitReplay([analyzer], undefined, true);
+            await deleteUnprocessedReplay(replayFile);
         }
 
         console.log("Unprocessed replay file(s) processing complete");

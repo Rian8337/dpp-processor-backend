@@ -572,8 +572,15 @@ export abstract class DPPUtil {
             analyzer.originalODR = file;
             await analyzer.analyze();
 
-            await this.submitReplay([analyzer], undefined, true);
-            await deleteUnprocessedReplay(replayFile);
+            const result = await this.submitReplay(
+                [analyzer],
+                undefined,
+                true
+            ).catch(() => null);
+
+            if (result?.statuses[0].success) {
+                await deleteUnprocessedReplay(replayFile);
+            }
         }
 
         console.log("Unprocessed replay file(s) processing complete");

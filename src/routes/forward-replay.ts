@@ -28,8 +28,15 @@ router.post<
     replayAnalyzer.originalODR = await getUnprocessedReplay(req.body.filename);
     await replayAnalyzer.analyze();
 
-    await DPPUtil.submitReplay([replayAnalyzer], undefined, true);
-    await deleteUnprocessedReplay(req.body.filename);
+    const result = await DPPUtil.submitReplay(
+        [replayAnalyzer],
+        undefined,
+        true
+    ).catch(() => null);
+
+    if (result?.statuses[0].success) {
+        await deleteUnprocessedReplay(req.body.filename);
+    }
 });
 
 export default router;

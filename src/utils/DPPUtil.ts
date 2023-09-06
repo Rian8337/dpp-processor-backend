@@ -578,7 +578,7 @@ export abstract class DPPUtil {
                 true
             ).catch(() => null);
 
-            if (result?.statuses[0].success) {
+            if (result) {
                 await deleteUnprocessedReplay(replayFile);
             }
         }

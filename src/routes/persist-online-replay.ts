@@ -15,6 +15,7 @@ router.put<
         scoreID: parseInt(req.body.scoreid),
     });
     analyzer.originalODR = await getOnlineReplay(req.body.scoreid);
+    await analyzer.analyze();
 
     const success = await persistReplay(parseInt(req.body.uid), analyzer);
     if (!success) {

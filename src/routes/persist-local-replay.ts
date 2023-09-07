@@ -11,11 +11,11 @@ router.put<
     "/",
     unknown,
     unknown,
-    { key: string; playerid: string; beatmaphash: string; replayhash: string }
+    { key: string; playerid: number; beatmaphash: string; replayhash: string }
 >("/", Util.validatePOSTInternalKey, async (req, res) => {
     const replayDirectory = join(
         localReplayDirectory,
-        req.body.playerid,
+        req.body.playerid.toString(),
         req.body.beatmaphash
     );
     const replayFiles = await readdir(replayDirectory).catch(() => null);
@@ -33,10 +33,7 @@ router.put<
         analyzer.originalODR = file;
         await analyzer.analyze();
 
-        const success = await persistReplay(
-            parseInt(req.body.playerid),
-            analyzer
-        );
+        const success = await persistReplay(req.body.playerid, analyzer);
 
         if (!success) {
             return res.status(400).json({

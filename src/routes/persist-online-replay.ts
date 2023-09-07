@@ -9,15 +9,15 @@ router.put<
     "/",
     unknown,
     unknown,
-    { key: string; uid: string; scoreid: string }
+    { key: string; uid: number; scoreid: number }
 >("/", Util.validatePOSTInternalKey, async (req, res) => {
     const analyzer = new ReplayAnalyzer({
-        scoreID: parseInt(req.body.scoreid),
+        scoreID: req.body.scoreid,
     });
     analyzer.originalODR = await getOnlineReplay(req.body.scoreid);
     await analyzer.analyze();
 
-    const success = await persistReplay(parseInt(req.body.uid), analyzer);
+    const success = await persistReplay(req.body.uid, analyzer);
     if (!success) {
         return res
             .status(400)

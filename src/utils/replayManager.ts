@@ -72,7 +72,7 @@ export async function saveReplay(
 
         const analyzer = new ReplayAnalyzer({ scoreID: 0 });
         analyzer.originalODR = replayFile;
-        await analyzer.analyze();
+        await analyzer.analyze().catch(() => {});
 
         if (!analyzer.data) {
             continue;

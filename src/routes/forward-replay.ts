@@ -26,7 +26,7 @@ router.post<
 
     const replayAnalyzer = new ReplayAnalyzer({ scoreID: parseInt(replayId) });
     replayAnalyzer.originalODR = await getUnprocessedReplay(req.body.filename);
-    await replayAnalyzer.analyze();
+    await replayAnalyzer.analyze().catch(() => {});
 
     const result = await DPPUtil.submitReplay(
         [replayAnalyzer],

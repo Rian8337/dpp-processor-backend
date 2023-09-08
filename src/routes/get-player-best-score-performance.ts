@@ -47,7 +47,7 @@ router.get<
             return;
         }
 
-        await analyzer.analyze();
+        await analyzer.analyze().catch(() => {});
 
         const calcResult = await (calculationMethod === PPCalculationMethod.live
             ? difficultyCalculator.calculateReplayPerformance(analyzer)

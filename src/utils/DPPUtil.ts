@@ -570,7 +570,7 @@ export abstract class DPPUtil {
 
             const analyzer = new ReplayAnalyzer({ scoreID: 0 });
             analyzer.originalODR = file;
-            await analyzer.analyze();
+            await analyzer.analyze().catch(() => {});
 
             const result = await this.submitReplay(
                 [analyzer],

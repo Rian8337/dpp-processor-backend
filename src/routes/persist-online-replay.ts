@@ -15,7 +15,7 @@ router.put<
         scoreID: req.body.scoreid,
     });
     analyzer.originalODR = await getOnlineReplay(req.body.scoreid);
-    await analyzer.analyze();
+    await analyzer.analyze().catch(() => {});
 
     const success = await persistReplay(req.body.uid, analyzer);
     if (!success) {

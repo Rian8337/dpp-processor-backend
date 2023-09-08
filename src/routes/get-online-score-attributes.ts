@@ -55,7 +55,7 @@ router.get<
 
     // Retrieve replay locally.
     analyzer.originalODR = await getOnlineReplay(req.query.scoreid);
-    await analyzer.analyze();
+    await analyzer.analyze().catch(() => {});
 
     const { data } = analyzer;
     if (!data) {

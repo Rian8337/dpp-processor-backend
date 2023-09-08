@@ -92,7 +92,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
     const analyzer = new ReplayAnalyzer({ scoreID: 0, map: beatmap });
     if (data.replayFile) {
         analyzer.originalODR = Buffer.from(await data.replayFile.arrayBuffer());
-        await analyzer.analyze();
+        await analyzer.analyze().catch(() => {});
 
         if (!analyzer.data) {
             return parentPort?.postMessage(

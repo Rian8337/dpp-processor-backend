@@ -22,7 +22,7 @@ router.post<
 
         // Retrieve replay locally.
         analyzer.originalODR = await getOnlineReplay(scoreId);
-        await analyzer.analyze();
+        await analyzer.analyze().catch(() => {});
 
         replays.push(analyzer);
     }

@@ -31,7 +31,7 @@ router.put<
 
         const analyzer = new ReplayAnalyzer({ scoreID: 0 });
         analyzer.originalODR = file;
-        await analyzer.analyze();
+        await analyzer.analyze().catch(() => {});
 
         const success = await persistReplay(req.body.playerid, analyzer);
 

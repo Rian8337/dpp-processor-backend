@@ -278,7 +278,7 @@ router.get<
                         OsuDifficultyAttributes,
                         OsuPerformanceAttributes
                     > = {
-                        params: calculationParams.toCloneable(),
+                        params: calculationResult.params.toCloneable(),
                         difficulty: {
                             ...calculationResult.difficultyAttributes,
                             mods: calculationResult.difficultyAttributes.mods.reduce(
@@ -319,7 +319,7 @@ router.get<
                         RebalanceOsuDifficultyAttributes,
                         OsuPerformanceAttributes
                     > = {
-                        params: calculationParams.toCloneable(),
+                        params: calculationResult.params.toCloneable(),
                         difficulty: {
                             ...calculationResult.difficultyAttributes,
                             mods: calculationResult.difficultyAttributes.mods.reduce(

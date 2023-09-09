@@ -269,6 +269,11 @@ export abstract class BeatmapDifficultyCalculator<
                         return reject(err);
                     }
 
+                    // Reconstruct the parameters in case some parameters were changed.
+                    calculationParams = PerformanceCalculationParameters.from(
+                        result.params
+                    );
+
                     const diffAttribs = <DA & RDA>{
                         ...result.difficulty,
                         mods: calculationParams.customStatistics?.mods ?? [],

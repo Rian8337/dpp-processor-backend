@@ -40,11 +40,13 @@ export class DifficultyCalculationParameters {
     toCloneable(): CloneableDifficultyCalculationParameters {
         return {
             customStatistics: {
-                ...this.customStatistics,
                 mods: this.customStatistics?.mods.reduce(
                     (a, v) => a + v.acronym,
                     ""
                 ),
+                speedMultiplier: this.customStatistics?.speedMultiplier,
+                isForceAR: this.customStatistics?.isForceAR,
+                oldStatistics: this.customStatistics?.oldStatistics,
             },
         };
     }

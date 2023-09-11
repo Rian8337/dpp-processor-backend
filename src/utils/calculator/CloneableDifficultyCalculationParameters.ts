@@ -9,26 +9,6 @@ export interface CloneableDifficultyCalculationParameters {
      */
     customStatistics?: {
         /**
-         * The circle size of the beatmap.
-         */
-        cs?: number;
-
-        /**
-         * The approach rate of the beatmap.
-         */
-        ar?: number;
-
-        /**
-         * The overall difficulty of the beatmap.
-         */
-        od?: number;
-
-        /**
-         * The health drain rate of the beatmap.
-         */
-        hp?: number;
-
-        /**
          * The enabled modifications.
          */
         mods?: string;

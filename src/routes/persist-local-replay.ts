@@ -31,7 +31,11 @@ router.put<
 
         const analyzer = new ReplayAnalyzer({ scoreID: 0 });
         analyzer.originalODR = file;
-        await analyzer.analyze().catch(() => {});
+        await analyzer.analyze().catch(() => {
+            console.error(
+                `Score of uid ${req.body.playerid} from beatmap ${req.body.beatmaphash} cannot be parsed`
+            );
+        });
 
         const success = await persistReplay(req.body.playerid, analyzer);
 

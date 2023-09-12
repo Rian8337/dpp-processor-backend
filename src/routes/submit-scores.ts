@@ -22,7 +22,9 @@ router.post<
 
         // Retrieve replay locally.
         analyzer.originalODR = await getOnlineReplay(scoreId);
-        await analyzer.analyze().catch(() => {});
+        await analyzer.analyze().catch(() => {
+            console.error(`Score of ID ${scoreId} cannot be parsed`);
+        });
 
         replays.push(analyzer);
     }

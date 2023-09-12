@@ -47,7 +47,11 @@ router.get<
             return;
         }
 
-        await analyzer.analyze().catch(() => {});
+        await analyzer.analyze().catch(() => {
+            console.error(
+                `Score of uid ${req.query.playerid} from beatmap ${req.query.beatmaphash} cannot be parsed`
+            );
+        });
 
         const calcResult = await (calculationMethod === PPCalculationMethod.live
             ? difficultyCalculator.calculateReplayPerformance(analyzer)

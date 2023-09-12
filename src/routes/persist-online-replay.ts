@@ -15,7 +15,9 @@ router.put<
         scoreID: req.body.scoreid,
     });
     analyzer.originalODR = await getOnlineReplay(req.body.scoreid);
-    await analyzer.analyze().catch(() => {});
+    await analyzer.analyze().catch(() => {
+        console.error(`Score of ID ${req.body.scoreid} cannot be parsed`);
+    });
 
     const success = await persistReplay(req.body.uid, analyzer);
     if (!success) {

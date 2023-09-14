@@ -695,7 +695,9 @@ export abstract class DPPUtil {
                 calculationResult.params.accuracy.value() * 100,
                 2
             ),
-            combo: calculationResult.params.combo ?? beatmap.maxCombo,
+            combo:
+                calculationResult.params.combo ??
+                calculationResult.difficultyAttributes.maxCombo,
             miss: calculationResult.params.accuracy.nmiss,
             speedMultiplier:
                 replayData.speedModification !== 1

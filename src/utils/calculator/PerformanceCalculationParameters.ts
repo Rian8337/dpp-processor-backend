@@ -60,7 +60,7 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
      */
     constructor(
         accuracy: Accuracy,
-        combo?: number,
+        combo?: number | null,
         tapPenalty: number = 1,
         customStatistics?: MapStats,
         sliderCheesePenalty?: SliderCheeseInformation
@@ -68,7 +68,7 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
         super(customStatistics);
 
         this.accuracy = accuracy;
-        this.combo = combo;
+        this.combo = combo ?? undefined;
         this.tapPenalty = tapPenalty;
         this.sliderCheesePenalty = sliderCheesePenalty;
     }

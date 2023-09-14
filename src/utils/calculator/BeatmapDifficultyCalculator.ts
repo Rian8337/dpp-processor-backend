@@ -154,7 +154,6 @@ export abstract class BeatmapDifficultyCalculator<
             new Accuracy({
                 n300: apiBeatmap.objects,
             }),
-            100,
             apiBeatmap.maxCombo
         );
 
@@ -187,7 +186,6 @@ export abstract class BeatmapDifficultyCalculator<
             new Accuracy({
                 n300: apiBeatmap.objects,
             }),
-            100,
             apiBeatmap.maxCombo
         );
 

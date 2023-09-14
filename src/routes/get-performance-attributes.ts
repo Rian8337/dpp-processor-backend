@@ -110,11 +110,17 @@ router.get<
             nmiss: Math.max(0, parseInt(req.query.nmiss ?? "0")),
             nobjects: apiBeatmap.objects,
         }),
-        MathUtils.clamp(
-            parseInt(req.query.maxcombo ?? apiBeatmap.maxCombo.toString()),
-            0,
-            apiBeatmap.maxCombo
-        ),
+        apiBeatmap.maxCombo !== null
+            ? MathUtils.clamp(
+                  parseInt(
+                      req.query.maxcombo ?? apiBeatmap.maxCombo.toString()
+                  ),
+                  0,
+                  apiBeatmap.maxCombo
+              )
+            : req.query.maxcombo !== undefined
+            ? Math.max(0, parseInt(req.query.maxcombo))
+            : undefined,
         parseInt(req.query.tappenalty ?? "1"),
         new MapStats({
             mods: mods,

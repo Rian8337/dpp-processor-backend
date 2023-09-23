@@ -31,6 +31,7 @@
     "@rian8337/osu-droid-replay-analyzer": "^4.0.0-beta.7",
     "@rian8337/osu-droid-utilities": "^4.0.0-beta.7",
     "@rian8337/osu-rebalance-difficulty-calculator": "^4.0.0-beta.8",
+    "chokidar": "^3.5.3",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",

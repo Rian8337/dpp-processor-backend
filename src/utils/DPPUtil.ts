@@ -29,6 +29,7 @@ import { IRecentPlay } from "../database/structures/aliceDb/IRecentPlay";
 import { OsuPerformanceAttributes } from "../structures/attributes/OsuPerformanceAttributes";
 import { readFile, readdir } from "fs/promises";
 import { join } from "path";
+import { watch } from "chokidar";
 
 /**
  * Utilities that are related to dpp.
@@ -543,9 +544,41 @@ export abstract class DPPUtil {
     }
 
     /**
-     * Processes unprocessed replays.
+     * Initiates replay processing.
      */
-    static async processUnprocessedReplays(): Promise<void> {
+    static async initiateReplayProcessing(): Promise<void> {
+        const processReplay = async (path: string) => {
+            if (!path.endsWith(".odr")) {
+                return deleteUnprocessedReplay(path);
+            }
+
+            const file = await readFile(path).catch(() => null);
+            if (!file) {
+                return;
+            }
+
+            const pathSplit = path.split("_");
+            const scoreId = pathSplit.length === 2 ? parseInt(pathSplit[0]) : 0;
+
+            const analyzer = new ReplayAnalyzer({ scoreID: scoreId });
+            analyzer.originalODR = file;
+            await analyzer.analyze().catch(() => {});
+
+            const result = await this.submitReplay(
+                [analyzer],
+                undefined,
+                true
+            ).catch(() => null);
+
+            if (result) {
+                await deleteUnprocessedReplay(path);
+            }
+        };
+
+        watch(join(unprocessedReplayDirectory, "*.odr"), {
+            awaitWriteFinish: true,
+        }).on("add", processReplay);
+
         const replayFiles = await readdir(unprocessedReplayDirectory).catch(
             () => null
         );
@@ -561,26 +594,7 @@ export abstract class DPPUtil {
         );
 
         for (const replayFile of replayFiles ?? []) {
-            const file = await readFile(
-                join(unprocessedReplayDirectory, replayFile)
-            ).catch(() => null);
-            if (!file) {
-                continue;
-            }
-
-            const analyzer = new ReplayAnalyzer({ scoreID: 0 });
-            analyzer.originalODR = file;
-            await analyzer.analyze().catch(() => {});
-
-            const result = await this.submitReplay(
-                [analyzer],
-                undefined,
-                true
-            ).catch(() => null);
-
-            if (result) {
-                await deleteUnprocessedReplay(replayFile);
-            }
+            processReplay(replayFile);
         }
 
         console.log("Unprocessed replay file(s) processing complete");

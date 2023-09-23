@@ -9,7 +9,6 @@ import getDifficultyAttributes from "./routes/get-difficulty-attributes";
 import getPerformanceAttributes from "./routes/get-performance-attributes";
 import getPlayerBestScorePerformance from "./routes/get-player-best-score-performance";
 import getOnlineScoreAttributes from "./routes/get-online-score-attributes";
-import forwardReplay from "./routes/forward-replay";
 import persistLocalReplay from "./routes/persist-local-replay";
 import persistOnlineReplay from "./routes/persist-online-replay";
 import submitScores from "./routes/submit-scores";
@@ -39,7 +38,6 @@ const baseRouter = Router()
     .use("/get-performance-attributes", getPerformanceAttributes)
     .use("/get-player-best-score-performance", getPlayerBestScorePerformance)
     .use("/get-online-score-attributes", getOnlineScoreAttributes)
-    .use("/forward-replay", forwardReplay)
     .use("/persist-local-replay", persistLocalReplay)
     .use("/persist-online-replay", persistOnlineReplay)
     .use("/submit-scores", submitScores);
@@ -58,6 +56,6 @@ Promise.all([
 
         app.listen(port, () => console.log("DPP processor backend is up"));
 
-        await DPPUtil.processUnprocessedReplays();
+        await DPPUtil.initiateReplayProcessing();
     })
     .catch((e) => console.error(e));

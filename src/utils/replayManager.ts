@@ -227,10 +227,10 @@ export function getUnprocessedReplay(filename: string): Promise<Buffer | null> {
 /**
  * Deletes a replay file from the unprocessed replay folder.
  *
- * @param filename The name of the replay file.
+ * @param path The path to the replay file.
  */
-export function deleteUnprocessedReplay(filename: string): Promise<void> {
-    return unlink(join(unprocessedReplayDirectory, filename));
+export function deleteUnprocessedReplay(path: string): Promise<void> {
+    return unlink(path);
 }
 
 /**

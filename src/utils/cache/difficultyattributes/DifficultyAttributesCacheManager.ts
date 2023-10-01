@@ -134,8 +134,8 @@ export abstract class DifficultyAttributesCacheManager<
             mods: undefined,
         };
 
-        this.cache.set(beatmapInfo.beatmapID, cache);
-        this.cacheToSave.set(beatmapInfo.beatmapID, cache);
+        this.cache.set(beatmapInfo.beatmapId, cache);
+        this.cacheToSave.set(beatmapInfo.beatmapId, cache);
 
         return cache.difficultyAttributes[attributeName];
     }
@@ -271,14 +271,14 @@ export abstract class DifficultyAttributesCacheManager<
     private getCache(
         beatmapInfo: MapInfo
     ): CachedDifficultyAttributes<T> | null {
-        const cache = this.cache.get(beatmapInfo.beatmapID);
+        const cache = this.cache.get(beatmapInfo.beatmapId);
 
         if (!cache) {
             return null;
         }
 
         if (cache.lastUpdate < beatmapInfo.lastUpdate.getTime()) {
-            this.invalidateCache(beatmapInfo.beatmapID);
+            this.invalidateCache(beatmapInfo.beatmapId);
             return null;
         }
 

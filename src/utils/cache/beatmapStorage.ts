@@ -28,7 +28,7 @@ export async function getBeatmap(
     options?: BeatmapRetrievalOptions
 ): Promise<MapInfo<false> | null> {
     const oldCache = beatmapAPICache.find(
-        (v) => v.beatmapID === beatmapIdOrHash || v.hash === beatmapIdOrHash
+        (v) => v.beatmapId === beatmapIdOrHash || v.hash === beatmapIdOrHash
     );
 
     if (oldCache && !options?.forceCheck) {
@@ -42,7 +42,7 @@ export async function getBeatmap(
     }
 
     if (options?.cacheBeatmap !== false) {
-        beatmapAPICache.set(newCache.beatmapID, newCache);
+        beatmapAPICache.set(newCache.beatmapId, newCache);
     }
 
     return newCache;
@@ -61,7 +61,7 @@ export async function getBeatmapFile(beatmap: MapInfo): Promise<string | null> {
         return oldCache;
     }
 
-    const url = new URL(`https://osu.ppy.sh/osu/${beatmap.beatmapID}`);
+    const url = new URL(`https://osu.ppy.sh/osu/${beatmap.beatmapId}`);
     const newCache = await fetch(url)
         .then((res) => {
             if (!res.ok) {

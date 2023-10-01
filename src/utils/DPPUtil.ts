@@ -640,7 +640,7 @@ export abstract class DPPUtil {
                 (apiBeatmap.hitLength < 30 ||
                     apiBeatmap.hitLength / apiBeatmap.totalLength < 0.6):
                 return DPPSubmissionValidity.beatmapTooShort;
-            case await WhitelistUtil.isBlacklisted(apiBeatmap.beatmapID):
+            case await WhitelistUtil.isBlacklisted(apiBeatmap.beatmapId):
                 return DPPSubmissionValidity.beatmapIsBlacklisted;
             case WhitelistUtil.beatmapNeedsWhitelisting(apiBeatmap.approved) &&
                 (await WhitelistUtil.getBeatmapWhitelistStatus(

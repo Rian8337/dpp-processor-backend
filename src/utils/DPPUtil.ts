@@ -28,7 +28,7 @@ import { BeatmapOsuDifficultyCalculator } from "./calculator/BeatmapOsuDifficult
 import { IRecentPlay } from "../database/structures/aliceDb/IRecentPlay";
 import { OsuPerformanceAttributes } from "../structures/attributes/OsuPerformanceAttributes";
 import { readFile, readdir } from "fs/promises";
-import { join } from "path";
+import { basename, join } from "path";
 import { watch } from "chokidar";
 
 /**
@@ -63,7 +63,6 @@ export abstract class DPPUtil {
         };
 
         const insertRecentScore = (
-            scoreId: number,
             replayData: ReplayData,
             apiBeatmap?: MapInfo,
             droidAttribs?: PerformanceCalculationResult<
@@ -154,9 +153,6 @@ export abstract class DPPUtil {
                 };
             }
 
-            if (scoreId > 0) {
-                recentPlay.replayID = scoreId;
-            }
             if (replayData.speedModification !== 1) {
                 recentPlay.speedMultiplier = replayData.speedModification;
             }
@@ -262,6 +258,7 @@ export abstract class DPPUtil {
                 continue;
             }
 
+            const submitToRecent = submitAsRecent && replay.scoreID === 0;
             const apiBeatmap = await getBeatmap(data.hash);
 
             if (!apiBeatmap) {
@@ -271,8 +268,8 @@ export abstract class DPPUtil {
                     pp: 0,
                 });
 
-                if (submitAsRecent) {
-                    insertRecentScore(replay.scoreID, data);
+                if (submitToRecent) {
+                    insertRecentScore(data);
                 }
 
                 continue;
@@ -289,20 +286,19 @@ export abstract class DPPUtil {
                     pp: 0,
                 });
 
-                if (submitAsRecent) {
-                    insertRecentScore(replay.scoreID, data);
+                if (submitToRecent) {
+                    insertRecentScore(data);
                 }
 
                 continue;
             }
 
-            if (submitAsRecent) {
+            if (submitToRecent) {
                 const osuAttribs = await this.osuDifficultyCalculator
                     .calculateReplayPerformance(replay, droidAttribs.params)
                     .catch((e: Error) => e.message);
 
                 insertRecentScore(
-                    replay.scoreID,
                     data,
                     apiBeatmap,
                     droidAttribs,
@@ -557,8 +553,8 @@ export abstract class DPPUtil {
                 return;
             }
 
-            const pathSplit = path.split("_");
-            const scoreId = pathSplit.length === 2 ? parseInt(pathSplit[0]) : 0;
+            const filename = basename(path);
+            const scoreId = filename.length === 2 ? parseInt(filename[0]) : 0;
 
             const analyzer = new ReplayAnalyzer({ scoreID: scoreId });
             analyzer.originalODR = file;

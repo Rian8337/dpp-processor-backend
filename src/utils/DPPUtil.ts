@@ -553,8 +553,9 @@ export abstract class DPPUtil {
                 return;
             }
 
-            const filename = basename(path);
-            const scoreId = filename.length === 2 ? parseInt(filename[0]) : 0;
+            const filenameSplit = basename(path).split("_");
+            const scoreId =
+                filenameSplit.length === 2 ? parseInt(filenameSplit[0]) : 0;
 
             const analyzer = new ReplayAnalyzer({ scoreID: scoreId });
             analyzer.originalODR = file;

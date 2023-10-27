@@ -21,6 +21,7 @@ import {
     persistReplay,
     saveReplay,
     unprocessedReplayDirectory,
+    wasBeatmapSubmitted,
 } from "./replayManager";
 import { PPSubmissionOperationResult } from "../structures/PPSubmissionOperationResult";
 import { DroidPerformanceAttributes } from "../structures/attributes/DroidPerformanceAttributes";
@@ -55,6 +56,7 @@ export abstract class DPPUtil {
     ): Promise<PPSubmissionOperationResult> {
         const statuses: PPSubmissionStatus[] = [];
         const recentPlays: IRecentPlay[] = [];
+        let playCountIncrement = 0;
 
         const preFillStatuses = (message: PPSubmissionStatus): void => {
             while (statuses.length < replays.length) {
@@ -369,6 +371,14 @@ export abstract class DPPUtil {
                 replayNeedsPersistence = this.insertScore(bindInfo.pp, ppEntry);
             }
 
+            // TODO: uncomment this in the next rebalance
+            // if (
+            //     replay.scoreID > 0 &&
+            //     !(await wasBeatmapSubmitted(uid, data.hash))
+            // ) {
+            //     ++playCountIncrement;
+            // }
+
             if (replayNeedsPersistence) {
                 const persistenceResult = await persistReplay(
                     bindInfo.uid,
@@ -386,6 +396,7 @@ export abstract class DPPUtil {
                 }
             }
 
+            ++playCountIncrement;
             statuses.push({
                 success: true,
                 replayNeedsPersistence: replayNeedsPersistence,
@@ -393,8 +404,10 @@ export abstract class DPPUtil {
             });
         }
 
-        const newTotal = this.calculateFinalPerformancePoints(bindInfo.pp);
-        const playCountIncrement = statuses.filter((v) => v.success).length;
+        const newTotal = this.calculateFinalPerformancePoints(
+            bindInfo.pp,
+            bindInfo.playc + playCountIncrement
+        );
 
         if (recentPlays.length > 0) {
             await DatabaseManager.aliceDb.collections.recentPlays
@@ -448,12 +461,23 @@ export abstract class DPPUtil {
      * Calculates the final performance points from a list of pp entries.
      *
      * @param list The list.
+     * @param playCount The play count of the player.
      * @returns The final performance points.
      */
-    static calculateFinalPerformancePoints(list: PPEntry[]): number {
-        list.sort((a, b) => b.pp - a.pp);
-
-        return list.reduce((a, v, i) => a + v.pp * Math.pow(0.95, i), 0);
+    static calculateFinalPerformancePoints(
+        list: PPEntry[],
+        playCount: number
+    ): number {
+        return (
+            // Main pp portion
+            list
+                .sort((a, b) => b.pp - a.pp)
+                .reduce((a, v, i) => a + v.pp * Math.pow(0.95, i), 0) +
+            // Bonus pp portion
+            // TODO: uncomment this after rebalance
+            // (1250 / 3) * (1 - Math.pow(0.9994, playCount))
+            0
+        );
     }
 
     /**
@@ -508,7 +532,8 @@ export abstract class DPPUtil {
                     {
                         $set: {
                             pptotal: this.calculateFinalPerformancePoints(
-                                bindInfo.pp
+                                bindInfo.pp,
+                                bindInfo.playc - 1
                             ),
                             pp: bindInfo.pp,
                             weightedAccuracy: this.calculateWeightedAccuracy(
@@ -591,7 +616,7 @@ export abstract class DPPUtil {
         );
 
         for (const replayFile of replayFiles ?? []) {
-            processReplay(replayFile);
+            await processReplay(replayFile);
         }
 
         console.log("Unprocessed replay file(s) processing complete");

@@ -1,6 +1,14 @@
 import { IModApplicableToDroid, Mod } from "@rian8337/osu-base";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
-import { readFile, rm, copyFile, writeFile, mkdir, unlink } from "fs/promises";
+import {
+    readFile,
+    rm,
+    copyFile,
+    writeFile,
+    mkdir,
+    unlink,
+    stat,
+} from "fs/promises";
 import { homedir } from "os";
 import { join } from "path";
 import { Util } from "./Util";
@@ -262,6 +270,23 @@ export async function deleteReplays(
     } catch {
         // Ignore error
     }
+}
+
+/**
+ * Checks if a score was submitted by looking at the replay directory.
+ *
+ * @param uid The uid of the player.
+ * @param hash The MD5 hash of the beatmap.
+ */
+export async function wasBeatmapSubmitted(
+    uid: number,
+    hash: string
+): Promise<boolean> {
+    const dirStat = await stat(
+        join(localReplayDirectory, uid.toString(), hash)
+    );
+
+    return dirStat.isDirectory();
 }
 
 /**

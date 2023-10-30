@@ -5,8 +5,8 @@ import { MapInfo, Mod, Modes } from "@rian8337/osu-base";
 import { Util } from "../../Util";
 import { PPCalculationMethod } from "../../../structures/PPCalculationMethod";
 import { RawDifficultyAttributes } from "../../../structures/attributes/RawDifficultyAttributes";
-import { CacheableDifficultyAttributes } from "../../../structures/attributes/CacheableDifficultyAttributes";
 import { CachedDifficultyAttributes } from "../../../structures/attributes/CachedDifficultyAttributes";
+import { CacheableDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
 
 /**
  * A cache manager for difficulty attributes.

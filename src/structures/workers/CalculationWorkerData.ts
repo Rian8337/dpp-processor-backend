@@ -2,7 +2,7 @@ import { Modes } from "@rian8337/osu-base";
 import { PPCalculationMethod } from "../PPCalculationMethod";
 import { CloneablePerformanceCalculationParameters } from "../../utils/calculator/CloneablePerformanceCalculationParameters";
 import { RawDifficultyAttributes } from "../attributes/RawDifficultyAttributes";
-import { CacheableDifficultyAttributes } from "../attributes/CacheableDifficultyAttributes";
+import { CacheableDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
 
 /**
  * Represents data to be passed into a calculation worker.

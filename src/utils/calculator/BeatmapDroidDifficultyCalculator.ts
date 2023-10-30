@@ -1,13 +1,7 @@
 import { BeatmapDifficultyCalculator } from "./BeatmapDifficultyCalculator";
 import { Beatmap, Modes } from "@rian8337/osu-base";
-import {
-    DroidDifficultyAttributes,
-    ExtendedDroidDifficultyAttributes,
-} from "@rian8337/osu-difficulty-calculator";
-import {
-    DroidDifficultyAttributes as RebalanceDroidDifficultyAttributes,
-    ExtendedDroidDifficultyAttributes as RebalanceExtendedDroidDifficultyAttributes,
-} from "@rian8337/osu-rebalance-difficulty-calculator";
+import { ExtendedDroidDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
+import { ExtendedDroidDifficultyAttributes as RebalanceExtendedDroidDifficultyAttributes } from "@rian8337/osu-rebalance-difficulty-calculator";
 import {
     ReplayAnalyzer,
     ThreeFingerChecker,
@@ -24,8 +18,8 @@ import { PerformanceCalculationParameters } from "./PerformanceCalculationParame
  * A helper class for calculating osu!droid difficulty and performance of beatmaps or scores.
  */
 export class BeatmapDroidDifficultyCalculator extends BeatmapDifficultyCalculator<
-    DroidDifficultyAttributes,
-    RebalanceDroidDifficultyAttributes,
+    ExtendedDroidDifficultyAttributes,
+    RebalanceExtendedDroidDifficultyAttributes,
     DroidPerformanceAttributes,
     RebalanceDroidPerformanceAttributes
 > {

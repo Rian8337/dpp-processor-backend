@@ -1,6 +1,9 @@
-import { DifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
+import {
+    CacheableDifficultyAttributes,
+    DifficultyAttributes,
+} from "@rian8337/osu-difficulty-calculator";
 import { IDifficultyCalculationResult } from "../../structures/calculator/IDifficultyCalculationResult";
-import { CacheableDifficultyAttributes } from "../../structures/attributes/CacheableDifficultyAttributes";
+import { ModUtil } from "@rian8337/osu-base";
 
 /**
  * Represents a beatmap's difficulty calculation result.
@@ -11,11 +14,11 @@ export class DifficultyCalculationResult<DA extends DifficultyAttributes>
     readonly attributes: DA;
     readonly cachedAttributes: CacheableDifficultyAttributes<DA>;
 
-    constructor(
-        attributes: DA,
-        cachedAttributes: CacheableDifficultyAttributes<DA>
-    ) {
+    constructor(attributes: DA) {
         this.attributes = attributes;
-        this.cachedAttributes = cachedAttributes;
+        this.cachedAttributes = {
+            ...attributes,
+            mods: ModUtil.modsToOsuString(attributes.mods),
+        };
     }
 }

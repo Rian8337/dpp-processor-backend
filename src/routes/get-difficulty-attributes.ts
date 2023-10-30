@@ -9,7 +9,6 @@ import { Router } from "express";
 import { getBeatmap } from "../utils/cache/beatmapStorage";
 import { PPCalculationMethod } from "../structures/PPCalculationMethod";
 import { RawDifficultyAttributes } from "../structures/attributes/RawDifficultyAttributes";
-import { CacheableDifficultyAttributes } from "../structures/attributes/CacheableDifficultyAttributes";
 import { BeatmapDroidDifficultyCalculator } from "../utils/calculator/BeatmapDroidDifficultyCalculator";
 import { BeatmapOsuDifficultyCalculator } from "../utils/calculator/BeatmapOsuDifficultyCalculator";
 import { Util } from "../utils/Util";
@@ -21,6 +20,7 @@ import {
     rebalanceOsuDifficultyCache,
 } from "../utils/cache/difficultyAtributesStorage";
 import { PerformanceCalculationParameters } from "../utils/calculator/PerformanceCalculationParameters";
+import { CacheableDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
 
 const router = Router();
 
@@ -170,7 +170,9 @@ router.get<
 
         difficultyAttributes = {
             ...calculationResult.difficultyAttributes,
-            mods: undefined,
+            mods: ModUtil.modsToOsuString(
+                calculationResult.difficultyAttributes.mods
+            ),
         };
     }
 

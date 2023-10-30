@@ -19,7 +19,7 @@ import {
 import { LocalBeatmapDifficultyCalculator } from "../calculator/LocalBeatmapDifficultyCalculator";
 import { PPCalculationMethod } from "../../structures/PPCalculationMethod";
 import {
-    DroidDifficultyAttributes,
+    CacheableDifficultyAttributes,
     DroidPerformanceCalculator,
     ExtendedDroidDifficultyAttributes,
     OsuDifficultyAttributes,
@@ -27,17 +27,14 @@ import {
     PerformanceCalculationOptions,
 } from "@rian8337/osu-difficulty-calculator";
 import {
-    DroidDifficultyAttributes as RebalanceDroidDifficultyAttributes,
     DroidPerformanceCalculator as RebalanceDroidPerformanceCalculator,
     ExtendedDroidDifficultyAttributes as RebalanceExtendedDroidDifficultyAttributes,
     OsuDifficultyAttributes as RebalanceOsuDifficultyAttributes,
     OsuPerformanceCalculator as RebalanceOsuPerformanceCalculator,
 } from "@rian8337/osu-rebalance-difficulty-calculator";
-import { PerformanceCalculationResult } from "../calculator/PerformanceCalculationResult";
 import { BeatmapDroidDifficultyCalculator } from "../calculator/BeatmapDroidDifficultyCalculator";
 import { CompleteCalculationAttributes } from "../../structures/attributes/CompleteCalculationAttributes";
 import { DroidPerformanceAttributes } from "../../structures/attributes/DroidPerformanceAttributes";
-import { RebalancePerformanceCalculationResult } from "../calculator/RebalancePerformanceCalculationResult";
 import { RebalanceDroidPerformanceAttributes } from "../../structures/attributes/RebalanceDroidPerformanceAttributes";
 import { BeatmapDifficultyCalculator } from "../calculator/BeatmapDifficultyCalculator";
 import { OsuPerformanceAttributes } from "../../structures/attributes/OsuPerformanceAttributes";
@@ -114,19 +111,26 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
         case Modes.droid: {
             switch (calculationMethod) {
                 case PPCalculationMethod.live: {
-                    data.difficultyAttributes ??=
-                        LocalBeatmapDifficultyCalculator.calculateDifficulty(
+                    const difficultyAttributes = <
+                        CacheableDifficultyAttributes<ExtendedDroidDifficultyAttributes> | null
+                    >data.difficultyAttributes ?? {
+                        ...LocalBeatmapDifficultyCalculator.calculateDifficulty(
                             beatmap,
                             calculationParams,
                             gamemode,
                             calculationMethod
-                        ).attributes;
-                    data.difficultyAttributes.mods ??=
-                        calculationParams.customStatistics?.mods;
+                        ).attributes,
+                        mods: parameters?.customStatistics.mods ?? "",
+                    };
 
-                    calculationParams.applyFromAttributes(
-                        data.difficultyAttributes
-                    );
+                    const extendedDifficultyAttributes: ExtendedDroidDifficultyAttributes =
+                        {
+                            ...difficultyAttributes,
+                            mods:
+                                calculationParams.customStatistics?.mods ?? [],
+                        };
+
+                    calculationParams.applyFromAttributes(difficultyAttributes);
 
                     if (analyzer.data) {
                         if (
@@ -134,9 +138,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                 calculationParams,
                                 beatmap,
                                 analyzer,
-                                <ExtendedDroidDifficultyAttributes>(
-                                    data.difficultyAttributes
-                                )
+                                extendedDifficultyAttributes
                             )
                         ) {
                             return parentPort?.postMessage(
@@ -149,9 +151,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                 calculationParams,
                                 beatmap,
                                 analyzer,
-                                <ExtendedDroidDifficultyAttributes>(
-                                    data.difficultyAttributes
-                                )
+                                extendedDifficultyAttributes
                             )
                         ) {
                             return parentPort?.postMessage(
@@ -164,15 +164,9 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                         calculationParams.applyToOptions(calculationOptions);
                     }
 
-                    const calcResult = new PerformanceCalculationResult(
-                        calculationParams,
-                        <DroidDifficultyAttributes>data.difficultyAttributes,
-                        new DroidPerformanceCalculator(
-                            <DroidDifficultyAttributes>data.difficultyAttributes
-                        ).calculate(calculationOptions)
-                    );
-
-                    const { result } = calcResult;
+                    const perfCalc = new DroidPerformanceCalculator(
+                        difficultyAttributes
+                    ).calculate(calculationOptions);
 
                     const sliderTickInformation: SliderTickInformation = {
                         obtained: 0,
@@ -193,33 +187,27 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                     }
 
                     const attributes: CompleteCalculationAttributes<
-                        DroidDifficultyAttributes,
+                        ExtendedDroidDifficultyAttributes,
                         DroidPerformanceAttributes
                     > = {
                         params: calculationParams.toCloneable(),
-                        difficulty: {
-                            ...result.difficultyAttributes,
-                            mods: result.difficultyAttributes.mods.reduce(
-                                (a, v) => a + v.acronym,
-                                ""
-                            ),
-                        },
+                        difficulty: difficultyAttributes,
                         performance: {
-                            total: result.total,
-                            aim: result.aim,
-                            tap: result.tap,
-                            accuracy: result.accuracy,
-                            flashlight: result.flashlight,
-                            visual: result.visual,
-                            deviation: result.deviation,
-                            tapDeviation: result.tapDeviation,
-                            tapPenalty: result.tapPenalty,
+                            total: perfCalc.total,
+                            aim: perfCalc.aim,
+                            tap: perfCalc.tap,
+                            accuracy: perfCalc.accuracy,
+                            flashlight: perfCalc.flashlight,
+                            visual: perfCalc.visual,
+                            deviation: perfCalc.deviation,
+                            tapDeviation: perfCalc.tapDeviation,
+                            tapPenalty: perfCalc.tapPenalty,
                             aimSliderCheesePenalty:
-                                result.aimSliderCheesePenalty,
+                                perfCalc.aimSliderCheesePenalty,
                             flashlightSliderCheesePenalty:
-                                result.flashlightSliderCheesePenalty,
+                                perfCalc.flashlightSliderCheesePenalty,
                             visualSliderCheesePenalty:
-                                result.visualSliderCheesePenalty,
+                                perfCalc.visualSliderCheesePenalty,
                         },
                         replay: analyzer.data
                             ? {
@@ -236,15 +224,26 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                     break;
                 }
                 case PPCalculationMethod.rebalance: {
-                    data.difficultyAttributes ??=
-                        LocalBeatmapDifficultyCalculator.calculateDifficulty(
+                    const difficultyAttributes = <
+                        CacheableDifficultyAttributes<RebalanceExtendedDroidDifficultyAttributes> | null
+                    >data.difficultyAttributes ?? {
+                        ...LocalBeatmapDifficultyCalculator.calculateDifficulty(
                             beatmap,
                             calculationParams,
                             gamemode,
                             calculationMethod
-                        ).attributes;
-                    data.difficultyAttributes.mods ??=
-                        calculationParams.customStatistics?.mods;
+                        ).attributes,
+                        mods: parameters?.customStatistics.mods ?? "",
+                    };
+
+                    const extendedDifficultyAttributes: RebalanceExtendedDroidDifficultyAttributes =
+                        {
+                            ...difficultyAttributes,
+                            mods:
+                                calculationParams.customStatistics?.mods ?? [],
+                        };
+
+                    calculationParams.applyFromAttributes(difficultyAttributes);
 
                     if (analyzer.data) {
                         if (
@@ -252,9 +251,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                 calculationParams,
                                 beatmap,
                                 analyzer,
-                                <ExtendedDroidDifficultyAttributes>(
-                                    data.difficultyAttributes
-                                )
+                                extendedDifficultyAttributes
                             )
                         ) {
                             return parentPort?.postMessage(
@@ -267,9 +264,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                 calculationParams,
                                 beatmap,
                                 analyzer,
-                                <RebalanceExtendedDroidDifficultyAttributes>(
-                                    data.difficultyAttributes
-                                )
+                                extendedDifficultyAttributes
                             )
                         ) {
                             return parentPort?.postMessage(
@@ -282,20 +277,9 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                         calculationParams.applyToOptions(calculationOptions);
                     }
 
-                    const calcResult =
-                        new RebalancePerformanceCalculationResult(
-                            calculationParams,
-                            <RebalanceExtendedDroidDifficultyAttributes>(
-                                data.difficultyAttributes
-                            ),
-                            new RebalanceDroidPerformanceCalculator(
-                                <RebalanceDroidDifficultyAttributes>(
-                                    data.difficultyAttributes
-                                )
-                            ).calculate(calculationOptions)
-                        );
-
-                    const { result } = calcResult;
+                    const perfCalc = new RebalanceDroidPerformanceCalculator(
+                        difficultyAttributes
+                    ).calculate(calculationOptions);
                     const hitError = analyzer.calculateHitError();
 
                     const sliderTickInformation: SliderTickInformation = {
@@ -317,33 +301,27 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                     }
 
                     const attributes: CompleteCalculationAttributes<
-                        RebalanceDroidDifficultyAttributes,
+                        RebalanceExtendedDroidDifficultyAttributes,
                         RebalanceDroidPerformanceAttributes
                     > = {
                         params: calculationParams.toCloneable(),
-                        difficulty: {
-                            ...result.difficultyAttributes,
-                            mods: result.difficultyAttributes.mods.reduce(
-                                (a, v) => a + v.acronym,
-                                ""
-                            ),
-                        },
+                        difficulty: difficultyAttributes,
                         performance: {
-                            total: result.total,
-                            aim: result.aim,
-                            tap: result.tap,
-                            accuracy: result.accuracy,
-                            flashlight: result.flashlight,
-                            visual: result.visual,
-                            deviation: result.deviation,
-                            tapDeviation: result.tapDeviation,
-                            tapPenalty: result.tapPenalty,
+                            total: perfCalc.total,
+                            aim: perfCalc.aim,
+                            tap: perfCalc.tap,
+                            accuracy: perfCalc.accuracy,
+                            flashlight: perfCalc.flashlight,
+                            visual: perfCalc.visual,
+                            deviation: perfCalc.deviation,
+                            tapDeviation: perfCalc.tapDeviation,
+                            tapPenalty: perfCalc.tapPenalty,
                             aimSliderCheesePenalty:
-                                result.aimSliderCheesePenalty,
+                                perfCalc.aimSliderCheesePenalty,
                             flashlightSliderCheesePenalty:
-                                result.flashlightSliderCheesePenalty,
+                                perfCalc.flashlightSliderCheesePenalty,
                             visualSliderCheesePenalty:
-                                result.visualSliderCheesePenalty,
+                                perfCalc.visualSliderCheesePenalty,
                             calculatedUnstableRate: analyzer.data
                                 ? (hitError?.unstableRate ?? 0) /
                                   (BeatmapDifficultyCalculator.getCalculationParameters(
@@ -352,11 +330,11 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                       .speedMultiplier ?? 1)
                                 : 0,
                             estimatedUnstableRate: MathUtils.round(
-                                result.deviation * 10,
+                                perfCalc.deviation * 10,
                                 2
                             ),
                             estimatedSpeedUnstableRate: MathUtils.round(
-                                result.tapDeviation * 10,
+                                perfCalc.tapDeviation * 10,
                                 2
                             ),
                         },
@@ -379,44 +357,33 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
         case Modes.osu: {
             switch (calculationMethod) {
                 case PPCalculationMethod.live: {
-                    data.difficultyAttributes ??=
+                    const difficultyAttributes =
+                        <
+                            CacheableDifficultyAttributes<OsuDifficultyAttributes> | null
+                        >data.difficultyAttributes ??
                         LocalBeatmapDifficultyCalculator.calculateDifficulty(
                             beatmap,
                             calculationParams,
                             gamemode,
                             calculationMethod
-                        ).attributes;
-                    data.difficultyAttributes.mods ??=
-                        calculationParams.customStatistics?.mods;
+                        ).cacheableAttributes;
 
-                    const calcResult = new PerformanceCalculationResult(
-                        calculationParams,
-                        <OsuDifficultyAttributes>data.difficultyAttributes,
-                        new OsuPerformanceCalculator(
-                            <OsuDifficultyAttributes>data.difficultyAttributes
-                        ).calculate(calculationOptions)
-                    );
-
-                    const { result } = calcResult;
+                    const perfCalc = new OsuPerformanceCalculator(
+                        difficultyAttributes
+                    ).calculate(calculationOptions);
 
                     const attributes: CompleteCalculationAttributes<
                         OsuDifficultyAttributes,
                         OsuPerformanceAttributes
                     > = {
                         params: calculationParams.toCloneable(),
-                        difficulty: {
-                            ...result.difficultyAttributes,
-                            mods: result.difficultyAttributes.mods.reduce(
-                                (a, v) => a + v.acronym,
-                                ""
-                            ),
-                        },
+                        difficulty: difficultyAttributes,
                         performance: {
-                            total: result.total,
-                            aim: result.aim,
-                            speed: result.speed,
-                            accuracy: result.accuracy,
-                            flashlight: result.flashlight,
+                            total: perfCalc.total,
+                            aim: perfCalc.aim,
+                            speed: perfCalc.speed,
+                            accuracy: perfCalc.accuracy,
+                            flashlight: perfCalc.flashlight,
                         },
                     };
 
@@ -425,49 +392,33 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                     break;
                 }
                 case PPCalculationMethod.rebalance: {
-                    data.difficultyAttributes ??=
+                    const difficultyAttributes =
+                        <
+                            CacheableDifficultyAttributes<RebalanceOsuDifficultyAttributes> | null
+                        >data.difficultyAttributes ??
                         LocalBeatmapDifficultyCalculator.calculateDifficulty(
                             beatmap,
                             calculationParams,
                             gamemode,
                             calculationMethod
-                        ).attributes;
-                    data.difficultyAttributes.mods ??=
-                        calculationParams.customStatistics?.mods;
+                        ).cacheableAttributes;
 
-                    const calcResult =
-                        new RebalancePerformanceCalculationResult(
-                            calculationParams,
-                            <RebalanceOsuDifficultyAttributes>(
-                                data.difficultyAttributes
-                            ),
-                            new RebalanceOsuPerformanceCalculator(
-                                <RebalanceOsuDifficultyAttributes>(
-                                    data.difficultyAttributes
-                                )
-                            ).calculate(calculationOptions)
-                        );
-
-                    const { result } = calcResult;
+                    const perfCalc = new RebalanceOsuPerformanceCalculator(
+                        difficultyAttributes
+                    ).calculate(calculationOptions);
 
                     const attributes: CompleteCalculationAttributes<
                         RebalanceOsuDifficultyAttributes,
                         OsuPerformanceAttributes
                     > = {
                         params: calculationParams.toCloneable(),
-                        difficulty: {
-                            ...result.difficultyAttributes,
-                            mods: result.difficultyAttributes.mods.reduce(
-                                (a, v) => a + v.acronym,
-                                ""
-                            ),
-                        },
+                        difficulty: difficultyAttributes,
                         performance: {
-                            total: result.total,
-                            aim: result.aim,
-                            speed: result.speed,
-                            accuracy: result.accuracy,
-                            flashlight: result.flashlight,
+                            total: perfCalc.total,
+                            aim: perfCalc.aim,
+                            speed: perfCalc.speed,
+                            accuracy: perfCalc.accuracy,
+                            flashlight: perfCalc.flashlight,
                         },
                     };
 

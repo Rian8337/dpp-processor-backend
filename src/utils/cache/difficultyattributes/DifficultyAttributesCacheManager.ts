@@ -257,7 +257,7 @@ export abstract class DifficultyAttributesCacheManager<
                 JSON.stringify(cache)
             );
 
-            this.cache.delete(beatmapId);
+            this.cacheToSave.delete(beatmapId);
         }
     }
 

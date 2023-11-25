@@ -167,7 +167,9 @@ router.get<
             customStatistics?.mods,
             customStatistics?.oldStatistics,
             customStatistics?.speedMultiplier,
-            customStatistics?.forceAR ? customStatistics.ar : undefined
+            forceCS,
+            forceAR,
+            forceOD
         )
     );
 

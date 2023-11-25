@@ -53,7 +53,9 @@ router.post<
         mods?: string;
         oldstatistics?: string;
         customspeedmultiplier?: string;
+        forcecs?: string;
         forcear?: string;
+        forceod?: string;
         n300?: string;
         n100?: string;
         n50?: string;
@@ -88,11 +90,25 @@ router.post<
             .json({ error: "Invalid custom speed multiplier" });
     }
 
+    const forceCS = req.body.forcecs
+        ? MathUtils.clamp(parseFloat(req.body.forcecs), 0, 12.5)
+        : undefined;
+    if (forceCS !== undefined && Number.isNaN(forceCS)) {
+        return res.status(400).json({ error: "Invalid force CS" });
+    }
+
     const forceAR = req.body.forcear
         ? MathUtils.clamp(parseFloat(req.body.forcear), 0, 12.5)
         : undefined;
     if (forceAR !== undefined && Number.isNaN(forceAR)) {
         return res.status(400).json({ error: "Invalid force AR" });
+    }
+
+    const forceOD = req.body.forceod
+        ? MathUtils.clamp(parseFloat(req.body.forceod), 0, 12.5)
+        : undefined;
+    if (forceOD !== undefined && Number.isNaN(forceOD)) {
+        return res.status(400).json({ error: "Invalid force OD" });
     }
 
     const { gamemode } = req.body;
@@ -127,9 +143,13 @@ router.post<
         parseInt(req.body.tappenalty ?? "1"),
         new MapStats({
             mods: mods,
+            cs: forceCS,
             ar: forceAR,
+            od: forceOD,
             speedMultiplier: customSpeedMultiplier,
+            forceCS: forceCS !== undefined && !isNaN(forceCS),
             forceAR: forceAR !== undefined && !isNaN(forceAR),
+            forceOD: forceOD !== undefined && !isNaN(forceOD),
             oldStatistics: oldStatistics,
         }),
         {

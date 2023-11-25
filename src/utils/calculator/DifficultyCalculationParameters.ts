@@ -22,7 +22,7 @@ export class DifficultyCalculationParameters {
     }
 
     /**
-     * Custom statistics to apply mods, custom speed multiplier, and force AR
+     * Statistics to apply forced map statistics, mods, custom speed multiplier,
      * as well as NightCore mod penalty for replay version 3 or older.
      */
     customStatistics?: MapStats;
@@ -40,12 +40,19 @@ export class DifficultyCalculationParameters {
     toCloneable(): CloneableDifficultyCalculationParameters {
         return {
             customStatistics: {
+                cs: this.customStatistics?.cs,
+                ar: this.customStatistics?.ar,
+                od: this.customStatistics?.od,
+                hp: this.customStatistics?.hp,
                 mods: this.customStatistics?.mods.reduce(
                     (a, v) => a + v.acronym,
                     ""
                 ),
                 speedMultiplier: this.customStatistics?.speedMultiplier,
-                isForceAR: this.customStatistics?.isForceAR,
+                forceCS: this.customStatistics?.forceCS,
+                forceAR: this.customStatistics?.forceAR,
+                forceOD: this.customStatistics?.forceOD,
+                forceHP: this.customStatistics?.forceHP,
                 oldStatistics: this.customStatistics?.oldStatistics,
             },
         };

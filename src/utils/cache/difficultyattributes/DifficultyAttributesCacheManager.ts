@@ -105,7 +105,9 @@ export abstract class DifficultyAttributesCacheManager<
      * @param difficultyAttributes The difficulty attributes to add.
      * @param oldStatistics Whether the difficulty attributes uses old statistics (pre-1.6.8 pre-release).
      * @param customSpeedMultiplier The custom speed multiplier that was used to generate the attributes.
-     * @param customForceAR The custom force AR that was used to generate the attributes.
+     * @param forceCS The force CS that was used to generate the attributes.
+     * @param forceAR The force AR that was used to generate the attributes.
+     * @param forceOD The force OD that was used to generate the attributes.
      * @returns The difficulty attributes that were cached.
      */
     addAttribute(
@@ -113,7 +115,9 @@ export abstract class DifficultyAttributesCacheManager<
         difficultyAttributes: T,
         oldStatistics: boolean = false,
         customSpeedMultiplier: number = 1,
-        customForceAR?: number
+        forceCS?: number,
+        forceAR?: number,
+        forceOD?: number
     ): CacheableDifficultyAttributes<T> {
         const cache: CachedDifficultyAttributes<T> = this.getBeatmapAttributes(
             beatmapInfo
@@ -126,7 +130,9 @@ export abstract class DifficultyAttributesCacheManager<
             difficultyAttributes.mods,
             oldStatistics,
             customSpeedMultiplier,
-            customForceAR
+            forceCS,
+            forceAR,
+            forceOD
         );
 
         cache.difficultyAttributes[attributeName] = {
@@ -146,13 +152,17 @@ export abstract class DifficultyAttributesCacheManager<
      * @param mods The mods to construct with.
      * @param oldStatistics Whether the attribute uses old statistics (pre-1.6.8 pre-release).
      * @param customSpeedMultiplier The custom speed multiplier to construct with.
-     * @param customForceAR The custom force AR to construct with.
+     * @param forceAR The force CS to construct with.
+     * @param forceAR The force AR to construct with.
+     * @param forceOD The force OD to construct with.
      */
     getAttributeName(
         mods: Mod[] = [],
         oldStatistics: boolean = false,
         customSpeedMultiplier: number = 1,
-        customForceAR?: number
+        forceCS?: number,
+        forceAR?: number,
+        forceOD?: number
     ): string {
         let attributeName = "";
 
@@ -182,8 +192,16 @@ export abstract class DifficultyAttributesCacheManager<
             attributeName += `|${customSpeedMultiplier.toFixed(2)}x`;
         }
 
-        if (customForceAR) {
-            attributeName += `|AR${customForceAR}`;
+        if (forceCS !== undefined) {
+            attributeName += `|CS${forceCS}`;
+        }
+
+        if (forceAR !== undefined) {
+            attributeName += `|AR${forceAR}`;
+        }
+
+        if (forceOD !== undefined) {
+            attributeName += `OD|${forceOD}`;
         }
 
         if (oldStatistics) {

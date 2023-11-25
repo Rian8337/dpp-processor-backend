@@ -8,7 +8,7 @@ export interface CloneableDifficultyCalculationParameters<
     TFromCalculation extends boolean = boolean
 > {
     /**
-     * Custom statistics to apply mods, custom speed multiplier, and force AR
+     * Statistics to apply forced map statistics, mods, custom speed multiplier,
      * as well as NightCore mod penalty for replay version 3 or older.
      */
     customStatistics: CloneableMapStats<TFromCalculation>;

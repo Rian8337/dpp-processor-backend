@@ -59,8 +59,10 @@ export async function saveReplay(
         playerId,
         data.hash,
         data.convertedMods,
-        data.speedModification,
-        data.forcedAR
+        data.speedMultiplier,
+        data.forceCS,
+        data.forceAR,
+        data.forceOD
     );
 
     // Ensure directory exists before performing read/write operations.
@@ -155,16 +157,20 @@ export async function saveReplay(
  * @param playerId The ID of the player.
  * @param mapMD5 The MD5 hash of the beatmap.
  * @param mods The mods of the replay, either in array of mods or droid string.
- * @param speedModification The speed modification used in the replay.
- * @param forcedAR The force AR value used in the replay.
+ * @param customSpeedMultiplier The custom speed multiplier used in the replay.
+ * @param forceCS The force CS value used in the replay.
+ * @param forceAR The force AR value used in the replay.
+ * @param forceOD The force OD value used in the replay.
  * @returns The path to the replay file, without the `.odr` extension.
  */
 export function generateReplayFilePath(
     playerId: number,
     mapMD5: string,
     mods: (Mod & IModApplicableToDroid)[],
-    speedModification: number = 1,
-    forcedAR?: number
+    customSpeedMultiplier: number = 1,
+    forceCS?: number,
+    forceAR?: number,
+    forceOD?: number
 ) {
     let filePath = join(
         playerId.toString(),
@@ -174,12 +180,18 @@ export function generateReplayFilePath(
         )}`
     );
 
-    if (speedModification !== 1) {
-        filePath += `_${speedModification}x`;
+    if (customSpeedMultiplier !== 1) {
+        filePath += `_${customSpeedMultiplier}x`;
     }
 
-    if (forcedAR !== undefined) {
-        filePath += `_AR${forcedAR}`;
+    if (forceCS !== undefined) {
+        filePath += `_CS${forceCS}`;
+    }
+    if (forceAR !== undefined) {
+        filePath += `_AR${forceAR}`;
+    }
+    if (forceOD !== undefined) {
+        filePath += `_OD${forceOD}`;
     }
 
     return filePath;
@@ -208,8 +220,10 @@ export async function persistReplay(
             playerId,
             data.hash,
             data.convertedMods,
-            data.speedModification,
-            data.forcedAR
+            data.speedMultiplier,
+            data.forceCS,
+            data.forceAR,
+            data.forceOD
         ) + "_persisted.odr";
 
     return ensureBeatmapDirectoryExists(filePath)

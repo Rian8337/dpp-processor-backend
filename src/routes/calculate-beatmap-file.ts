@@ -129,7 +129,7 @@ router.post<
             mods: mods,
             ar: forceAR,
             speedMultiplier: customSpeedMultiplier,
-            isForceAR: forceAR !== undefined && !isNaN(forceAR),
+            forceAR: forceAR !== undefined && !isNaN(forceAR),
             oldStatistics: oldStatistics,
         }),
         {

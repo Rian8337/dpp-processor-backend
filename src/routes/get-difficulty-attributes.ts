@@ -38,7 +38,9 @@ router.get<
         mods?: string;
         oldstatistics?: string;
         customspeedmultiplier?: string;
+        forcecs?: string;
         forcear?: string;
+        forceod?: string;
     }
 >("/", Util.validateGETInternalKey, async (req, res) => {
     if (!req.query.beatmapid && !req.query.beatmaphash) {
@@ -61,11 +63,25 @@ router.get<
             .json({ error: "Invalid custom speed multiplier" });
     }
 
+    const forceCS = req.query.forcecs
+        ? MathUtils.clamp(parseFloat(req.query.forcecs), 0, 11)
+        : undefined;
+    if (forceCS !== undefined && Number.isNaN(forceCS)) {
+        return res.status(400).json({ error: "Invalid force CS" });
+    }
+
     const forceAR = req.query.forcear
         ? MathUtils.clamp(parseFloat(req.query.forcear), 0, 12.5)
         : undefined;
     if (forceAR !== undefined && Number.isNaN(forceAR)) {
         return res.status(400).json({ error: "Invalid force AR" });
+    }
+
+    const forceOD = req.query.forceod
+        ? MathUtils.clamp(parseFloat(req.query.forceod), 0, 11)
+        : undefined;
+    if (forceOD !== undefined && Number.isNaN(forceOD)) {
+        return res.status(400).json({ error: "Invalid force OD" });
     }
 
     const { beatmapid, beatmaphash, gamemode } = req.query;
@@ -101,9 +117,13 @@ router.get<
         undefined,
         new MapStats({
             mods: mods,
+            cs: forceCS,
             ar: forceAR,
+            od: forceOD,
             speedMultiplier: customSpeedMultiplier,
-            isForceAR: forceAR !== undefined && !isNaN(forceAR),
+            forceCS: forceCS !== undefined && !isNaN(forceCS),
+            forceAR: forceAR !== undefined && !isNaN(forceAR),
+            forceOD: forceOD !== undefined && !isNaN(forceOD),
             oldStatistics: oldStatistics,
         })
     );
@@ -147,7 +167,7 @@ router.get<
             customStatistics?.mods,
             customStatistics?.oldStatistics,
             customStatistics?.speedMultiplier,
-            customStatistics?.isForceAR ? customStatistics.ar : undefined
+            customStatistics?.forceAR ? customStatistics.ar : undefined
         )
     );
 

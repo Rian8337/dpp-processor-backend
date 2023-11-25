@@ -155,11 +155,21 @@ export abstract class DPPUtil {
                 };
             }
 
-            if (replayData.speedModification !== 1) {
-                recentPlay.speedMultiplier = replayData.speedModification;
+            if (replayData.speedMultiplier !== 1) {
+                recentPlay.speedMultiplier = replayData.speedMultiplier;
             }
-            if (replayData.forcedAR !== undefined) {
-                recentPlay.forcedAR = replayData.forcedAR;
+
+            if (replayData.forceCS !== undefined) {
+                recentPlay.forceCS = replayData.forceCS;
+            }
+            if (replayData.forceAR !== undefined) {
+                recentPlay.forceAR = replayData.forceAR;
+            }
+            if (replayData.forceOD !== undefined) {
+                recentPlay.forceOD = replayData.forceOD;
+            }
+            if (replayData.forceHP !== undefined) {
+                recentPlay.forceHP = replayData.forceHP;
             }
 
             // Re-set date to update to current date
@@ -656,7 +666,7 @@ export abstract class DPPUtil {
 
         switch (true) {
             case beatmapOrScore instanceof Score &&
-                beatmapOrScore.forcedAR !== undefined:
+                beatmapOrScore.forceAR !== undefined:
                 return DPPSubmissionValidity.scoreUsesForceAR;
             case apiBeatmap.approved === RankedStatus.loved &&
                 (apiBeatmap.hitLength < 30 ||
@@ -736,10 +746,13 @@ export abstract class DPPUtil {
                 calculationResult.difficultyAttributes.maxCombo,
             miss: calculationResult.params.accuracy.nmiss,
             speedMultiplier:
-                replayData.speedModification !== 1
-                    ? replayData.speedModification
+                replayData.speedMultiplier !== 1
+                    ? replayData.speedMultiplier
                     : undefined,
-            forcedAR: replayData.forcedAR,
+            forceCS: replayData.forceCS,
+            forceAR: replayData.forceAR,
+            forceOD: replayData.forceOD,
+            forceHP: replayData.forceHP,
         };
     }
 

@@ -61,9 +61,15 @@ export abstract class BeatmapDifficultyCalculator<
             replayAnalyzer.tapPenalty,
             new MapStats({
                 mods: data.convertedMods,
-                ar: data.forcedAR,
-                speedMultiplier: data.speedModification,
-                isForceAR: data.forcedAR !== undefined,
+                cs: data.forceCS,
+                ar: data.forceAR,
+                od: data.forceOD,
+                hp: data.forceHP,
+                speedMultiplier: data.speedMultiplier,
+                forceCS: data.forceCS !== undefined,
+                forceAR: data.forceAR !== undefined,
+                forceOD: data.forceOD !== undefined,
+                forceHP: data.forceHP !== undefined,
                 oldStatistics: data.replayVersion <= 3,
             }),
             replayAnalyzer.sliderCheesePenalty
@@ -235,7 +241,9 @@ export abstract class BeatmapDifficultyCalculator<
             customStatistics?.mods,
             customStatistics?.oldStatistics,
             customStatistics?.speedMultiplier,
-            customStatistics?.isForceAR ? customStatistics.ar : undefined
+            customStatistics?.forceCS ? customStatistics.cs : undefined,
+            customStatistics?.forceAR ? customStatistics.ar : undefined,
+            customStatistics?.forceOD ? customStatistics.od : undefined
         );
         const cachedAttributes = cacheManager.getDifficultyAttributes(
             apiBeatmap,
@@ -285,8 +293,14 @@ export abstract class BeatmapDifficultyCalculator<
                             diffAttribs,
                             customStatistics?.oldStatistics,
                             customStatistics?.speedMultiplier,
-                            customStatistics?.isForceAR
+                            customStatistics?.forceCS
+                                ? customStatistics.cs
+                                : undefined,
+                            customStatistics?.forceAR
                                 ? customStatistics.ar
+                                : undefined,
+                            customStatistics?.forceOD
+                                ? customStatistics.od
                                 : undefined
                         );
                     }

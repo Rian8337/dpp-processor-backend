@@ -82,6 +82,10 @@ export class BeatmapDroidDifficultyCalculator extends BeatmapDifficultyCalculato
             | ExtendedDroidDifficultyAttributes
             | RebalanceExtendedDroidDifficultyAttributes
     ): boolean {
+        if (difficultyAttributes.difficultSliders.length === 0) {
+            return true;
+        }
+
         if (!replay.data) {
             return false;
         }

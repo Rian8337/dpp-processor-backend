@@ -346,8 +346,8 @@ export abstract class DPPUtil {
                     case DPPSubmissionValidity.beatmapNotWhitelisted:
                         reason = "Beatmap is not whitelisted";
                         break;
-                    case DPPSubmissionValidity.scoreUsesForceAR:
-                        reason = "Score uses force AR";
+                    case DPPSubmissionValidity.scoreUsesCustomStats:
+                        reason = "Score uses custom statistics";
                         break;
                 }
 
@@ -666,8 +666,11 @@ export abstract class DPPUtil {
 
         switch (true) {
             case beatmapOrScore instanceof Score &&
-                beatmapOrScore.forceAR !== undefined:
-                return DPPSubmissionValidity.scoreUsesForceAR;
+                (beatmapOrScore.forceCS !== undefined ||
+                    beatmapOrScore.forceAR !== undefined ||
+                    beatmapOrScore.forceOD !== undefined ||
+                    beatmapOrScore.forceHP !== undefined):
+                return DPPSubmissionValidity.scoreUsesCustomStats;
             case apiBeatmap.approved === RankedStatus.loved &&
                 (apiBeatmap.hitLength < 30 ||
                     apiBeatmap.hitLength / apiBeatmap.totalLength < 0.6):

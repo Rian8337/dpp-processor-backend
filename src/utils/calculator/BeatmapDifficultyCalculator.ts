@@ -237,13 +237,23 @@ export abstract class BeatmapDifficultyCalculator<
                 ? this.liveDifficultyAttributesCache
                 : this.rebalanceDifficultyAttributesCache;
 
+        const forceCS = customStatistics?.forceCS
+            ? customStatistics.cs
+            : undefined;
+        const forceAR = customStatistics?.forceAR
+            ? customStatistics.ar
+            : undefined;
+        const forceOD = customStatistics?.forceOD
+            ? customStatistics.od
+            : undefined;
+
         const attributeName = cacheManager.getAttributeName(
             customStatistics?.mods,
             customStatistics?.oldStatistics,
             customStatistics?.speedMultiplier,
-            customStatistics?.forceCS ? customStatistics.cs : undefined,
-            customStatistics?.forceAR ? customStatistics.ar : undefined,
-            customStatistics?.forceOD ? customStatistics.od : undefined
+            forceCS,
+            forceAR,
+            forceOD
         );
         const cachedAttributes = cacheManager.getDifficultyAttributes(
             apiBeatmap,
@@ -293,15 +303,9 @@ export abstract class BeatmapDifficultyCalculator<
                             diffAttribs,
                             customStatistics?.oldStatistics,
                             customStatistics?.speedMultiplier,
-                            customStatistics?.forceCS
-                                ? customStatistics.cs
-                                : undefined,
-                            customStatistics?.forceAR
-                                ? customStatistics.ar
-                                : undefined,
-                            customStatistics?.forceOD
-                                ? customStatistics.od
-                                : undefined
+                            forceCS,
+                            forceAR,
+                            forceOD
                         );
                     }
 

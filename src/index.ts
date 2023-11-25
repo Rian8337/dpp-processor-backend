@@ -22,15 +22,6 @@ import { DPPUtil } from "./utils/DPPUtil";
 
 config();
 
-const app = express()
-    .set("trust proxy", 1)
-    .use(cors())
-    .use(formData.parse())
-    .use(formData.format())
-    .use(formData.stream())
-    .use(express.json())
-    .use(express.urlencoded({ extended: true }));
-
 const baseRouter = Router()
     .use("/calculate-beatmap-file", calculateBeatmapFile)
     .use("/delete-replays", deleteReplays)
@@ -42,7 +33,15 @@ const baseRouter = Router()
     .use("/persist-online-replay", persistOnlineReplay)
     .use("/submit-scores", submitScores);
 
-app.use("/api/dpp/processor", baseRouter);
+const app = express()
+    .set("trust proxy", 1)
+    .use(cors())
+    .use(formData.parse())
+    .use(formData.format())
+    .use(formData.stream())
+    .use(express.json())
+    .use(express.urlencoded({ extended: true }))
+    .use("/api/dpp/processor", baseRouter);
 
 Promise.all([
     DatabaseManager.init(),

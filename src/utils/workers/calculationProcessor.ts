@@ -123,16 +123,21 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                         mods: parameters?.customStatistics.mods ?? "",
                     };
 
-                    const extendedDifficultyAttributes: ExtendedDroidDifficultyAttributes =
-                        {
-                            ...difficultyAttributes,
-                            mods:
-                                calculationParams.customStatistics?.mods ?? [],
-                        };
+                    // TODO: remove this after the next rebalance
+                    difficultyAttributes.mods ??=
+                        parameters?.customStatistics.mods ?? "";
 
                     calculationParams.applyFromAttributes(difficultyAttributes);
 
                     if (analyzer.data) {
+                        const extendedDifficultyAttributes: ExtendedDroidDifficultyAttributes =
+                            {
+                                ...difficultyAttributes,
+                                mods:
+                                    calculationParams.customStatistics?.mods ??
+                                    [],
+                            };
+
                         if (
                             !BeatmapDroidDifficultyCalculator.applyTapPenalty(
                                 calculationParams,
@@ -236,16 +241,21 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                         mods: parameters?.customStatistics.mods ?? "",
                     };
 
-                    const extendedDifficultyAttributes: RebalanceExtendedDroidDifficultyAttributes =
-                        {
-                            ...difficultyAttributes,
-                            mods:
-                                calculationParams.customStatistics?.mods ?? [],
-                        };
+                    // TODO: remove this after the next rebalance
+                    difficultyAttributes.mods ??=
+                        parameters?.customStatistics.mods ?? "";
 
                     calculationParams.applyFromAttributes(difficultyAttributes);
 
                     if (analyzer.data) {
+                        const extendedDifficultyAttributes: RebalanceExtendedDroidDifficultyAttributes =
+                            {
+                                ...difficultyAttributes,
+                                mods:
+                                    calculationParams.customStatistics?.mods ??
+                                    [],
+                            };
+
                         if (
                             !BeatmapDroidDifficultyCalculator.applyTapPenalty(
                                 calculationParams,

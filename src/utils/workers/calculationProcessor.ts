@@ -378,6 +378,10 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                             calculationMethod
                         ).cacheableAttributes;
 
+                    // TODO: remove this after the next rebalance
+                    difficultyAttributes.mods ??=
+                        parameters?.customStatistics.mods ?? "";
+
                     const perfCalc = new OsuPerformanceCalculator(
                         difficultyAttributes
                     ).calculate(calculationOptions);
@@ -412,6 +416,10 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                             gamemode,
                             calculationMethod
                         ).cacheableAttributes;
+
+                    // TODO: remove this after the next rebalance
+                    difficultyAttributes.mods ??=
+                        parameters?.customStatistics.mods ?? "";
 
                     const perfCalc = new RebalanceOsuPerformanceCalculator(
                         difficultyAttributes

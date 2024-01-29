@@ -702,15 +702,10 @@ export abstract class DPPUtil {
             return true;
         }
 
-        for (let i = 0; i < list.length; ++i) {
-            const l = list[i];
+        const currentEntry =
+            list.find((p) => p.hash === entry.hash) ?? list[list.length - 1];
 
-            if (l.hash === entry.hash && l.pp >= entry.pp) {
-                return false;
-            }
-        }
-
-        return list[list.length - 1].pp < entry.pp;
+        return currentEntry.pp < entry.pp;
     }
 
     /**
@@ -775,21 +770,21 @@ export abstract class DPPUtil {
             return false;
         }
 
-        let found = false;
-        for (let i = 0; i < list.length; ++i) {
-            if (list[i].hash === entry.hash && list[i].pp < entry.pp) {
-                found = true;
-                list[i] = entry;
-                break;
-            }
-        }
+        const existingScoreIndex = list.findIndex((p) => p.hash === entry.hash);
+        let replayNeedsPersistence = false;
 
-        if (!found) {
+        if (existingScoreIndex !== -1) {
+            if (list[existingScoreIndex].pp < entry.pp) {
+                list[existingScoreIndex] = entry;
+                replayNeedsPersistence = true;
+            }
+        } else {
             list.push(entry);
+            replayNeedsPersistence = true;
         }
 
         list.sort((a, b) => b.pp - a.pp);
-        let replayNeedsPersistence = true;
+
         while (list.length > 75) {
             if (list[list.length - 1].hash === entry.hash) {
                 replayNeedsPersistence = false;

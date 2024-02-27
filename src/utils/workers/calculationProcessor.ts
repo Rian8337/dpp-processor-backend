@@ -36,7 +36,6 @@ import { BeatmapDroidDifficultyCalculator } from "../calculator/BeatmapDroidDiff
 import { CompleteCalculationAttributes } from "../../structures/attributes/CompleteCalculationAttributes";
 import { DroidPerformanceAttributes } from "../../structures/attributes/DroidPerformanceAttributes";
 import { RebalanceDroidPerformanceAttributes } from "../../structures/attributes/RebalanceDroidPerformanceAttributes";
-import { BeatmapDifficultyCalculator } from "../calculator/BeatmapDifficultyCalculator";
 import { OsuPerformanceAttributes } from "../../structures/attributes/OsuPerformanceAttributes";
 import { SliderTickInformation } from "../../structures/SliderTickInformation";
 
@@ -77,14 +76,19 @@ function processTickInformation(
 parentPort?.on("message", async (data: CalculationWorkerData) => {
     const { gamemode, calculationMethod, parameters } = data;
 
-    const calculationParams = parameters
-        ? PerformanceCalculationParameters.from(parameters)
-        : new PerformanceCalculationParameters(new Accuracy({ n300: 0 }));
-
     const beatmap = new BeatmapDecoder().decode(
         data.beatmapFile,
-        calculationParams.customStatistics?.mods
+        gamemode
     ).result;
+
+    const calculationParams = parameters
+        ? PerformanceCalculationParameters.from(parameters)
+        : new PerformanceCalculationParameters({
+              combo: beatmap.maxCombo,
+              accuracy: new Accuracy({
+                  nobjects: beatmap.hitObjects.objects.length,
+              }),
+          });
 
     const analyzer = new ReplayAnalyzer({ scoreID: 0, map: beatmap });
     if (data.replayFile) {
@@ -120,12 +124,11 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                             gamemode,
                             calculationMethod
                         ).attributes,
-                        mods: parameters?.customStatistics.mods ?? "",
+                        mods: parameters?.mods ?? "",
                     };
 
                     // TODO: remove this after the next rebalance
-                    difficultyAttributes.mods ??=
-                        parameters?.customStatistics.mods ?? "";
+                    difficultyAttributes.mods ??= parameters?.mods ?? "";
 
                     calculationParams.applyFromAttributes(difficultyAttributes);
 
@@ -133,9 +136,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                         const extendedDifficultyAttributes: ExtendedDroidDifficultyAttributes =
                             {
                                 ...difficultyAttributes,
-                                mods:
-                                    calculationParams.customStatistics?.mods ??
-                                    [],
+                                mods: calculationParams?.mods ?? [],
                             };
 
                         if (
@@ -238,12 +239,11 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                             gamemode,
                             calculationMethod
                         ).attributes,
-                        mods: parameters?.customStatistics.mods ?? "",
+                        mods: parameters?.mods ?? "",
                     };
 
                     // TODO: remove this after the next rebalance
-                    difficultyAttributes.mods ??=
-                        parameters?.customStatistics.mods ?? "";
+                    difficultyAttributes.mods ??= parameters?.mods ?? "";
 
                     calculationParams.applyFromAttributes(difficultyAttributes);
 
@@ -251,9 +251,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                         const extendedDifficultyAttributes: RebalanceExtendedDroidDifficultyAttributes =
                             {
                                 ...difficultyAttributes,
-                                mods:
-                                    calculationParams.customStatistics?.mods ??
-                                    [],
+                                mods: calculationParams?.mods ?? [],
                             };
 
                         if (
@@ -334,10 +332,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                 perfCalc.visualSliderCheesePenalty,
                             calculatedUnstableRate: analyzer.data
                                 ? (hitError?.unstableRate ?? 0) /
-                                  (BeatmapDifficultyCalculator.getCalculationParameters(
-                                      analyzer
-                                  ).customStatistics?.calculate()
-                                      .speedMultiplier ?? 1)
+                                  difficultyAttributes.clockRate
                                 : 0,
                             estimatedUnstableRate: MathUtils.round(
                                 perfCalc.deviation * 10,
@@ -379,8 +374,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                         ).cacheableAttributes;
 
                     // TODO: remove this after the next rebalance
-                    difficultyAttributes.mods ??=
-                        parameters?.customStatistics.mods ?? "";
+                    difficultyAttributes.mods ??= parameters?.mods ?? "";
 
                     const perfCalc = new OsuPerformanceCalculator(
                         difficultyAttributes
@@ -418,8 +412,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                         ).cacheableAttributes;
 
                     // TODO: remove this after the next rebalance
-                    difficultyAttributes.mods ??=
-                        parameters?.customStatistics.mods ?? "";
+                    difficultyAttributes.mods ??= parameters?.mods ?? "";
 
                     const perfCalc = new RebalanceOsuPerformanceCalculator(
                         difficultyAttributes

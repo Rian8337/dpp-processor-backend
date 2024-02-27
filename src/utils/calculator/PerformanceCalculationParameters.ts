@@ -1,6 +1,5 @@
-import { Accuracy, MapStats, ModUtil } from "@rian8337/osu-base";
+import { Accuracy, ModUtil } from "@rian8337/osu-base";
 import { SliderCheeseInformation } from "@rian8337/osu-droid-replay-analyzer";
-import { DifficultyCalculationParameters } from "./DifficultyCalculationParameters";
 import { RawDifficultyAttributes } from "../../structures/attributes/RawDifficultyAttributes";
 import { CloneablePerformanceCalculationParameters } from "./CloneablePerformanceCalculationParameters";
 import {
@@ -8,6 +7,36 @@ import {
     PerformanceCalculationOptions,
 } from "@rian8337/osu-difficulty-calculator";
 import { PerformanceCalculationOptions as RebalancePerformanceCalculationOptions } from "@rian8337/osu-rebalance-difficulty-calculator";
+import {
+    DifficultyCalculationParameters,
+    DifficultyCalculationParametersInit,
+} from "./DifficultyCalculationParameters";
+
+/**
+ * Represents a parameter to alter performance calculation result.
+ */
+export interface PerformanceCalculationParametersInit
+    extends DifficultyCalculationParametersInit {
+    /**
+     * The combo achieved. Defaults to the beatmap's maximum combo.
+     */
+    combo: number;
+
+    /**
+     * The accuracy achieved. Defaults to SS.
+     */
+    accuracy: Accuracy;
+
+    /**
+     * The tap penalty to apply for penalized scores. Defaults to 1.
+     */
+    tapPenalty?: number;
+
+    /**
+     * The slider cheese penalties to apply for penalized scores. Each of them defaults to 1.
+     */
+    sliderCheesePenalty?: SliderCheeseInformation;
+}
 
 /**
  * Represents a parameter to alter performance calculation result.
@@ -21,22 +50,17 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
     static from(
         data: CloneablePerformanceCalculationParameters
     ): PerformanceCalculationParameters {
-        return new this(
-            new Accuracy(data.accuracy),
-            data.combo,
-            data.tapPenalty,
-            new MapStats({
-                ...data.customStatistics,
-                mods: ModUtil.pcStringToMods(data.customStatistics?.mods ?? ""),
-            }),
-            data.sliderCheesePenalty
-        );
+        return new this({
+            ...data,
+            accuracy: new Accuracy(data.accuracy),
+            mods: ModUtil.pcStringToMods(data.mods),
+        });
     }
 
     /**
      * The combo achieved.
      */
-    combo?: number;
+    combo: number;
 
     /**
      * The accuracy achieved.
@@ -44,35 +68,22 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
     accuracy: Accuracy;
 
     /**
-     * The tap penalty to apply for penalized scores.
+     * The tap penalty to apply for penalized scores. Defaults to 1.
      */
-    tapPenalty: number;
+    tapPenalty?: number;
 
     /**
-     * The slider cheese penalties to apply for penalized scores.
+     * The slider cheese penalties to apply for penalized scores. Each of them defaults to 1.
      */
     sliderCheesePenalty?: SliderCheeseInformation;
 
-    /**
-     * @param accuracy The accuracy achieved.
-     * @param combo The combo achieved.
-     * @param tapPenalty The tap penalty to apply for penalized scores.
-     * @param customStatistics The custom statistics that was used in difficulty calculation.
-     * @param sliderCheesePenalty The slider cheese penalties to apply for penalized scores.
-     */
-    constructor(
-        accuracy: Accuracy,
-        combo?: number | null,
-        tapPenalty: number = 1,
-        customStatistics?: MapStats,
-        sliderCheesePenalty?: SliderCheeseInformation
-    ) {
-        super(customStatistics);
+    constructor(values: PerformanceCalculationParametersInit) {
+        super(values);
 
-        this.accuracy = accuracy;
-        this.combo = combo ?? undefined;
-        this.tapPenalty = tapPenalty;
-        this.sliderCheesePenalty = sliderCheesePenalty;
+        this.combo = values.combo;
+        this.accuracy = values.accuracy;
+        this.tapPenalty = values.tapPenalty;
+        this.sliderCheesePenalty = values.sliderCheesePenalty;
     }
 
     /**
@@ -90,7 +101,7 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
             attributes.sliderCount +
             attributes.spinnerCount;
 
-        if (this.accuracy.n50 || this.accuracy.n100) {
+        if (this.accuracy && (this.accuracy.n50 || this.accuracy.n100)) {
             this.accuracy = new Accuracy({
                 ...this.accuracy,
                 // Add remaining objects as misses.
@@ -126,7 +137,10 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
             this.sliderCheesePenalty?.visualPenalty ?? 1;
     }
 
-    override toCloneable(): CloneablePerformanceCalculationParameters {
+    /**
+     * Returns a cloneable form of this parameter.
+     */
+    toCloneable(): CloneablePerformanceCalculationParameters {
         return {
             ...super.toCloneable(),
             accuracy: {

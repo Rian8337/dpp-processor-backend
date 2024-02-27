@@ -1,5 +1,45 @@
-import { MapStats, ModUtil } from "@rian8337/osu-base";
+import { Mod, ModUtil } from "@rian8337/osu-base";
 import { CloneableDifficultyCalculationParameters } from "./CloneableDifficultyCalculationParameters";
+
+/**
+ * Represents a parameter to alter difficulty calculation result.
+ */
+export interface DifficultyCalculationParametersInit {
+    /**
+     * The mods to calculate for. Defaults to No Mod.
+     */
+    mods?: Mod[];
+
+    /**
+     * The custom speed multiplier to calculate for. Defaults to 1.
+     */
+    customSpeedMultiplier?: number;
+
+    /**
+     * The circle size to enforce. Defaults to the beatmap's original circle size.
+     */
+    forceCS?: number;
+
+    /**
+     * The approach rate to enforce. Defaults to the beatmap's original approach rate.
+     */
+    forceAR?: number;
+
+    /**
+     * The overall difficulty to enforce. Defaults to the beatmap's original overall difficulty.
+     */
+    forceOD?: number;
+
+    /**
+     * The health drain to enforce. Defaults to the beatmap's original health drain.
+     */
+    forceHP?: number;
+
+    /**
+     * Whether to calculate for old statistics for osu!droid gamemode (1.6.7 and older). Defaults to `false`.
+     */
+    oldStatistics?: boolean;
+}
 
 /**
  * Represents a parameter to alter difficulty calculation result.
@@ -13,25 +53,55 @@ export class DifficultyCalculationParameters {
     static from(
         data: CloneableDifficultyCalculationParameters
     ): DifficultyCalculationParameters {
-        return new this(
-            new MapStats({
-                ...data.customStatistics,
-                mods: ModUtil.pcStringToMods(data.customStatistics?.mods ?? ""),
-            })
-        );
+        return new this({
+            ...data,
+            mods: ModUtil.pcStringToMods(data.mods),
+        });
     }
 
     /**
-     * Statistics to apply forced map statistics, mods, custom speed multiplier,
-     * as well as NightCore mod penalty for replay version 3 or older.
+     * The mods to calculate for.
      */
-    customStatistics?: MapStats;
+    mods: Mod[];
 
     /**
-     * @param customStatistics Custom statistics to apply mods, custom speed multiplier and force AR as well as NightCore mod penalty for replay version 3 or older.
+     * The custom speed multiplier to calculate for.
      */
-    constructor(customStatistics?: MapStats) {
-        this.customStatistics = customStatistics;
+    customSpeedMultiplier: number;
+
+    /**
+     * The circle size to enforce. Defaults to the beatmap's original circle size.
+     */
+    forceCS?: number;
+
+    /**
+     * The approach rate to enforce. Defaults to the beatmap's original approach rate.
+     */
+    forceAR?: number;
+
+    /**
+     * The overall difficulty to enforce. Defaults to the beatmap's original overall difficulty.
+     */
+    forceOD?: number;
+
+    /**
+     * The health drain to enforce. Defaults to the beatmap's original health drain.
+     */
+    forceHP?: number;
+
+    /**
+     * Whether to calculate for old statistics for osu!droid gamemode (1.6.7 and older).
+     */
+    oldStatistics?: boolean;
+
+    constructor(values?: DifficultyCalculationParametersInit) {
+        this.mods = values?.mods ?? [];
+        this.customSpeedMultiplier = values?.customSpeedMultiplier ?? 1;
+        this.forceCS = values?.forceCS;
+        this.forceAR = values?.forceAR;
+        this.forceOD = values?.forceOD;
+        this.forceHP = values?.forceHP;
+        this.oldStatistics = values?.oldStatistics;
     }
 
     /**
@@ -39,22 +109,13 @@ export class DifficultyCalculationParameters {
      */
     toCloneable(): CloneableDifficultyCalculationParameters {
         return {
-            customStatistics: {
-                cs: this.customStatistics?.cs,
-                ar: this.customStatistics?.ar,
-                od: this.customStatistics?.od,
-                hp: this.customStatistics?.hp,
-                mods: this.customStatistics?.mods.reduce(
-                    (a, v) => a + v.acronym,
-                    ""
-                ),
-                speedMultiplier: this.customStatistics?.speedMultiplier,
-                forceCS: this.customStatistics?.forceCS,
-                forceAR: this.customStatistics?.forceAR,
-                forceOD: this.customStatistics?.forceOD,
-                forceHP: this.customStatistics?.forceHP,
-                oldStatistics: this.customStatistics?.oldStatistics,
-            },
+            mods: ModUtil.modsToOsuString(this.mods),
+            customSpeedMultiplier: this.customSpeedMultiplier,
+            forceCS: this.forceCS,
+            forceAR: this.forceAR,
+            forceOD: this.forceOD,
+            forceHP: this.forceHP,
+            oldStatistics: this.oldStatistics,
         };
     }
 }

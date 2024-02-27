@@ -1,4 +1,4 @@
-import { Beatmap, Modes } from "@rian8337/osu-base";
+import { Beatmap, ModDifficultyAdjust, Modes } from "@rian8337/osu-base";
 import {
     DifficultyCalculationOptions,
     DroidDifficultyCalculator,
@@ -95,9 +95,24 @@ export abstract class LocalBeatmapDifficultyCalculator {
         | OsuDifficultyCalculator
         | RebalanceDroidDifficultyCalculator
         | RebalanceOsuDifficultyCalculator {
+        const { customSpeedMultiplier, forceCS, forceAR, forceOD, forceHP } =
+            calculationParams;
+        const mods = calculationParams.mods?.slice() ?? [];
+
+        if ([forceCS, forceAR, forceOD, forceHP].some((v) => v !== undefined)) {
+            mods.push(
+                new ModDifficultyAdjust({
+                    cs: forceCS,
+                    ar: forceAR,
+                    od: forceOD,
+                    hp: forceHP,
+                })
+            );
+        }
+
         const calculationOptions: DifficultyCalculationOptions = {
-            mods: calculationParams.customStatistics?.mods,
-            stats: calculationParams.customStatistics,
+            mods: mods,
+            customSpeedMultiplier: customSpeedMultiplier,
         };
 
         if (mode === Modes.droid) {

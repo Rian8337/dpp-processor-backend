@@ -1,10 +1,4 @@
-import {
-    Accuracy,
-    MapStats,
-    MathUtils,
-    ModUtil,
-    Modes,
-} from "@rian8337/osu-base";
+import { Accuracy, MathUtils, ModUtil, Modes } from "@rian8337/osu-base";
 import { Router } from "express";
 import { getBeatmap } from "../utils/cache/beatmapStorage";
 import { PPCalculationMethod } from "../structures/PPCalculationMethod";
@@ -111,24 +105,17 @@ router.get<
     let difficultyCalculator:
         | BeatmapDroidDifficultyCalculator
         | BeatmapOsuDifficultyCalculator;
-    const calculationParams = new PerformanceCalculationParameters(
-        new Accuracy({ n300: apiBeatmap.objects }),
-        apiBeatmap.maxCombo,
-        undefined,
-        new MapStats({
-            mods: mods,
-            cs: forceCS,
-            ar: forceAR,
-            od: forceOD,
-            speedMultiplier: customSpeedMultiplier,
-            forceCS: forceCS !== undefined && !isNaN(forceCS),
-            forceAR: forceAR !== undefined && !isNaN(forceAR),
-            forceOD: forceOD !== undefined && !isNaN(forceOD),
-            oldStatistics: oldStatistics,
-        })
-    );
 
-    const { customStatistics } = calculationParams;
+    const calculationParams = new PerformanceCalculationParameters({
+        mods: mods,
+        customSpeedMultiplier: customSpeedMultiplier,
+        combo: apiBeatmap.maxCombo,
+        accuracy: new Accuracy({ nobjects: apiBeatmap.objects }),
+        forceCS: forceCS,
+        forceAR: forceAR,
+        forceOD: forceOD,
+        oldStatistics: oldStatistics,
+    });
 
     switch (calculationMethod) {
         case PPCalculationMethod.live: {
@@ -164,9 +151,9 @@ router.get<
     difficultyAttributes = difficultyCacheManager.getDifficultyAttributes(
         apiBeatmap,
         difficultyCacheManager.getAttributeName(
-            customStatistics?.mods,
-            customStatistics?.oldStatistics,
-            customStatistics?.speedMultiplier,
+            mods,
+            oldStatistics,
+            customSpeedMultiplier,
             forceCS,
             forceAR,
             forceOD

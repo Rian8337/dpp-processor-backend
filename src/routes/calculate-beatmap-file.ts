@@ -3,7 +3,6 @@ import {
     MathUtils,
     Modes,
     Accuracy,
-    MapStats,
     BeatmapDecoder,
 } from "@rian8337/osu-base";
 import {
@@ -125,41 +124,36 @@ router.post<
         return res.status(400).json({ error: "Invalid calculation method" });
     }
 
-    const beatmap = new BeatmapDecoder().decode(osuFile, mods).result;
+    const beatmap = new BeatmapDecoder().decode(osuFile, gamemode).result;
 
-    const calculationParams = new PerformanceCalculationParameters(
-        new Accuracy({
+    const calculationParams = new PerformanceCalculationParameters({
+        mods: mods,
+        customSpeedMultiplier: customSpeedMultiplier,
+        forceCS: forceCS,
+        forceAR: forceAR,
+        forceOD: forceOD,
+        oldStatistics: oldStatistics,
+        accuracy: new Accuracy({
             n300: Math.max(-1, parseInt(req.body.n300 ?? "-1")),
             n100: Math.max(0, parseInt(req.body.n100 ?? "0")),
             n50: Math.max(0, parseInt(req.body.n50 ?? "0")),
             nmiss: Math.max(0, parseInt(req.body.nmiss ?? "0")),
             nobjects: beatmap.hitObjects.objects.length,
         }),
-        MathUtils.clamp(
+        combo: MathUtils.clamp(
             parseInt(req.body.maxcombo ?? beatmap.maxCombo.toString()),
             0,
             beatmap.maxCombo
         ),
-        parseInt(req.body.tappenalty ?? "1"),
-        new MapStats({
-            mods: mods,
-            cs: forceCS,
-            ar: forceAR,
-            od: forceOD,
-            speedMultiplier: customSpeedMultiplier,
-            forceCS: forceCS !== undefined && !isNaN(forceCS),
-            forceAR: forceAR !== undefined && !isNaN(forceAR),
-            forceOD: forceOD !== undefined && !isNaN(forceOD),
-            oldStatistics: oldStatistics,
-        }),
-        {
+        tapPenalty: parseInt(req.body.tappenalty ?? "1"),
+        sliderCheesePenalty: {
             aimPenalty: parseInt(req.body.aimslidercheesepenalty ?? "1"),
             flashlightPenalty: parseInt(
                 req.body.flashlightslidercheesepenalty ?? "1"
             ),
             visualPenalty: parseInt(req.body.visualslidercheesepenalty ?? "1"),
-        }
-    );
+        },
+    });
 
     switch (gamemode) {
         case Modes.droid: {

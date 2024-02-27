@@ -1,10 +1,4 @@
-import {
-    ModUtil,
-    MathUtils,
-    Modes,
-    MapStats,
-    Accuracy,
-} from "@rian8337/osu-base";
+import { ModUtil, MathUtils, Modes, Accuracy } from "@rian8337/osu-base";
 import { Router } from "express";
 import { PPCalculationMethod } from "../structures/PPCalculationMethod";
 import { getBeatmap } from "../utils/cache/beatmapStorage";
@@ -118,37 +112,37 @@ router.get<
         return res.status(404).json({ error: "Beatmap not found" });
     }
 
-    const calculationParams = new PerformanceCalculationParameters(
-        new Accuracy({
+    const calculationParams = new PerformanceCalculationParameters({
+        mods: mods,
+        customSpeedMultiplier: customSpeedMultiplier,
+        forceCS: forceCS,
+        forceAR: forceAR,
+        forceOD: forceOD,
+        oldStatistics: oldStatistics,
+        accuracy: new Accuracy({
             n300: Math.max(0, parseInt(req.query.n300 ?? "-1")),
             n100: Math.max(0, parseInt(req.query.n100 ?? "0")),
             n50: Math.max(0, parseInt(req.query.n50 ?? "0")),
             nmiss: Math.max(0, parseInt(req.query.nmiss ?? "0")),
             nobjects: apiBeatmap.objects,
         }),
-        typeof req.query.maxcombo === "string"
-            ? Math.max(0, parseInt(req.query.maxcombo))
-            : undefined,
-        parseInt(req.query.tappenalty ?? "1"),
-        new MapStats({
-            mods: mods,
-            cs: forceCS,
-            ar: forceAR,
-            od: forceOD,
-            speedMultiplier: customSpeedMultiplier,
-            forceCS: forceCS !== undefined && !isNaN(forceCS),
-            forceAR: forceAR !== undefined && !isNaN(forceAR),
-            forceOD: forceOD !== undefined && !isNaN(forceOD),
-            oldStatistics: oldStatistics,
-        }),
-        {
+        combo:
+            typeof req.query.maxcombo === "string"
+                ? MathUtils.clamp(
+                      parseInt(req.query.maxcombo),
+                      0,
+                      apiBeatmap.maxCombo
+                  )
+                : apiBeatmap.maxCombo,
+        tapPenalty: parseInt(req.query.tappenalty ?? "1"),
+        sliderCheesePenalty: {
             aimPenalty: parseInt(req.query.aimslidercheesepenalty ?? "1"),
             flashlightPenalty: parseInt(
                 req.query.flashlightslidercheesepenalty ?? "1"
             ),
             visualPenalty: parseInt(req.query.visualslidercheesepenalty ?? "1"),
-        }
-    );
+        },
+    });
 
     switch (gamemode) {
         case Modes.droid: {

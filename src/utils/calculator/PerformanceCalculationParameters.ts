@@ -1,5 +1,8 @@
 import { Accuracy, ModUtil } from "@rian8337/osu-base";
-import { SliderCheeseInformation } from "@rian8337/osu-droid-replay-analyzer";
+import {
+    ReplayAnalyzer,
+    SliderCheeseInformation,
+} from "@rian8337/osu-droid-replay-analyzer";
 import { RawDifficultyAttributes } from "../../structures/attributes/RawDifficultyAttributes";
 import { CloneablePerformanceCalculationParameters } from "./CloneablePerformanceCalculationParameters";
 import {
@@ -114,6 +117,20 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
                 ),
             });
         }
+    }
+
+    override applyReplay(replay: ReplayAnalyzer) {
+        super.applyReplay(replay);
+
+        const { data } = replay;
+
+        if (data) {
+            this.accuracy = new Accuracy(data.accuracy);
+            this.combo = data.maxCombo;
+        }
+
+        this.tapPenalty = replay.tapPenalty;
+        this.sliderCheesePenalty = replay.sliderCheesePenalty;
     }
 
     /**

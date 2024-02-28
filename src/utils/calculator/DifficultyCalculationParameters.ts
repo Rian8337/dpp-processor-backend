@@ -1,5 +1,6 @@
 import { Mod, ModUtil } from "@rian8337/osu-base";
 import { CloneableDifficultyCalculationParameters } from "./CloneableDifficultyCalculationParameters";
+import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 
 /**
  * Represents a parameter to alter difficulty calculation result.
@@ -102,6 +103,27 @@ export class DifficultyCalculationParameters {
         this.forceOD = values?.forceOD;
         this.forceHP = values?.forceHP;
         this.oldStatistics = values?.oldStatistics;
+    }
+
+    /**
+     * Applies replay data to this parameter.
+     *
+     * @param replay The replay.
+     */
+    applyReplay(replay: ReplayAnalyzer) {
+        const { data } = replay;
+
+        if (!data) {
+            return;
+        }
+
+        this.mods = data.convertedMods.slice();
+        this.customSpeedMultiplier = data.speedMultiplier;
+        this.forceCS = data.forceCS;
+        this.forceAR = data.forceAR;
+        this.forceOD = data.forceOD;
+        this.forceHP = data.forceHP;
+        this.oldStatistics = data.replayVersion <= 3;
     }
 
     /**

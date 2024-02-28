@@ -100,6 +100,8 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                 new Error("Unable to obtain replay data")
             );
         }
+
+        calculationParams.applyReplay(analyzer);
     }
 
     // Check for potentially invalid properties.

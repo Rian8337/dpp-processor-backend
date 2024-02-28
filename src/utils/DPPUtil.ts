@@ -307,7 +307,7 @@ export abstract class DPPUtil {
 
             if (submitToRecent) {
                 const osuAttribs = await this.osuDifficultyCalculator
-                    .calculateReplayPerformance(replay, droidAttribs.params)
+                    .calculateReplayPerformance(replay)
                     .catch((e: Error) => e.message);
 
                 insertRecentScore(

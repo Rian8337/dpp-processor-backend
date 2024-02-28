@@ -113,20 +113,18 @@ export abstract class DifficultyAttributesCacheManager<
     addAttribute(
         beatmapInfo: MapInfo,
         difficultyAttributes: T,
-        oldStatistics: boolean = false,
-        customSpeedMultiplier: number = 1,
+        oldStatistics = false,
+        customSpeedMultiplier = 1,
         forceCS?: number,
         forceAR?: number,
         forceOD?: number
     ): CacheableDifficultyAttributes<T> {
-        const cache: CachedDifficultyAttributes<T> = this.getBeatmapAttributes(
-            beatmapInfo
-        ) ?? {
+        const cache = this.getBeatmapAttributes(beatmapInfo) ?? {
             lastUpdate: Date.now(),
             difficultyAttributes: {},
         };
 
-        const attributeName: string = this.getAttributeName(
+        const attributeName = this.getAttributeName(
             difficultyAttributes.mods,
             oldStatistics,
             customSpeedMultiplier,
@@ -158,8 +156,8 @@ export abstract class DifficultyAttributesCacheManager<
      */
     getAttributeName(
         mods: Mod[] = [],
-        oldStatistics: boolean = false,
-        customSpeedMultiplier: number = 1,
+        oldStatistics = false,
+        customSpeedMultiplier = 1,
         forceCS?: number,
         forceAR?: number,
         forceOD?: number

@@ -1,4 +1,4 @@
-import { MapInfo, Modes } from "@rian8337/osu-base";
+import { Accuracy, MapInfo, Modes } from "@rian8337/osu-base";
 import { DifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
 import { DifficultyAttributes as RebalanceDifficultyAttributes } from "@rian8337/osu-rebalance-difficulty-calculator";
 import { DifficultyAttributesCacheManager } from "../cache/difficultyattributes/DifficultyAttributesCacheManager";
@@ -45,34 +45,35 @@ export abstract class BeatmapDifficultyCalculator<
     /**
      * Gets the calculation parameters of a replay.
      *
-     * @param analyzer The replay.
+     * @param replay The replay.
      */
     static getCalculationParameters(
-        analyzer: ReplayAnalyzer
+        replay: ReplayAnalyzer
     ): PerformanceCalculationParameters {
-        const { data } = analyzer;
+        const { data } = replay;
+
         if (!data) {
             throw new Error("Replay must be analyzed first");
         }
 
-        return new PerformanceCalculationParameters({
+        const params = new PerformanceCalculationParameters({
+            accuracy: new Accuracy(data.accuracy),
             combo: data.maxCombo,
-            accuracy: data.accuracy,
-            tapPenalty: analyzer.tapPenalty,
-            sliderCheesePenalty: analyzer.sliderCheesePenalty,
         });
+
+        params.applyReplay(replay);
+
+        return params;
     }
 
     /**
      * Calculates the difficulty and performance value of a replay.
      *
      * @param replay The replay.
-     * @param calculationParams Calculation parameters to override the replay's default calculation parameters.
      * @returns The result of the calculation. Errors will be thrown whenever necessary.
      */
     async calculateReplayPerformance(
-        replay: ReplayAnalyzer,
-        calculationParams?: PerformanceCalculationParameters
+        replay: ReplayAnalyzer
     ): Promise<PerformanceCalculationResult<DA, PA>> {
         if (!replay.data) {
             throw new Error("No replay data found");
@@ -86,7 +87,7 @@ export abstract class BeatmapDifficultyCalculator<
         return this.calculatePerformance(
             apiBeatmap,
             PPCalculationMethod.live,
-            calculationParams,
+            BeatmapDifficultyCalculator.getCalculationParameters(replay),
             replay
         );
     }
@@ -95,12 +96,10 @@ export abstract class BeatmapDifficultyCalculator<
      * Calculates the rebalance difficulty and performance value of a replay.
      *
      * @param replay The replay.
-     * @param calculationParams Calculation parameters to override the replay's default calculation parameters.
      * @returns The result of the calculation. Errors will be thrown whenever necessary.
      */
     async calculateReplayRebalancePerformance(
-        replay: ReplayAnalyzer,
-        calculationParams?: PerformanceCalculationParameters
+        replay: ReplayAnalyzer
     ): Promise<RebalancePerformanceCalculationResult<RDA, RPA>> {
         if (!replay.data) {
             throw new Error("No replay data found");
@@ -114,7 +113,7 @@ export abstract class BeatmapDifficultyCalculator<
         return this.calculatePerformance(
             apiBeatmap,
             PPCalculationMethod.rebalance,
-            calculationParams,
+            BeatmapDifficultyCalculator.getCalculationParameters(replay),
             replay
         );
     }

@@ -381,13 +381,12 @@ export abstract class DPPUtil {
                 replayNeedsPersistence = this.insertScore(bindInfo.pp, ppEntry);
             }
 
-            // TODO: uncomment this in the next rebalance
-            // if (
-            //     replay.scoreID > 0 &&
-            //     !(await wasBeatmapSubmitted(uid, data.hash))
-            // ) {
-            //     ++playCountIncrement;
-            // }
+            if (
+                replay.scoreID > 0 &&
+                !(await wasBeatmapSubmitted(uid, data.hash))
+            ) {
+                ++playCountIncrement;
+            }
 
             if (replayNeedsPersistence) {
                 const persistenceResult = await persistReplay(
@@ -406,7 +405,6 @@ export abstract class DPPUtil {
                 }
             }
 
-            ++playCountIncrement;
             statuses.push({
                 success: true,
                 replayNeedsPersistence: replayNeedsPersistence,
@@ -484,10 +482,18 @@ export abstract class DPPUtil {
                 .sort((a, b) => b.pp - a.pp)
                 .reduce((a, v, i) => a + v.pp * Math.pow(0.95, i), 0) +
             // Bonus pp portion
-            // TODO: uncomment this after rebalance
-            // (1250 / 3) * (1 - Math.pow(0.9992, playCount))
-            0
+            this.calculateBonusPerformancePoints(playCount)
         );
+    }
+
+    /**
+     * Calculates the bonus performance points of a player.
+     *
+     * @param playCount The play count of the player.
+     * @returns The bonus performance points.
+     */
+    static calculateBonusPerformancePoints(playCount: number): number {
+        return (1250 / 3) * (1 - Math.pow(0.9992, playCount));
     }
 
     /**

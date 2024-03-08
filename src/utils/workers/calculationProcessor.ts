@@ -129,9 +129,6 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                         mods: parameters?.mods ?? "",
                     };
 
-                    // TODO: remove this after the next rebalance
-                    difficultyAttributes.mods ??= parameters?.mods ?? "";
-
                     calculationParams.applyFromAttributes(difficultyAttributes);
 
                     if (analyzer.data) {
@@ -243,9 +240,6 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                         ).attributes,
                         mods: parameters?.mods ?? "",
                     };
-
-                    // TODO: remove this after the next rebalance
-                    difficultyAttributes.mods ??= parameters?.mods ?? "";
 
                     calculationParams.applyFromAttributes(difficultyAttributes);
 
@@ -375,9 +369,6 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                             calculationMethod
                         ).cacheableAttributes;
 
-                    // TODO: remove this after the next rebalance
-                    difficultyAttributes.mods ??= parameters?.mods ?? "";
-
                     const perfCalc = new OsuPerformanceCalculator(
                         difficultyAttributes
                     ).calculate(calculationOptions);
@@ -412,9 +403,6 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                             gamemode,
                             calculationMethod
                         ).cacheableAttributes;
-
-                    // TODO: remove this after the next rebalance
-                    difficultyAttributes.mods ??= parameters?.mods ?? "";
 
                     const perfCalc = new RebalanceOsuPerformanceCalculator(
                         difficultyAttributes

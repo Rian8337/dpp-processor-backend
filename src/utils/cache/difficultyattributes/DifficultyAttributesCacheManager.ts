@@ -1,7 +1,7 @@
 import { mkdir, readdir, readFile, writeFile } from "fs/promises";
 import { join } from "path";
 import { Collection } from "@discordjs/collection";
-import { MapInfo, Mod, Modes } from "@rian8337/osu-base";
+import { MapInfo, Mod, Modes, ModUtil } from "@rian8337/osu-base";
 import { Util } from "../../Util";
 import { PPCalculationMethod } from "../../../structures/PPCalculationMethod";
 import { RawDifficultyAttributes } from "../../../structures/attributes/RawDifficultyAttributes";
@@ -135,7 +135,7 @@ export abstract class DifficultyAttributesCacheManager<
 
         cache.difficultyAttributes[attributeName] = {
             ...difficultyAttributes,
-            mods: undefined,
+            mods: ModUtil.modsToOsuString(difficultyAttributes.mods),
         };
 
         this.cache.set(beatmapInfo.beatmapId, cache);

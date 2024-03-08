@@ -38,6 +38,13 @@ import { DroidPerformanceAttributes } from "../../structures/attributes/DroidPer
 import { RebalanceDroidPerformanceAttributes } from "../../structures/attributes/RebalanceDroidPerformanceAttributes";
 import { OsuPerformanceAttributes } from "../../structures/attributes/OsuPerformanceAttributes";
 import { SliderTickInformation } from "../../structures/SliderTickInformation";
+import { createHash } from "crypto";
+import { LimitedCapacityCollection } from "../LimitedCapacityCollection";
+
+const beatmapCache = new LimitedCapacityCollection<string, Beatmap>(
+    250,
+    180000
+);
 
 function processTickInformation(
     beatmap: Beatmap,
@@ -76,10 +83,14 @@ function processTickInformation(
 parentPort?.on("message", async (data: CalculationWorkerData) => {
     const { gamemode, calculationMethod, parameters } = data;
 
-    const beatmap = new BeatmapDecoder().decode(
-        data.beatmapFile,
-        gamemode
-    ).result;
+    const beatmapMD5 = createHash("md5").update(data.beatmapFile).digest("hex");
+    const beatmap =
+        beatmapCache.get(beatmapMD5) ??
+        new BeatmapDecoder().decode(data.beatmapFile, gamemode).result;
+
+    if (!beatmapCache.has(beatmapMD5)) {
+        beatmapCache.set(beatmapMD5, beatmap);
+    }
 
     const calculationParams = parameters
         ? PerformanceCalculationParameters.from(parameters)

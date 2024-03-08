@@ -72,7 +72,18 @@ router.get<
                 case PPCalculationMethod.live: {
                     const calculationResult = await difficultyCalculator
                         .calculateReplayPerformance(analyzer)
-                        .catch((e: Error) => e.message);
+                        .catch((e: Error) => {
+                            console.log(
+                                "Calculation failed for URL:",
+                                req.url.replace(
+                                    process.env.DROID_SERVER_INTERNAL_KEY!,
+                                    ""
+                                )
+                            );
+                            console.error(e);
+
+                            return e.message;
+                        });
 
                     if (typeof calculationResult === "string") {
                         return res

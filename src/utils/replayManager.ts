@@ -235,6 +235,34 @@ export async function persistReplay(
 }
 
 /**
+ * Gets a replay file from the local replay folder.
+ *
+ * @param playerId The ID of the player.
+ * @param mapMD5 The MD5 hash of the beatmap.
+ * @param mods The mods of the replay.
+ * @param customSpeedMultiplier The custom speed multiplier used in the replay.
+ * @returns The replay file, `null` if not found.
+ */
+export function getPersistedReplay(
+    playerId: number,
+    mapMD5: string,
+    mods: (Mod & IModApplicableToDroid)[],
+    customSpeedMultiplier = 1
+): Promise<Buffer | null> {
+    return readFile(
+        join(
+            localReplayDirectory,
+            generateReplayFilePath(
+                playerId,
+                mapMD5,
+                mods,
+                customSpeedMultiplier
+            ) + "_persisted.odr"
+        )
+    ).catch(() => null);
+}
+
+/**
  * Gets a replay file from the unprocessed replay folder.
  *
  * @param filename The name of the replay file.

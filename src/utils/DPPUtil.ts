@@ -259,6 +259,19 @@ export abstract class DPPUtil {
             };
         }
 
+        const prototypePP =
+            (await DatabaseManager.aliceDb.collections.prototypePP.getFromUid(
+                uid
+            )) ?? {
+                discordid: bindInfo.discordid,
+                uid: uid,
+                pp: [],
+                pptotal: 0,
+                prevpptotal: bindInfo.pptotal,
+                previous_bind: bindInfo.previous_bind,
+                username: bindInfo.username,
+            };
+
         for (const replay of replays) {
             const { data, originalODR } = replay;
             if (!data || !originalODR) {
@@ -382,6 +395,13 @@ export abstract class DPPUtil {
             }
 
             if (
+                apiBeatmap.approved === RankedStatus.ranked ||
+                apiBeatmap.approved === RankedStatus.approved
+            ) {
+                this.insertScore(prototypePP.pp, ppEntry);
+            }
+
+            if (
                 replay.scoreID > 0 &&
                 !(await wasBeatmapSubmitted(uid, data.hash))
             ) {
@@ -454,6 +474,26 @@ export abstract class DPPUtil {
                 statuses: statuses,
             };
         }
+
+        await DatabaseManager.aliceDb.collections.prototypePP.updateOne(
+            { discordid: bindInfo.discordid },
+            {
+                $set: {
+                    pptotal: this.calculateFinalPerformancePoints(
+                        prototypePP.pp,
+                        // In-game pp will not have bonus pp, so let's pretend it doesn't exist.
+                        0
+                    ),
+                    pp: prototypePP.pp,
+                    prevpptotal: newTotal,
+                },
+                $setOnInsert: {
+                    uid: prototypePP.uid,
+                    username: prototypePP.username,
+                    previous_bind: prototypePP.previous_bind,
+                },
+            }
+        );
 
         await this.updateDiscordMetadata(bindInfo.discordid);
 

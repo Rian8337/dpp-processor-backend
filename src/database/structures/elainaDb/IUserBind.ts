@@ -15,6 +15,11 @@ export interface IUserBind {
     uid: number;
 
     /**
+     * The username of the osu!droid account bound to the user.
+     */
+    username: string;
+
+    /**
      * The total droid performance points (dpp) that the user has.
      */
     pptotal: number;

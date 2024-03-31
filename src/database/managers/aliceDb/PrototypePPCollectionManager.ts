@@ -1,28 +1,24 @@
 import { Collection } from "mongodb";
+import { IPrototypePP } from "../../structures/aliceDb/IPrototypePP";
 import { DatabaseCollectionManager } from "../DatabaseCollectionManager";
-import { IUserBind } from "../../structures/elainaDb/IUserBind";
 
 /**
- * A manager for the `userbind` collection.
+ * A manager for the `prototypepp` collection.
  */
-export class UserBindCollectionManager extends DatabaseCollectionManager<IUserBind> {
-    override get defaultDocument(): IUserBind {
+export class PrototypePPCollectionManager extends DatabaseCollectionManager<IPrototypePP> {
+    override get defaultDocument(): IPrototypePP {
         return {
             discordid: "",
-            playc: 0,
             pp: [],
             pptotal: 0,
-            previous_bind: [],
+            prevpptotal: 0,
             uid: 0,
+            previous_bind: [],
             username: "",
-            weightedAccuracy: 0,
         };
     }
 
-    /**
-     * @param collection The MongoDB collection.
-     */
-    constructor(collection: Collection<IUserBind>) {
+    constructor(collection: Collection<IPrototypePP>) {
         super(collection);
     }
 
@@ -31,7 +27,7 @@ export class UserBindCollectionManager extends DatabaseCollectionManager<IUserBi
      *
      * @param uid The uid of the osu!droid account.
      */
-    getFromUid(uid: number): Promise<IUserBind | null> {
+    getFromUid(uid: number): Promise<IPrototypePP | null> {
         return this.getOne(
             { previous_bind: { $all: [uid] } },
             {
@@ -39,10 +35,7 @@ export class UserBindCollectionManager extends DatabaseCollectionManager<IUserBi
                     _id: 0,
                     discordid: 1,
                     uid: 1,
-                    username: 1,
                     pp: 1,
-                    pptotal: 1,
-                    playc: 1,
                 },
             }
         );

@@ -10,6 +10,11 @@ export interface IPrototypePP {
     discordid: string;
 
     /**
+     * The play count of the user (how many scores the user have submitted into the dpp system).
+     */
+    playc: number;
+
+    /**
      * The prototype droid performance points (dpp) entries of the account.
      */
     pp: PPEntry[];

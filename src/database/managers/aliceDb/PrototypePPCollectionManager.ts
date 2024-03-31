@@ -9,6 +9,7 @@ export class PrototypePPCollectionManager extends DatabaseCollectionManager<IPro
     override get defaultDocument(): IPrototypePP {
         return {
             discordid: "",
+            playc: 0,
             pp: [],
             pptotal: 0,
             prevpptotal: 0,

@@ -265,6 +265,7 @@ export abstract class DPPUtil {
             )) ?? {
                 discordid: bindInfo.discordid,
                 uid: uid,
+                playc: 0,
                 pp: [],
                 pptotal: 0,
                 prevpptotal: bindInfo.pptotal,
@@ -406,6 +407,13 @@ export abstract class DPPUtil {
                 !(await wasBeatmapSubmitted(uid, data.hash))
             ) {
                 ++playCountIncrement;
+
+                if (
+                    apiBeatmap.approved === RankedStatus.ranked ||
+                    apiBeatmap.approved === RankedStatus.approved
+                ) {
+                    ++prototypePP.playc;
+                }
             }
 
             if (replayNeedsPersistence) {
@@ -479,10 +487,10 @@ export abstract class DPPUtil {
             { discordid: bindInfo.discordid },
             {
                 $set: {
+                    playc: prototypePP.playc,
                     pptotal: this.calculateFinalPerformancePoints(
                         prototypePP.pp,
-                        // In-game pp will not have bonus pp, so let's pretend it doesn't exist.
-                        0
+                        prototypePP.playc
                     ),
                     pp: prototypePP.pp,
                     prevpptotal: newTotal,
@@ -492,7 +500,8 @@ export abstract class DPPUtil {
                     username: prototypePP.username,
                     previous_bind: prototypePP.previous_bind,
                 },
-            }
+            },
+            { upsert: true }
         );
 
         await this.updateDiscordMetadata(bindInfo.discordid);

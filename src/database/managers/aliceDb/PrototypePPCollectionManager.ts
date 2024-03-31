@@ -37,6 +37,7 @@ export class PrototypePPCollectionManager extends DatabaseCollectionManager<IPro
                     discordid: 1,
                     uid: 1,
                     pp: 1,
+                    playc: 1,
                 },
             }
         );

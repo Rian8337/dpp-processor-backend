@@ -399,7 +399,7 @@ export abstract class DPPUtil {
                 apiBeatmap.approved === RankedStatus.ranked ||
                 apiBeatmap.approved === RankedStatus.approved
             ) {
-                this.insertScore(prototypePP.pp, ppEntry);
+                this.insertScore(prototypePP.pp, ppEntry, 100);
             }
 
             if (
@@ -814,14 +814,19 @@ export abstract class DPPUtil {
      *
      * @param list The list of dpp plays.
      * @param entry The play to add.
+     * @param sizeLimit The maximum size of the list. Defaults to 75.
      * @returns Whether the replay file associated with the play needs to be persisted.
      */
-    private static insertScore(list: PPEntry[], entry: PPEntry): boolean {
+    private static insertScore(
+        list: PPEntry[],
+        entry: PPEntry,
+        sizeLimit = 75
+    ): boolean {
         if (isNaN(entry.pp)) {
             return false;
         }
 
-        if (list.length >= 75 && list[list.length - 1].pp >= entry.pp) {
+        if (list.length >= sizeLimit && list[list.length - 1].pp >= entry.pp) {
             return false;
         }
 
@@ -840,7 +845,7 @@ export abstract class DPPUtil {
 
         list.sort((a, b) => b.pp - a.pp);
 
-        while (list.length > 75) {
+        while (list.length > sizeLimit) {
             if (list[list.length - 1].hash === entry.hash) {
                 replayNeedsPersistence = false;
             }

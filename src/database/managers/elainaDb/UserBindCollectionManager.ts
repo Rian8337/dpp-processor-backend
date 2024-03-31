@@ -40,6 +40,7 @@ export class UserBindCollectionManager extends DatabaseCollectionManager<IUserBi
                     discordid: 1,
                     uid: 1,
                     username: 1,
+                    previous_bind: 1,
                     pp: 1,
                     pptotal: 1,
                     playc: 1,

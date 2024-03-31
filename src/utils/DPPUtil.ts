@@ -493,12 +493,12 @@ export abstract class DPPUtil {
                         prototypePP.playc
                     ),
                     pp: prototypePP.pp,
-                    prevpptotal: newTotal,
+                    prevpptotal: bindInfo.pptotal,
                 },
                 $setOnInsert: {
-                    uid: prototypePP.uid,
-                    username: prototypePP.username,
-                    previous_bind: prototypePP.previous_bind,
+                    uid: bindInfo.uid,
+                    username: bindInfo.username,
+                    previous_bind: bindInfo.previous_bind,
                 },
             },
             { upsert: true }

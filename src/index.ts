@@ -4,6 +4,7 @@ import formData from "express-form-data";
 import { config } from "dotenv";
 import { DatabaseManager } from "./database/managers/DatabaseManager";
 import calculateBeatmapFile from "./routes/calculate-beatmap-file";
+import calculatePersistedReplay from "./routes/calculate-persisted-replay";
 import deleteReplays from "./routes/delete-replays";
 import getDifficultyAttributes from "./routes/get-difficulty-attributes";
 import getPerformanceAttributes from "./routes/get-performance-attributes";
@@ -24,6 +25,7 @@ config();
 
 const baseRouter = Router()
     .use("/calculate-beatmap-file", calculateBeatmapFile)
+    .use("/calculate-persisted-replay", calculatePersistedReplay)
     .use("/delete-replays", deleteReplays)
     .use("/get-difficulty-attributes", getDifficultyAttributes)
     .use("/get-performance-attributes", getPerformanceAttributes)

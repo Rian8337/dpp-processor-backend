@@ -1,12 +1,12 @@
 import { Collection } from "mongodb";
-import { IPrototypePP } from "../../structures/aliceDb/IPrototypePP";
+import { IInGamePP } from "../../structures/aliceDb/IInGamePP";
 import { DatabaseCollectionManager } from "../DatabaseCollectionManager";
 
 /**
- * A manager for the `prototypepp` collection.
+ * A manager for the `ingamepp` collection.
  */
-export class PrototypePPCollectionManager extends DatabaseCollectionManager<IPrototypePP> {
-    override get defaultDocument(): IPrototypePP {
+export class InGamePPCollectionManager extends DatabaseCollectionManager<IInGamePP> {
+    override get defaultDocument(): IInGamePP {
         return {
             discordid: "",
             playc: 0,
@@ -19,7 +19,7 @@ export class PrototypePPCollectionManager extends DatabaseCollectionManager<IPro
         };
     }
 
-    constructor(collection: Collection<IPrototypePP>) {
+    constructor(collection: Collection<IInGamePP>) {
         super(collection);
     }
 
@@ -28,7 +28,7 @@ export class PrototypePPCollectionManager extends DatabaseCollectionManager<IPro
      *
      * @param uid The uid of the osu!droid account.
      */
-    getFromUid(uid: number): Promise<IPrototypePP | null> {
+    getFromUid(uid: number): Promise<IInGamePP | null> {
         return this.getOne(
             { previous_bind: { $all: [uid] } },
             {

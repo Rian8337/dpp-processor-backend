@@ -259,8 +259,8 @@ export abstract class DPPUtil {
             };
         }
 
-        const prototypePP =
-            (await DatabaseManager.aliceDb.collections.prototypePP.getFromUid(
+        const inGamePP =
+            (await DatabaseManager.aliceDb.collections.inGamePP.getFromUid(
                 uid
             )) ?? {
                 discordid: bindInfo.discordid,
@@ -399,7 +399,7 @@ export abstract class DPPUtil {
                 apiBeatmap.approved === RankedStatus.ranked ||
                 apiBeatmap.approved === RankedStatus.approved
             ) {
-                this.insertScore(prototypePP.pp, ppEntry, 100);
+                this.insertScore(inGamePP.pp, ppEntry, 100);
             }
 
             if (
@@ -412,7 +412,7 @@ export abstract class DPPUtil {
                     apiBeatmap.approved === RankedStatus.ranked ||
                     apiBeatmap.approved === RankedStatus.approved
                 ) {
-                    ++prototypePP.playc;
+                    ++inGamePP.playc;
                 }
             }
 
@@ -483,17 +483,17 @@ export abstract class DPPUtil {
             };
         }
 
-        await DatabaseManager.aliceDb.collections.prototypePP.updateOne(
+        await DatabaseManager.aliceDb.collections.inGamePP.updateOne(
             { discordid: bindInfo.discordid },
             {
                 $set: {
-                    playc: prototypePP.playc,
+                    playc: inGamePP.playc,
                     pptotal: this.calculateFinalPerformancePoints(
-                        prototypePP.pp,
-                        prototypePP.playc
+                        inGamePP.pp,
+                        inGamePP.playc
                     ),
-                    pp: prototypePP.pp,
-                    prevpptotal: bindInfo.pptotal,
+                    pp: inGamePP.pp,
+                    prevpptotal: newTotal,
                 },
                 $setOnInsert: {
                     uid: bindInfo.uid,

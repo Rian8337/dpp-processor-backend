@@ -1,9 +1,9 @@
 import { PPEntry } from "../../../structures/PPEntry";
 
 /**
- * Represents the prototype droid performance points (dpp) entry of an osu!droid account.
+ * Represents the in-game droid performance points (dpp) entry of an osu!droid account.
  */
-export interface IPrototypePP {
+export interface IInGamePP {
     /**
      * The Discord ID bound to the osu!droid account.
      */

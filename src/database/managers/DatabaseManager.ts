@@ -52,7 +52,9 @@ export abstract class DatabaseManager {
             process.env.ELAINA_DB_KEY +
             "@elainaDb-shard-00-00-r6qx3.mongodb.net:27017,elainaDb-shard-00-01-r6qx3.mongodb.net:27017,elainaDb-shard-00-02-r6qx3.mongodb.net:27017/test?ssl=true&replicaSet=ElainaDB-shard-0&authSource=admin&retryWrites=true";
 
-        const elainaDb = await new MongoClient(elainaURI).connect();
+        const elainaDb = await new MongoClient(elainaURI, {
+            ignoreUndefined: true,
+        }).connect();
 
         const db = elainaDb.db("ElainaDB");
 
@@ -71,7 +73,9 @@ export abstract class DatabaseManager {
             "mongodb+srv://" +
             process.env.ALICE_DB_KEY +
             "@alicedb-hoexz.gcp.mongodb.net/test?retryWrites=true&w=majority";
-        const aliceDb = await new MongoClient(aliceURI).connect();
+        const aliceDb = await new MongoClient(aliceURI, {
+            ignoreUndefined: true,
+        }).connect();
 
         const db = aliceDb.db("AliceDB");
 

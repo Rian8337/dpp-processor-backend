@@ -263,11 +263,9 @@ export abstract class DPPUtil {
             (await DatabaseManager.aliceDb.collections.inGamePP.getFromUid(
                 uid
             )) ?? {
+                ...DatabaseManager.aliceDb.collections.inGamePP.defaultDocument,
                 discordid: bindInfo.discordid,
                 uid: uid,
-                playc: 0,
-                pp: [],
-                pptotal: 0,
                 prevpptotal: bindInfo.pptotal,
                 previous_bind: bindInfo.previous_bind,
                 username: bindInfo.username,

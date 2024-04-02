@@ -10,6 +10,11 @@ export interface IInGamePP {
     discordid: string;
 
     /**
+     * The epoch time at which the account is last recalculated, in milliseconds.
+     */
+    lastUpdate: number;
+
+    /**
      * The play count of the user (how many scores the user have submitted into the dpp system).
      */
     playc: number;

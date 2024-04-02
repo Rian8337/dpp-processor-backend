@@ -496,6 +496,7 @@ export abstract class DPPUtil {
                     prevpptotal: newTotal,
                 },
                 $setOnInsert: {
+                    lastUpdate: Date.now(),
                     uid: bindInfo.uid,
                     username: bindInfo.username,
                     previous_bind: bindInfo.previous_bind,

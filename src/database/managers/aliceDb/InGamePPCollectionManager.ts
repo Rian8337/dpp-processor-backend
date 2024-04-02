@@ -9,6 +9,7 @@ export class InGamePPCollectionManager extends DatabaseCollectionManager<IInGame
     override get defaultDocument(): IInGamePP {
         return {
             discordid: "",
+            lastUpdate: Date.now(),
             playc: 0,
             pp: [],
             pptotal: 0,

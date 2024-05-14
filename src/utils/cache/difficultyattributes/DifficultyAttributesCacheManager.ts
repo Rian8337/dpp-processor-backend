@@ -10,7 +10,7 @@ import {
     DatabaseDifficultyAttributes,
     DatabaseDifficultyAttributesPrimaryKey,
 } from "../../../database/postgres/schema/DatabaseDifficultyAttributes";
-import { DatabaseBeatmapHash } from "../../../database/postgres/schema/DatabaseBeatmapHash";
+import { DatabaseBeatmapLastUpdate } from "../../../database/postgres/schema/DatabaseBeatmapLastUpdate";
 import { DatabaseTables } from "../../../database/postgres/DatabaseTables";
 
 /**
@@ -35,7 +35,7 @@ export abstract class DifficultyAttributesCacheManager<
      */
     protected abstract readonly databaseTable: Exclude<
         DatabaseTables,
-        DatabaseTables.beatmapHash
+        DatabaseTables.beatmapLastUpdate
     >;
 
     /**
@@ -97,7 +97,7 @@ export abstract class DifficultyAttributesCacheManager<
         forceOD?: number
     ): Promise<CacheableDifficultyAttributes<TAttributes>> {
         const cache = (await this.getBeatmapAttributes(beatmapInfo)) ?? {
-            hash: beatmapInfo.hash,
+            lastUpdate: beatmapInfo.lastUpdate,
             difficultyAttributes: new Collection(),
         };
 
@@ -312,14 +312,14 @@ export abstract class DifficultyAttributesCacheManager<
 
         if (!cache) {
             cache = {
-                hash: beatmapInfo.hash,
+                lastUpdate: beatmapInfo.lastUpdate,
                 difficultyAttributes: new Collection(),
             };
 
             // Try to get cache from database.
             let beatmapDatabaseCache = await pool
-                .query<DatabaseBeatmapHash>(
-                    `SELECT * FROM ${DatabaseTables.beatmapHash} WHERE id = $1`,
+                .query<DatabaseBeatmapLastUpdate>(
+                    `SELECT * FROM ${DatabaseTables.beatmapLastUpdate} WHERE id = $1`,
                     [beatmapInfo.beatmapId]
                 )
                 .then((res) => res.rows.at(0) ?? null)
@@ -327,7 +327,8 @@ export abstract class DifficultyAttributesCacheManager<
 
             if (
                 beatmapDatabaseCache &&
-                beatmapDatabaseCache.hash !== beatmapInfo.hash
+                beatmapDatabaseCache.last_update.getTime() <
+                    beatmapInfo.lastUpdate.getTime()
             ) {
                 await this.invalidateCache(beatmapInfo.beatmapId);
 
@@ -337,12 +338,12 @@ export abstract class DifficultyAttributesCacheManager<
             if (!beatmapDatabaseCache) {
                 beatmapDatabaseCache = {
                     id: beatmapInfo.beatmapId,
-                    hash: beatmapInfo.hash,
+                    last_update: beatmapInfo.lastUpdate,
                 };
 
-                await pool.query<DatabaseBeatmapHash>(
-                    `INSERT INTO ${DatabaseTables.beatmapHash} (id, hash) VALUES ($1, $2)`,
-                    [beatmapInfo.beatmapId, beatmapInfo.hash]
+                await pool.query<DatabaseBeatmapLastUpdate>(
+                    `INSERT INTO ${DatabaseTables.beatmapLastUpdate} (id, last_update) VALUES ($1, $2)`,
+                    [beatmapInfo.beatmapId, beatmapInfo.lastUpdate]
                 );
             }
 
@@ -390,7 +391,7 @@ export abstract class DifficultyAttributesCacheManager<
             this.cache.set(beatmapInfo.beatmapId, cache);
         }
 
-        if (cache.hash !== beatmapInfo.hash) {
+        if (cache.lastUpdate.getTime() < beatmapInfo.lastUpdate.getTime()) {
             await this.invalidateCache(beatmapInfo.beatmapId);
 
             return null;

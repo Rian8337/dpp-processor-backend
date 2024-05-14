@@ -1,6 +1,6 @@
-CREATE TABLE IF NOT EXISTS beatmap_hash (
+CREATE TABLE IF NOT EXISTS beatmap_last_update (
     id                       int             NOT NULL,
-    hash                     varchar(32)     NOT NULL,
+    last_update              timestamp       NOT NULL,
 
     PRIMARY KEY (id)
 );

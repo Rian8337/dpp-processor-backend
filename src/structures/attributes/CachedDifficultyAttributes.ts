@@ -7,9 +7,9 @@ import { Collection } from "@discordjs/collection";
  */
 export interface CachedDifficultyAttributes<T extends RawDifficultyAttributes> {
     /**
-     * The MD5 hash of the beatmap.
+     * The time at which the beatmap was last updated.
      */
-    hash: string;
+    lastUpdate: Date;
 
     /**
      * The difficulty attributes of the beatmap, following the formatting rule:

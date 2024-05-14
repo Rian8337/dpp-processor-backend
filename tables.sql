@@ -5,8 +5,8 @@ CREATE TABLE IF NOT EXISTS beatmap_last_update (
     PRIMARY KEY (id)
 );
 
-CREATE INDEX IF NOT EXISTS beatmap_hash_id_idx ON beatmap_hash(id);
-CREATE INDEX IF NOT EXISTS beatmap_hash_hash_idx ON beatmap_hash(hash);
+CREATE INDEX IF NOT EXISTS beatmap_last_update_id_idx ON beatmap_last_update(id);
+CREATE INDEX IF NOT EXISTS beatmap_last_update_date_idx ON beatmap_last_update(last_update);
 
 CREATE TABLE IF NOT EXISTS live_droid_difficulty_attributes (
     beatmap_id                              int             NOT NULL,

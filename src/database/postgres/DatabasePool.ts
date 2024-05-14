@@ -1,4 +1,7 @@
+import { config } from "dotenv";
 import { Pool } from "pg";
+
+config();
 
 /**
  * The main database connection.

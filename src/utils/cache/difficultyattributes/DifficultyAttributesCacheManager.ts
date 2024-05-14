@@ -200,7 +200,7 @@ export abstract class DifficultyAttributesCacheManager<
         }
 
         if (forceOD !== undefined && forceOD !== -1) {
-            attributeName += `OD|${forceOD}`;
+            attributeName += `|OD${forceOD}`;
         }
 
         if (oldStatistics) {

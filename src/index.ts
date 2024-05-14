@@ -13,13 +13,8 @@ import getOnlineScoreAttributes from "./routes/get-online-score-attributes";
 import persistLocalReplay from "./routes/persist-local-replay";
 import persistOnlineReplay from "./routes/persist-online-replay";
 import submitScores from "./routes/submit-scores";
-import {
-    liveDroidDifficultyCache,
-    liveOsuDifficultyCache,
-    rebalanceDroidDifficultyCache,
-    rebalanceOsuDifficultyCache,
-} from "./utils/cache/difficultyAtributesStorage";
 import { DPPUtil } from "./utils/DPPUtil";
+import { pool } from "./database/postgres/DatabasePool";
 
 config();
 
@@ -45,13 +40,7 @@ const app = express()
     .use(express.urlencoded({ extended: true }))
     .use("/api/dpp/processor", baseRouter);
 
-Promise.all([
-    DatabaseManager.init(),
-    liveDroidDifficultyCache.readCacheFromDisk(),
-    rebalanceDroidDifficultyCache.readCacheFromDisk(),
-    liveOsuDifficultyCache.readCacheFromDisk(),
-    rebalanceOsuDifficultyCache.readCacheFromDisk(),
-])
+Promise.all([DatabaseManager.init(), pool.connect()])
     .then(async () => {
         const port = parseInt(process.env.PORT || "3006");
 
@@ -59,4 +48,7 @@ Promise.all([
 
         await DPPUtil.initiateReplayProcessing();
     })
-    .catch((e) => console.error(e));
+    .catch((e) => {
+        console.error(e);
+        process.exit(1);
+    });

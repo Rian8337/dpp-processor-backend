@@ -15,6 +15,7 @@ import {
 } from "../utils/cache/difficultyAtributesStorage";
 import { PerformanceCalculationParameters } from "../utils/calculator/PerformanceCalculationParameters";
 import { CacheableDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
+import { DatabaseDifficultyAttributes } from "../database/postgres/schema/DatabaseDifficultyAttributes";
 
 const router = Router();
 
@@ -101,7 +102,10 @@ router.get<
     }
 
     let difficultyAttributes: CacheableDifficultyAttributes<RawDifficultyAttributes> | null;
-    let difficultyCacheManager: DifficultyAttributesCacheManager<RawDifficultyAttributes>;
+    let difficultyCacheManager: DifficultyAttributesCacheManager<
+        RawDifficultyAttributes,
+        DatabaseDifficultyAttributes
+    >;
     let difficultyCalculator:
         | BeatmapDroidDifficultyCalculator
         | BeatmapOsuDifficultyCalculator;
@@ -148,7 +152,7 @@ router.get<
         }
     }
 
-    difficultyAttributes = difficultyCacheManager.getDifficultyAttributes(
+    difficultyAttributes = await difficultyCacheManager.getDifficultyAttributes(
         apiBeatmap,
         difficultyCacheManager.getAttributeName(
             mods,

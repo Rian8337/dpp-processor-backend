@@ -1,18 +1,24 @@
-import { mkdir, readdir, readFile, writeFile } from "fs/promises";
-import { join } from "path";
 import { Collection } from "@discordjs/collection";
 import { MapInfo, Mod, Modes, ModUtil } from "@rian8337/osu-base";
 import { Util } from "../../Util";
 import { PPCalculationMethod } from "../../../structures/PPCalculationMethod";
 import { RawDifficultyAttributes } from "../../../structures/attributes/RawDifficultyAttributes";
-import { CachedDifficultyAttributes } from "../../../structures/attributes/CachedDifficultyAttributes";
 import { CacheableDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
+import { CachedDifficultyAttributes } from "../../../structures/attributes/CachedDifficultyAttributes";
+import { pool } from "../../../database/postgres/DatabasePool";
+import {
+    DatabaseDifficultyAttributes,
+    DatabaseDifficultyAttributesPrimaryKey,
+} from "../../../database/postgres/schema/DatabaseDifficultyAttributes";
+import { DatabaseBeatmapHash } from "../../../database/postgres/schema/DatabaseBeatmapHash";
+import { DatabaseTables } from "../../../database/postgres/DatabaseTables";
 
 /**
  * A cache manager for difficulty attributes.
  */
 export abstract class DifficultyAttributesCacheManager<
-    T extends RawDifficultyAttributes
+    TAttributes extends RawDifficultyAttributes,
+    TDatabaseAttributes extends DatabaseDifficultyAttributes
 > {
     /**
      * The type of the attribute.
@@ -25,51 +31,20 @@ export abstract class DifficultyAttributesCacheManager<
     protected abstract readonly mode: Modes;
 
     /**
+     * The database table that stores the difficulty attributes.
+     */
+    protected abstract readonly databaseTable: Exclude<
+        DatabaseTables,
+        DatabaseTables.beatmapHash
+    >;
+
+    /**
      * The difficulty attributes cache.
      */
     private readonly cache = new Collection<
         number,
-        CachedDifficultyAttributes<T>
+        CachedDifficultyAttributes<TAttributes>
     >();
-
-    /**
-     * The cache that needs to be saved to disk.
-     */
-    private readonly cacheToSave = new Collection<
-        number,
-        CachedDifficultyAttributes<T>
-    >();
-
-    private get folderPath(): string {
-        let attributeTypeFolder: string;
-        let gamemodeFolder: string;
-
-        switch (this.attributeType) {
-            case PPCalculationMethod.live:
-                attributeTypeFolder = "live";
-                break;
-            case PPCalculationMethod.rebalance:
-                attributeTypeFolder = "rebalance";
-                break;
-        }
-
-        switch (this.mode) {
-            case Modes.droid:
-                gamemodeFolder = "droid";
-                break;
-            case Modes.osu:
-                gamemodeFolder = "osu";
-                break;
-        }
-
-        return join(
-            process.cwd(),
-            "files",
-            "difficultyattributescache",
-            attributeTypeFolder,
-            gamemodeFolder
-        );
-    }
 
     /**
      * Gets all difficulty attributes cache of a beatmap.
@@ -78,7 +53,7 @@ export abstract class DifficultyAttributesCacheManager<
      */
     getBeatmapAttributes(
         beatmapInfo: MapInfo
-    ): CachedDifficultyAttributes<T> | null {
+    ): Promise<CachedDifficultyAttributes<TAttributes> | null> {
         return this.getCache(beatmapInfo);
     }
 
@@ -91,11 +66,13 @@ export abstract class DifficultyAttributesCacheManager<
     getDifficultyAttributes(
         beatmapInfo: MapInfo,
         attributeName: string
-    ): CacheableDifficultyAttributes<T> | null {
-        return (
-            this.getCache(beatmapInfo)?.difficultyAttributes[attributeName] ??
-            null
-        );
+    ): Promise<CacheableDifficultyAttributes<TAttributes> | null> {
+        return this.getCache(beatmapInfo)
+            .then(
+                (cache) =>
+                    cache?.difficultyAttributes.get(attributeName) ?? null
+            )
+            .catch(() => null);
     }
 
     /**
@@ -110,18 +87,18 @@ export abstract class DifficultyAttributesCacheManager<
      * @param forceOD The force OD that was used to generate the attributes.
      * @returns The difficulty attributes that were cached.
      */
-    addAttribute(
+    async addAttribute(
         beatmapInfo: MapInfo,
-        difficultyAttributes: T,
+        difficultyAttributes: TAttributes,
         oldStatistics = false,
         customSpeedMultiplier = 1,
         forceCS?: number,
         forceAR?: number,
         forceOD?: number
-    ): CacheableDifficultyAttributes<T> {
-        const cache = this.getBeatmapAttributes(beatmapInfo) ?? {
-            lastUpdate: Date.now(),
-            difficultyAttributes: {},
+    ): Promise<CacheableDifficultyAttributes<TAttributes>> {
+        const cache = (await this.getBeatmapAttributes(beatmapInfo)) ?? {
+            hash: beatmapInfo.hash,
+            difficultyAttributes: new Collection(),
         };
 
         const attributeName = this.getAttributeName(
@@ -133,15 +110,37 @@ export abstract class DifficultyAttributesCacheManager<
             forceOD
         );
 
-        cache.difficultyAttributes[attributeName] = {
-            ...difficultyAttributes,
-            mods: ModUtil.modsToOsuString(difficultyAttributes.mods),
-        };
+        const cacheableAttributes: CacheableDifficultyAttributes<TAttributes> =
+            {
+                ...difficultyAttributes,
+                mods: ModUtil.modsToOsuString(difficultyAttributes.mods),
+            };
+
+        cache.difficultyAttributes.set(attributeName, cacheableAttributes);
 
         this.cache.set(beatmapInfo.beatmapId, cache);
-        this.cacheToSave.set(beatmapInfo.beatmapId, cache);
 
-        return cache.difficultyAttributes[attributeName];
+        // Also add to database.
+        const databaseAttributes = {
+            beatmap_id: beatmapInfo.beatmapId,
+            force_cs: forceCS ?? -1,
+            force_ar: forceAR ?? -1,
+            force_od: forceOD ?? -1,
+            old_statistics: oldStatistics ? 1 : 0,
+            speed_multiplier: customSpeedMultiplier,
+            ...this.convertDifficultyAttributes(difficultyAttributes),
+        } as TDatabaseAttributes;
+
+        const keys = Object.keys(databaseAttributes);
+
+        await pool.query<TDatabaseAttributes>(
+            `INSERT INTO ${this.databaseTable} (${keys.join(
+                ","
+            )}) VALUES (${keys.map((_, i) => `$${i + 1}`)})`,
+            Object.values(databaseAttributes)
+        );
+
+        return cacheableAttributes;
     }
 
     /**
@@ -155,7 +154,7 @@ export abstract class DifficultyAttributesCacheManager<
      * @param forceOD The force OD to construct with.
      */
     getAttributeName(
-        mods: Mod[] = [],
+        mods: Mod[] | string = [],
         oldStatistics = false,
         customSpeedMultiplier = 1,
         forceCS?: number,
@@ -166,39 +165,41 @@ export abstract class DifficultyAttributesCacheManager<
 
         switch (this.mode) {
             case Modes.droid:
-                attributeName += Util.sortAlphabet(
-                    mods.reduce((a, m) => {
-                        if (!m.isApplicableToDroid()) {
-                            return a;
-                        }
-
-                        return a + m.droidString;
-                    }, "") || "-"
-                );
+                attributeName +=
+                    Util.sortAlphabet(
+                        (Array.isArray(mods)
+                            ? mods
+                            : ModUtil.droidStringToMods(mods)
+                        ).reduce(
+                            (a, m) =>
+                                a +
+                                (m.isApplicableToDroid() ? m.droidString : ""),
+                            ""
+                        )
+                    ) || "-";
                 break;
             case Modes.osu:
-                attributeName += mods.reduce((a, m) => {
-                    if (!m.isApplicableToOsu()) {
-                        return a;
-                    }
-
-                    return a | m.bitwise;
-                }, 0);
+                attributeName += (
+                    Array.isArray(mods) ? mods : ModUtil.pcStringToMods(mods)
+                ).reduce(
+                    (a, m) => a | (m.isApplicableToOsu() ? m.bitwise : 0),
+                    0
+                );
         }
 
         if (customSpeedMultiplier !== 1) {
             attributeName += `|${customSpeedMultiplier.toFixed(2)}x`;
         }
 
-        if (forceCS !== undefined) {
+        if (forceCS !== undefined && forceCS !== -1) {
             attributeName += `|CS${forceCS}`;
         }
 
-        if (forceAR !== undefined) {
+        if (forceAR !== undefined && forceAR !== -1) {
             attributeName += `|AR${forceAR}`;
         }
 
-        if (forceOD !== undefined) {
+        if (forceOD !== undefined && forceOD !== -1) {
             attributeName += `OD|${forceOD}`;
         }
 
@@ -210,91 +211,188 @@ export abstract class DifficultyAttributesCacheManager<
     }
 
     /**
-     * Reads the existing cache from the disk.
+     * Converts mods received from the database to a {@link Mod} array.
+     *
+     * @param attributes The database attributes to convert.
+     * @returns The converted mods.
      */
-    async readCacheFromDisk(): Promise<void> {
-        console.log(
-            "Reading difficulty cache of attribute type",
-            PPCalculationMethod[this.attributeType],
-            "and gamemode",
-            this.mode
-        );
+    protected abstract convertDatabaseMods(
+        attributes: TDatabaseAttributes
+    ): Mod[];
 
-        const start = process.hrtime.bigint();
+    /**
+     * Converts a database attributes to a difficulty attributes, but only accounts for the attributes
+     * that are specific to the gamemode.
+     *
+     * @param attributes The database attributes to convert.
+     * @returns The converted difficulty attributes.
+     */
+    protected abstract convertDatabaseAttributesInternal(
+        attributes: TDatabaseAttributes
+    ): Omit<TAttributes, keyof RawDifficultyAttributes>;
 
-        try {
-            for (const fileName of await readdir(this.folderPath)) {
-                const beatmapId = parseInt(fileName);
+    /**
+     * Converts a difficulty attributes to a database attributes, but only accounts for the attributes
+     * that are specific to the gamemode.
+     *
+     * @param attributes The difficulty attributes to convert.
+     * @returns The converted database attributes.
+     */
+    protected abstract convertDifficultyAttributesInternal(
+        attributes: TAttributes
+    ): Omit<TDatabaseAttributes, keyof DatabaseDifficultyAttributes>;
 
-                if (this.cache.has(beatmapId)) {
-                    continue;
-                }
-
-                const cache: CachedDifficultyAttributes<T> = JSON.parse(
-                    await readFile(join(this.folderPath, fileName), {
-                        encoding: "utf-8",
-                    })
-                );
-
-                this.cache.set(beatmapId, cache);
-            }
-        } catch {
-            // If it falls into here, the directory may not have been created.
-            // Try to create it.
-            try {
-                await mkdir(this.folderPath, { recursive: true });
-            } catch {
-                // Ignore mkdir error.
-            }
-        }
-
-        const end = process.hrtime.bigint();
-
-        setInterval(async () => await this.saveToDisk(), 60 * 5 * 1000);
-
-        console.log(
-            "Reading difficulty cache of attribute type",
-            PPCalculationMethod[this.attributeType],
-            "and gamemode",
-            this.mode,
-            "complete (took",
-            Number(end - start) / 1e6,
-            "ms)"
-        );
+    /**
+     * Converts a database attributes to a difficulty attributes.
+     *
+     * @param attributes The database attributes to convert.
+     * @returns The converted difficulty attributes.
+     */
+    private convertDatabaseAttributes(
+        attributes: TDatabaseAttributes
+    ): TAttributes {
+        return {
+            ...this.convertDatabaseAttributesInternal(attributes),
+            mods: this.convertDatabaseMods(attributes),
+            aimDifficulty: attributes.aim_difficulty,
+            approachRate: attributes.approach_rate,
+            clockRate: attributes.clock_rate,
+            flashlightDifficulty: attributes.flashlight_difficulty,
+            hitCircleCount: attributes.hit_circle_count,
+            maxCombo: attributes.max_combo,
+            overallDifficulty: attributes.overall_difficulty,
+            speedNoteCount: attributes.speed_note_count,
+            sliderFactor: attributes.slider_factor,
+            sliderCount: attributes.slider_count,
+            spinnerCount: attributes.spinner_count,
+            starRating: attributes.star_rating,
+        } as TAttributes;
     }
 
     /**
-     * Saves the in-memory cache to the disk.
+     * Converts a difficulty attributes to a database attributes.
+     *
+     * @param attributes The difficulty attributes to convert.
+     * @returns The converted database attributes.
      */
-    private async saveToDisk(): Promise<void> {
-        for (const [beatmapId, cache] of this.cacheToSave) {
-            await writeFile(
-                join(this.folderPath, `${beatmapId}.json`),
-                JSON.stringify(cache)
-            );
-
-            this.cacheToSave.delete(beatmapId);
-        }
+    private convertDifficultyAttributes(
+        attributes: TAttributes
+    ): Omit<TDatabaseAttributes, keyof DatabaseDifficultyAttributesPrimaryKey> {
+        return {
+            ...this.convertDifficultyAttributesInternal(attributes),
+            aim_difficulty: attributes.aimDifficulty,
+            approach_rate: attributes.approachRate,
+            clock_rate: attributes.clockRate,
+            flashlight_difficulty: attributes.flashlightDifficulty,
+            hit_circle_count: attributes.hitCircleCount,
+            max_combo: attributes.maxCombo,
+            overall_difficulty: attributes.overallDifficulty,
+            speed_note_count: attributes.speedNoteCount,
+            slider_factor: attributes.sliderFactor,
+            slider_count: attributes.sliderCount,
+            spinner_count: attributes.spinnerCount,
+            star_rating: attributes.starRating,
+        } as Omit<
+            TDatabaseAttributes,
+            keyof DatabaseDifficultyAttributesPrimaryKey
+        >;
     }
 
     /**
-     * Gets a specific difficulty attributes cache of a beatmap.
+     * Gets the difficulty attributes cache of a beatmap.
      *
      * Includes logic to invalidate the beatmap's cache if it's no longer valid.
      *
      * @param beatmapInfo The information about the beatmap.
      */
-    private getCache(
+    private async getCache(
         beatmapInfo: MapInfo
-    ): CachedDifficultyAttributes<T> | null {
-        const cache = this.cache.get(beatmapInfo.beatmapId);
+    ): Promise<CachedDifficultyAttributes<TAttributes> | null> {
+        let cache = this.cache.get(beatmapInfo.beatmapId);
 
         if (!cache) {
-            return null;
+            cache = {
+                hash: beatmapInfo.hash,
+                difficultyAttributes: new Collection(),
+            };
+
+            // Try to get cache from database.
+            let beatmapDatabaseCache = await pool
+                .query<DatabaseBeatmapHash>(
+                    `SELECT * FROM ${DatabaseTables.beatmapHash} WHERE id = $1`,
+                    [beatmapInfo.beatmapId]
+                )
+                .then((res) => res.rows.at(0) ?? null)
+                .catch(() => null);
+
+            if (
+                beatmapDatabaseCache &&
+                beatmapDatabaseCache.hash !== beatmapInfo.hash
+            ) {
+                await this.invalidateCache(beatmapInfo.beatmapId);
+
+                return null;
+            }
+
+            if (!beatmapDatabaseCache) {
+                beatmapDatabaseCache = {
+                    id: beatmapInfo.beatmapId,
+                    hash: beatmapInfo.hash,
+                };
+
+                await pool.query<DatabaseBeatmapHash>(
+                    `INSERT INTO ${DatabaseTables.beatmapHash} (id, hash) VALUES ($1, $2)`,
+                    [beatmapInfo.beatmapId, beatmapInfo.hash]
+                );
+            }
+
+            const difficultyAttributesCache = await pool
+                .query<TDatabaseAttributes>(
+                    `SELECT * FROM ${this.databaseTable} WHERE beatmap_id = $1`,
+                    [beatmapInfo.beatmapId]
+                )
+                .then((res) =>
+                    res.rows.map<{
+                        readonly name: string;
+                        readonly attributes: CacheableDifficultyAttributes<TAttributes>;
+                    }>((v) => {
+                        const attributes = this.convertDatabaseAttributes(v);
+
+                        return {
+                            name: this.getAttributeName(
+                                attributes.mods,
+                                Boolean(v.old_statistics),
+                                v.speed_multiplier,
+                                v.force_cs,
+                                v.force_ar,
+                                v.force_od
+                            ),
+                            attributes: {
+                                ...attributes,
+                                mods: ModUtil.modsToOsuString(attributes.mods),
+                            },
+                        };
+                    })
+                )
+                .catch(() => null);
+
+            if (!difficultyAttributesCache) {
+                return null;
+            }
+
+            for (const attribute of difficultyAttributesCache) {
+                cache.difficultyAttributes.set(
+                    attribute.name,
+                    attribute.attributes
+                );
+            }
+
+            this.cache.set(beatmapInfo.beatmapId, cache);
         }
 
-        if (cache.lastUpdate < beatmapInfo.lastUpdate.getTime()) {
-            this.invalidateCache(beatmapInfo.beatmapId);
+        if (cache.hash !== beatmapInfo.hash) {
+            await this.invalidateCache(beatmapInfo.beatmapId);
+
             return null;
         }
 
@@ -306,16 +404,13 @@ export abstract class DifficultyAttributesCacheManager<
      *
      * @param beatmapId The ID of the beatmap to invalidate.
      */
-    private invalidateCache(beatmapId: number): void {
-        const cache = this.cache.get(beatmapId);
+    private async invalidateCache(beatmapId: number): Promise<void> {
+        this.cache.delete(beatmapId);
 
-        if (!cache) {
-            return;
-        }
-
-        cache.lastUpdate = Date.now();
-        cache.difficultyAttributes = {};
-
-        this.cacheToSave.set(beatmapId, cache);
+        // Also delete from database.
+        await pool.query<TDatabaseAttributes>(
+            `DELETE FROM ${this.databaseTable} WHERE beatmap_id = $1`,
+            [beatmapId]
+        );
     }
 }

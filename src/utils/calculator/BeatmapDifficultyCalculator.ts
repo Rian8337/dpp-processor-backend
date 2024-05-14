@@ -12,13 +12,16 @@ import { CalculationWorkerData } from "../../structures/workers/CalculationWorke
 import { PPCalculationMethod } from "../../structures/PPCalculationMethod";
 import { CompleteCalculationAttributes } from "../../structures/attributes/CompleteCalculationAttributes";
 import { PerformanceAttributes } from "../../structures/attributes/PerformanceAttributes";
+import { DatabaseDifficultyAttributes } from "../../database/postgres/schema/DatabaseDifficultyAttributes";
 
 /**
  * A helper class for calculating difficulty and performance of beatmaps or replays.
  */
 export abstract class BeatmapDifficultyCalculator<
     DA extends DifficultyAttributes,
+    TDA extends DatabaseDifficultyAttributes,
     RDA extends RebalanceDifficultyAttributes,
+    TRDA extends DatabaseDifficultyAttributes,
     PA extends PerformanceAttributes,
     RPA extends PerformanceAttributes = PA
 > {
@@ -30,12 +33,18 @@ export abstract class BeatmapDifficultyCalculator<
     /**
      * The cache manager responsible for storing live calculation difficulty attributes.
      */
-    protected abstract readonly liveDifficultyAttributesCache: DifficultyAttributesCacheManager<DA>;
+    protected abstract readonly liveDifficultyAttributesCache: DifficultyAttributesCacheManager<
+        DA,
+        TDA
+    >;
 
     /**
      * The cache manager responsible for storing rebalance calculation difficulty attributes.
      */
-    protected abstract readonly rebalanceDifficultyAttributesCache: DifficultyAttributesCacheManager<RDA>;
+    protected abstract readonly rebalanceDifficultyAttributesCache: DifficultyAttributesCacheManager<
+        RDA,
+        TRDA
+    >;
 
     /**
      * Calculator worker pool.
@@ -213,7 +222,8 @@ export abstract class BeatmapDifficultyCalculator<
             forceAR,
             forceOD
         );
-        const cachedAttributes = cacheManager.getDifficultyAttributes(
+
+        const cachedAttributes = await cacheManager.getDifficultyAttributes(
             apiBeatmap,
             attributeName
         );
@@ -232,7 +242,7 @@ export abstract class BeatmapDifficultyCalculator<
         return new Promise((resolve, reject) => {
             BeatmapDifficultyCalculator.calculatorPool.runTask({
                 data,
-                callback: (
+                callback: async (
                     err,
                     result: CompleteCalculationAttributes<
                         DifficultyAttributes | RebalanceDifficultyAttributes,
@@ -254,7 +264,7 @@ export abstract class BeatmapDifficultyCalculator<
                     };
 
                     if (!cachedAttributes) {
-                        cacheManager.addAttribute(
+                        await cacheManager.addAttribute(
                             apiBeatmap,
                             diffAttribs,
                             calculationParams?.oldStatistics,

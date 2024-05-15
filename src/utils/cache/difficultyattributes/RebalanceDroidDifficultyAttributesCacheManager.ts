@@ -39,6 +39,12 @@ export class RebalanceDroidDifficultyAttributesCacheManager extends DifficultyAt
             averageSpeedDeltaTime: attributes.average_speed_delta_time,
             difficultSliders: ((): DifficultSlider[] => {
                 const sliders = attributes.difficult_sliders.split(" ");
+
+                if (!sliders[0]) {
+                    // First element is an empty string; no difficult sliders.
+                    return [];
+                }
+
                 const result: DifficultSlider[] = [];
 
                 for (let i = 0; i < sliders.length; i += 2) {
@@ -56,6 +62,12 @@ export class RebalanceDroidDifficultyAttributesCacheManager extends DifficultyAt
             possibleThreeFingeredSections: ((): HighStrainSection[] => {
                 const sections =
                     attributes.possible_three_fingered_sections.split(" ");
+
+                if (!sections[0]) {
+                    // First element is an empty string; no possible three-fingered sections.
+                    return [];
+                }
+
                 const result: HighStrainSection[] = [];
 
                 for (let i = 0; i < sections.length; i += 3) {

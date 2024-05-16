@@ -31,6 +31,15 @@ import { OsuPerformanceAttributes } from "../structures/attributes/OsuPerformanc
 import { readFile, readdir } from "fs/promises";
 import { basename, join } from "path";
 import { watch } from "chokidar";
+import { officialPool } from "../database/official/OfficialDatabasePool";
+import { OfficialDatabaseUser } from "../database/official/schema/OfficialDatabaseUser";
+import {
+    OfficialDatabaseTables,
+    constructOfficialDatabaseTable,
+} from "../database/official/OfficialDatabaseTables";
+import { RowDataPacket } from "mysql2";
+import { Util } from "./Util";
+import { OfficialDatabaseScore } from "../database/official/schema/OfficialDatabaseScore";
 
 /**
  * Utilities that are related to dpp.
@@ -188,8 +197,9 @@ export abstract class DPPUtil {
                     continue;
                 }
 
-                const player = await Player.getInformation(
-                    replay.data.playerName
+                const player = await this.getPlayerFromUsername(
+                    replay.data.playerName,
+                    "id"
                 );
 
                 if (!player) {
@@ -201,7 +211,7 @@ export abstract class DPPUtil {
                     continue;
                 }
 
-                uid = player.uid;
+                uid = player instanceof Player ? player.uid : player.id;
                 break;
             }
 
@@ -632,6 +642,10 @@ export abstract class DPPUtil {
      * Initiates replay processing.
      */
     static async initiateReplayProcessing(): Promise<void> {
+        if (Util.isDebug) {
+            return;
+        }
+
         const processReplay = async (path: string) => {
             if (!path.endsWith(".odr")) {
                 return deleteUnprocessedReplay(path);
@@ -684,6 +698,66 @@ export abstract class DPPUtil {
         }
 
         console.log("Unprocessed replay file(s) processing complete");
+    }
+
+    /**
+     * Gets a player's information from their username.
+     *
+     * In debug mode, the osu!droid API will be requested. Otherwise, the official database will be queried.
+     *
+     * @param username The username of the player.
+     * @param databaseColumns The columns to retrieve from the database if the database is queried.
+     * @returns The player's information, `null` if not found.
+     */
+    static async getPlayerFromUsername<K extends keyof OfficialDatabaseUser>(
+        username: string,
+        ...databaseColumns: K[]
+    ): Promise<Pick<OfficialDatabaseUser, K> | Player | null> {
+        if (Util.isDebug) {
+            return Player.getInformation(username);
+        }
+
+        const playerQuery = await officialPool.query<RowDataPacket[]>(
+            `SELECT ${
+                databaseColumns.join() || "*"
+            } FROM ${constructOfficialDatabaseTable(
+                OfficialDatabaseTables.user
+            )} WHERE username = $1;`,
+            [username]
+        );
+
+        return (playerQuery[0] as OfficialDatabaseUser[]).at(0) ?? null;
+    }
+
+    /**
+     * Gets a score from a player on a beatmap.
+     *
+     * In debug mode, the osu!droid API will be requested. Otherwise, the official database will be queried.
+     *
+     * @param uid The uid of the player.
+     * @param hash The MD5 hash of the beatmap.
+     * @param databaseColumns The columns to retrieve from the database if the database is queried.
+     * @returns The score, `null` if not found.
+     */
+    static async getScore<K extends keyof OfficialDatabaseScore>(
+        uid: number,
+        hash: string,
+        ...databaseColumns: K[]
+    ): Promise<Pick<OfficialDatabaseScore, K> | Score | null> {
+        if (Util.isDebug) {
+            return Score.getFromHash(uid, hash);
+        }
+
+        const scoreQuery = await officialPool.query<RowDataPacket[]>(
+            `SELECT ${
+                databaseColumns.join() || "*"
+            } FROM ${constructOfficialDatabaseTable(
+                OfficialDatabaseTables.score
+            )} WHERE uid = $1 AND hash = $2;`,
+            [uid, hash]
+        );
+
+        return (scoreQuery[0] as OfficialDatabaseScore[]).at(0) ?? null;
     }
 
     /**

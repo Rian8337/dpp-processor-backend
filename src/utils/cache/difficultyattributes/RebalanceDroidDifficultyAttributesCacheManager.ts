@@ -6,9 +6,9 @@ import {
 } from "@rian8337/osu-rebalance-difficulty-calculator";
 import { DifficultyAttributesCacheManager } from "./DifficultyAttributesCacheManager";
 import { PPCalculationMethod } from "../../../structures/PPCalculationMethod";
-import { DatabaseRebalanceDroidDifficultyAttributes } from "../../../database/postgres/schema/DatabaseRebalanceDroidDifficultyAttributes";
-import { DatabaseTables } from "../../../database/postgres/DatabaseTables";
-import { DatabaseDifficultyAttributes } from "../../../database/postgres/schema/DatabaseDifficultyAttributes";
+import { ProcessorDatabaseRebalanceDroidDifficultyAttributes } from "../../../database/processor/schema/ProcessorDatabaseRebalanceDroidDifficultyAttributes";
+import { ProcessorDatabaseTables } from "../../../database/processor/ProcessorDatabaseTables";
+import { ProcessorDatabaseDifficultyAttributes } from "../../../database/processor/schema/ProcessorDatabaseDifficultyAttributes";
 import { RawDifficultyAttributes } from "../../../structures/attributes/RawDifficultyAttributes";
 
 /**
@@ -16,21 +16,21 @@ import { RawDifficultyAttributes } from "../../../structures/attributes/RawDiffi
  */
 export class RebalanceDroidDifficultyAttributesCacheManager extends DifficultyAttributesCacheManager<
     ExtendedDroidDifficultyAttributes,
-    DatabaseRebalanceDroidDifficultyAttributes
+    ProcessorDatabaseRebalanceDroidDifficultyAttributes
 > {
     protected override readonly attributeType = PPCalculationMethod.rebalance;
     protected override readonly mode = Modes.droid;
     protected override readonly databaseTable =
-        DatabaseTables.rebalanceDroidDifficultyAttributes;
+        ProcessorDatabaseTables.rebalanceDroidDifficultyAttributes;
 
     protected override convertDatabaseMods(
-        attributes: DatabaseRebalanceDroidDifficultyAttributes
+        attributes: ProcessorDatabaseRebalanceDroidDifficultyAttributes
     ): Mod[] {
         return ModUtil.droidStringToMods(attributes.mods);
     }
 
     protected override convertDatabaseAttributesInternal(
-        attributes: DatabaseRebalanceDroidDifficultyAttributes
+        attributes: ProcessorDatabaseRebalanceDroidDifficultyAttributes
     ): Omit<ExtendedDroidDifficultyAttributes, keyof RawDifficultyAttributes> {
         return {
             mode: "rebalance",
@@ -94,8 +94,8 @@ export class RebalanceDroidDifficultyAttributesCacheManager extends DifficultyAt
     protected override convertDifficultyAttributesInternal(
         attributes: ExtendedDroidDifficultyAttributes
     ): Omit<
-        DatabaseRebalanceDroidDifficultyAttributes,
-        keyof DatabaseDifficultyAttributes
+        ProcessorDatabaseRebalanceDroidDifficultyAttributes,
+        keyof ProcessorDatabaseDifficultyAttributes
     > {
         return {
             aim_difficult_strain_count: attributes.aimDifficultStrainCount,

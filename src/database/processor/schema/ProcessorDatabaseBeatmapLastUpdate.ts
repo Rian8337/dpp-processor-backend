@@ -1,7 +1,7 @@
 /**
- * Represents beatmap last update dates that are in the database.
+ * Represents beatmap last update dates that are in the processor's database.
  */
-export interface DatabaseBeatmapLastUpdate {
+export interface ProcessorDatabaseBeatmapLastUpdate {
     /**
      * The ID of the beatmap.
      */

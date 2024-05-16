@@ -14,7 +14,8 @@ import persistLocalReplay from "./routes/persist-local-replay";
 import persistOnlineReplay from "./routes/persist-online-replay";
 import submitScores from "./routes/submit-scores";
 import { DPPUtil } from "./utils/DPPUtil";
-import { pool } from "./database/postgres/DatabasePool";
+import { processorPool } from "./database/processor/ProcessorDatabasePool";
+import { officialPool } from "./database/official/OfficialDatabasePool";
 
 config();
 
@@ -40,7 +41,11 @@ const app = express()
     .use(express.urlencoded({ extended: true }))
     .use("/api/dpp/processor", baseRouter);
 
-Promise.all([DatabaseManager.init(), pool.connect()])
+Promise.all([
+    DatabaseManager.init(),
+    officialPool.connect(),
+    processorPool.connect(),
+])
     .then(async () => {
         const port = parseInt(process.env.PORT || "3006");
 

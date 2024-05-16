@@ -7,17 +7,17 @@ import {
 } from "../cache/difficultyAtributesStorage";
 import { OsuPerformanceAttributes } from "../../structures/attributes/OsuPerformanceAttributes";
 import { Modes } from "@rian8337/osu-base";
-import { DatabaseLiveOsuDifficultyAttributes } from "../../database/postgres/schema/DatabaseLiveOsuDifficultyAttributes";
-import { DatabaseRebalanceOsuDifficultyAttributes } from "../../database/postgres/schema/DatabaseRebalanceOsuDifficultyAttributes";
+import { ProcessorDatabaseLiveOsuDifficultyAttributes } from "../../database/processor/schema/ProcessorDatabaseLiveOsuDifficultyAttributes";
+import { ProcessorDatabaseRebalanceOsuDifficultyAttributes } from "../../database/processor/schema/ProcessorDatabaseRebalanceOsuDifficultyAttributes";
 
 /**
  * A helper class for calculating osu!standard difficulty and performance of beatmaps or scores.
  */
 export class BeatmapOsuDifficultyCalculator extends BeatmapDifficultyCalculator<
     OsuDifficultyAttributes,
-    DatabaseLiveOsuDifficultyAttributes,
+    ProcessorDatabaseLiveOsuDifficultyAttributes,
     RebalanceOsuDifficultyAttributes,
-    DatabaseRebalanceOsuDifficultyAttributes,
+    ProcessorDatabaseRebalanceOsuDifficultyAttributes,
     OsuPerformanceAttributes
 > {
     protected override readonly mode = Modes.osu;

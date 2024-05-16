@@ -2,9 +2,9 @@ import { Mod, ModUtil, Modes } from "@rian8337/osu-base";
 import { OsuDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
 import { DifficultyAttributesCacheManager } from "./DifficultyAttributesCacheManager";
 import { PPCalculationMethod } from "../../../structures/PPCalculationMethod";
-import { DatabaseTables } from "../../../database/postgres/DatabaseTables";
-import { DatabaseLiveOsuDifficultyAttributes } from "../../../database/postgres/schema/DatabaseLiveOsuDifficultyAttributes";
-import { DatabaseDifficultyAttributes } from "../../../database/postgres/schema/DatabaseDifficultyAttributes";
+import { ProcessorDatabaseTables } from "../../../database/processor/ProcessorDatabaseTables";
+import { ProcessorDatabaseLiveOsuDifficultyAttributes } from "../../../database/processor/schema/ProcessorDatabaseLiveOsuDifficultyAttributes";
+import { ProcessorDatabaseDifficultyAttributes } from "../../../database/processor/schema/ProcessorDatabaseDifficultyAttributes";
 import { RawDifficultyAttributes } from "../../../structures/attributes/RawDifficultyAttributes";
 
 /**
@@ -12,21 +12,21 @@ import { RawDifficultyAttributes } from "../../../structures/attributes/RawDiffi
  */
 export class LiveOsuDifficultyAttributesCacheManager extends DifficultyAttributesCacheManager<
     OsuDifficultyAttributes,
-    DatabaseLiveOsuDifficultyAttributes
+    ProcessorDatabaseLiveOsuDifficultyAttributes
 > {
     protected override readonly attributeType = PPCalculationMethod.live;
     protected override readonly mode: Modes = Modes.osu;
     protected override readonly databaseTable =
-        DatabaseTables.liveOsuDifficultyAttributes;
+        ProcessorDatabaseTables.liveOsuDifficultyAttributes;
 
     protected override convertDatabaseMods(
-        attributes: DatabaseLiveOsuDifficultyAttributes
+        attributes: ProcessorDatabaseLiveOsuDifficultyAttributes
     ): Mod[] {
         return ModUtil.pcModbitsToMods(attributes.mods);
     }
 
     protected override convertDatabaseAttributesInternal(
-        attributes: DatabaseLiveOsuDifficultyAttributes
+        attributes: ProcessorDatabaseLiveOsuDifficultyAttributes
     ): Omit<OsuDifficultyAttributes, keyof RawDifficultyAttributes> {
         return { speedDifficulty: attributes.speed_difficulty };
     }
@@ -34,8 +34,8 @@ export class LiveOsuDifficultyAttributesCacheManager extends DifficultyAttribute
     protected override convertDifficultyAttributesInternal(
         attributes: OsuDifficultyAttributes
     ): Omit<
-        DatabaseLiveOsuDifficultyAttributes,
-        keyof DatabaseDifficultyAttributes
+        ProcessorDatabaseLiveOsuDifficultyAttributes,
+        keyof ProcessorDatabaseDifficultyAttributes
     > {
         return {
             speed_difficulty: attributes.speedDifficulty,

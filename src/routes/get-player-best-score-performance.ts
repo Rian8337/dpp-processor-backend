@@ -13,6 +13,7 @@ import { DroidDifficultyAttributes as RebalanceDroidDifficultyAttributes } from 
 import { RebalanceDroidPerformanceAttributes } from "../structures/attributes/RebalanceDroidPerformanceAttributes";
 import { getOnlineReplay, localReplayDirectory } from "../utils/replayManager";
 import { Score } from "@rian8337/osu-droid-utilities";
+import { DPPUtil } from "../utils/DPPUtil";
 
 const router = Router();
 
@@ -127,9 +128,9 @@ router.get<
                     flashlightSliderCheesePenalty:
                         result.flashlightSliderCheesePenalty,
                     visualSliderCheesePenalty: result.visualSliderCheesePenalty,
-                    calculatedUnstableRate: (<
-                        RebalanceDroidPerformanceAttributes
-                    >result).calculatedUnstableRate,
+                    calculatedUnstableRate: (
+                        result as RebalanceDroidPerformanceAttributes
+                    ).calculatedUnstableRate,
                     estimatedUnstableRate: MathUtils.round(
                         result.deviation * 10,
                         2
@@ -149,9 +150,10 @@ router.get<
     };
 
     // Check for online replay first in case it is not submitted to the local replay directory.
-    const score = await Score.getFromHash(
+    const score = await DPPUtil.getScore(
         parseInt(req.query.playerid),
-        req.query.beatmaphash
+        req.query.beatmaphash,
+        "id"
     );
 
     if (!score) {
@@ -159,11 +161,11 @@ router.get<
     }
 
     const analyzer = new ReplayAnalyzer({
-        scoreID: score.scoreID,
+        scoreID: score instanceof Score ? score.scoreID : score.id,
     });
 
     // Retrieve replay locally.
-    analyzer.originalODR = await getOnlineReplay(score.scoreID);
+    analyzer.originalODR = await getOnlineReplay(analyzer.scoreID);
     await calculateReplay(analyzer);
 
     // After checking the online score, we check local replay directory.

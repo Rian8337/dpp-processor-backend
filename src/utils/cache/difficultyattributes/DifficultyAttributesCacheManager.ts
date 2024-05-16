@@ -5,20 +5,20 @@ import { PPCalculationMethod } from "../../../structures/PPCalculationMethod";
 import { RawDifficultyAttributes } from "../../../structures/attributes/RawDifficultyAttributes";
 import { CacheableDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
 import { CachedDifficultyAttributes } from "../../../structures/attributes/CachedDifficultyAttributes";
-import { pool } from "../../../database/postgres/DatabasePool";
+import { processorPool } from "../../../database/processor/ProcessorDatabasePool";
 import {
-    DatabaseDifficultyAttributes,
+    ProcessorDatabaseDifficultyAttributes,
     DatabaseDifficultyAttributesPrimaryKey,
-} from "../../../database/postgres/schema/DatabaseDifficultyAttributes";
-import { DatabaseBeatmapLastUpdate } from "../../../database/postgres/schema/DatabaseBeatmapLastUpdate";
-import { DatabaseTables } from "../../../database/postgres/DatabaseTables";
+} from "../../../database/processor/schema/ProcessorDatabaseDifficultyAttributes";
+import { ProcessorDatabaseBeatmapLastUpdate } from "../../../database/processor/schema/ProcessorDatabaseBeatmapLastUpdate";
+import { ProcessorDatabaseTables } from "../../../database/processor/ProcessorDatabaseTables";
 
 /**
  * A cache manager for difficulty attributes.
  */
 export abstract class DifficultyAttributesCacheManager<
     TAttributes extends RawDifficultyAttributes,
-    TDatabaseAttributes extends DatabaseDifficultyAttributes
+    TDatabaseAttributes extends ProcessorDatabaseDifficultyAttributes
 > {
     /**
      * The type of the attribute.
@@ -34,8 +34,8 @@ export abstract class DifficultyAttributesCacheManager<
      * The database table that stores the difficulty attributes.
      */
     protected abstract readonly databaseTable: Exclude<
-        DatabaseTables,
-        DatabaseTables.beatmapLastUpdate
+        ProcessorDatabaseTables,
+        ProcessorDatabaseTables.beatmapLastUpdate
     >;
 
     /**
@@ -133,7 +133,7 @@ export abstract class DifficultyAttributesCacheManager<
 
         const keys = Object.keys(databaseAttributes);
 
-        await pool.query<TDatabaseAttributes>(
+        await processorPool.query<TDatabaseAttributes>(
             `INSERT INTO ${this.databaseTable} (${keys.join(
                 ","
             )}) VALUES (${keys.map((_, i) => `$${i + 1}`)})`,
@@ -240,7 +240,7 @@ export abstract class DifficultyAttributesCacheManager<
      */
     protected abstract convertDifficultyAttributesInternal(
         attributes: TAttributes
-    ): Omit<TDatabaseAttributes, keyof DatabaseDifficultyAttributes>;
+    ): Omit<TDatabaseAttributes, keyof ProcessorDatabaseDifficultyAttributes>;
 
     /**
      * Converts a database attributes to a difficulty attributes.
@@ -317,9 +317,9 @@ export abstract class DifficultyAttributesCacheManager<
             };
 
             // Try to get cache from database.
-            let beatmapDatabaseCache = await pool
-                .query<DatabaseBeatmapLastUpdate>(
-                    `SELECT * FROM ${DatabaseTables.beatmapLastUpdate} WHERE id = $1`,
+            let beatmapDatabaseCache = await processorPool
+                .query<ProcessorDatabaseBeatmapLastUpdate>(
+                    `SELECT * FROM ${ProcessorDatabaseTables.beatmapLastUpdate} WHERE id = $1`,
                     [beatmapInfo.beatmapId]
                 )
                 .then((res) => res.rows.at(0) ?? null)
@@ -341,13 +341,13 @@ export abstract class DifficultyAttributesCacheManager<
                     last_update: beatmapInfo.lastUpdate,
                 };
 
-                await pool.query<DatabaseBeatmapLastUpdate>(
-                    `INSERT INTO ${DatabaseTables.beatmapLastUpdate} (id, last_update) VALUES ($1, $2)`,
+                await processorPool.query<ProcessorDatabaseBeatmapLastUpdate>(
+                    `INSERT INTO ${ProcessorDatabaseTables.beatmapLastUpdate} (id, last_update) VALUES ($1, $2)`,
                     [beatmapInfo.beatmapId, beatmapInfo.lastUpdate]
                 );
             }
 
-            const difficultyAttributesCache = await pool
+            const difficultyAttributesCache = await processorPool
                 .query<TDatabaseAttributes>(
                     `SELECT * FROM ${this.databaseTable} WHERE beatmap_id = $1`,
                     [beatmapInfo.beatmapId]
@@ -409,7 +409,7 @@ export abstract class DifficultyAttributesCacheManager<
         this.cache.delete(beatmapId);
 
         // Also delete from database.
-        await pool.query<TDatabaseAttributes>(
+        await processorPool.query<TDatabaseAttributes>(
             `DELETE FROM ${this.databaseTable} WHERE beatmap_id = $1`,
             [beatmapId]
         );

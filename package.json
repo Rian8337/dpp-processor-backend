@@ -38,6 +38,7 @@
     "express": "^4.18.2",
     "express-form-data": "^2.0.22",
     "mongodb": "^6.0.0",
+    "mysql2": "^3.9.7",
     "pg": "^8.11.5"
   },
   "eslintConfig": {

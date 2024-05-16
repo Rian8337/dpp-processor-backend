@@ -1,10 +1,10 @@
-import { DatabaseDifficultyAttributes } from "./DatabaseDifficultyAttributes";
+import { ProcessorDatabaseDifficultyAttributes } from "./ProcessorDatabaseDifficultyAttributes";
 
 /**
- * Represents rebalance osu!droid difficulty attributes that are in the database.
+ * Represents rebalance osu!droid difficulty attributes that are in the processor's database.
  */
-export interface DatabaseRebalanceDroidDifficultyAttributes
-    extends DatabaseDifficultyAttributes {
+export interface ProcessorDatabaseRebalanceDroidDifficultyAttributes
+    extends ProcessorDatabaseDifficultyAttributes {
     /**
      * The mods which were applied to the beatmap.
      */

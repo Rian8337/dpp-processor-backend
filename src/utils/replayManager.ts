@@ -292,9 +292,13 @@ export function deleteUnprocessedReplay(path: string): Promise<void> {
 export function getOnlineReplay(
     scoreId: string | number
 ): Promise<Buffer | null> {
-    return readFile(join(onlineReplayDirectory, `${scoreId}.odr`)).catch(
-        () => null
-    );
+    return fetch(`https://osudroid.moe/api/upload/${scoreId}.odr`)
+        .then((res) => res.arrayBuffer())
+        .then(Buffer.from)
+        .catch(() => null);
+    // return readFile(join(onlineReplayDirectory, `${scoreId}.odr`)).catch(
+    //     () => null
+    // );
 }
 
 /**

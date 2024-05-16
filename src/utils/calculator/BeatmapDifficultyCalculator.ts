@@ -12,16 +12,16 @@ import { CalculationWorkerData } from "../../structures/workers/CalculationWorke
 import { PPCalculationMethod } from "../../structures/PPCalculationMethod";
 import { CompleteCalculationAttributes } from "../../structures/attributes/CompleteCalculationAttributes";
 import { PerformanceAttributes } from "../../structures/attributes/PerformanceAttributes";
-import { DatabaseDifficultyAttributes } from "../../database/postgres/schema/DatabaseDifficultyAttributes";
+import { ProcessorDatabaseDifficultyAttributes } from "../../database/processor/schema/ProcessorDatabaseDifficultyAttributes";
 
 /**
  * A helper class for calculating difficulty and performance of beatmaps or replays.
  */
 export abstract class BeatmapDifficultyCalculator<
     DA extends DifficultyAttributes,
-    TDA extends DatabaseDifficultyAttributes,
+    TDA extends ProcessorDatabaseDifficultyAttributes,
     RDA extends RebalanceDifficultyAttributes,
-    TRDA extends DatabaseDifficultyAttributes,
+    TRDA extends ProcessorDatabaseDifficultyAttributes,
     PA extends PerformanceAttributes,
     RPA extends PerformanceAttributes = PA
 > {

@@ -6,9 +6,9 @@ import {
 } from "@rian8337/osu-difficulty-calculator";
 import { DifficultyAttributesCacheManager } from "./DifficultyAttributesCacheManager";
 import { PPCalculationMethod } from "../../../structures/PPCalculationMethod";
-import { DatabaseLiveDroidDifficultyAttributes } from "../../../database/postgres/schema/DatabaseLiveDroidDifficultyAttributes";
-import { DatabaseTables } from "../../../database/postgres/DatabaseTables";
-import { DatabaseDifficultyAttributes } from "../../../database/postgres/schema/DatabaseDifficultyAttributes";
+import { ProcessorDatabaseLiveDroidDifficultyAttributes } from "../../../database/processor/schema/ProcessorDatabaseLiveDroidDifficultyAttributes";
+import { ProcessorDatabaseTables } from "../../../database/processor/ProcessorDatabaseTables";
+import { ProcessorDatabaseDifficultyAttributes } from "../../../database/processor/schema/ProcessorDatabaseDifficultyAttributes";
 import { RawDifficultyAttributes } from "../../../structures/attributes/RawDifficultyAttributes";
 
 /**
@@ -16,21 +16,21 @@ import { RawDifficultyAttributes } from "../../../structures/attributes/RawDiffi
  */
 export class LiveDroidDifficultyAttributesCacheManager extends DifficultyAttributesCacheManager<
     ExtendedDroidDifficultyAttributes,
-    DatabaseLiveDroidDifficultyAttributes
+    ProcessorDatabaseLiveDroidDifficultyAttributes
 > {
     protected override readonly attributeType = PPCalculationMethod.live;
     protected override readonly mode = Modes.droid;
     protected override readonly databaseTable =
-        DatabaseTables.liveDroidDifficultyAttributes;
+        ProcessorDatabaseTables.liveDroidDifficultyAttributes;
 
     protected override convertDatabaseMods(
-        attributes: DatabaseLiveDroidDifficultyAttributes
+        attributes: ProcessorDatabaseLiveDroidDifficultyAttributes
     ): Mod[] {
         return ModUtil.droidStringToMods(attributes.mods);
     }
 
     protected override convertDatabaseAttributesInternal(
-        attributes: DatabaseLiveDroidDifficultyAttributes
+        attributes: ProcessorDatabaseLiveDroidDifficultyAttributes
     ): Omit<ExtendedDroidDifficultyAttributes, keyof RawDifficultyAttributes> {
         return {
             mode: "live",
@@ -94,8 +94,8 @@ export class LiveDroidDifficultyAttributesCacheManager extends DifficultyAttribu
     protected override convertDifficultyAttributesInternal(
         attributes: ExtendedDroidDifficultyAttributes
     ): Omit<
-        DatabaseLiveDroidDifficultyAttributes,
-        keyof DatabaseDifficultyAttributes
+        ProcessorDatabaseLiveDroidDifficultyAttributes,
+        keyof ProcessorDatabaseDifficultyAttributes
     > {
         return {
             aim_difficult_strain_count: attributes.aimDifficultStrainCount,

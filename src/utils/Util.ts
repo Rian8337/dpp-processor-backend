@@ -1,10 +1,16 @@
 import { createHash } from "crypto";
 import { Request, Response, NextFunction } from "express";
+import { url } from "inspector";
 
 /**
  * Some utilities, no biggie.
  */
 export abstract class Util {
+    /**
+     * Whether the program is running in debug mode.
+     */
+    static readonly isDebug = !!url();
+
     /**
      * Computes the MD5 hash of a buffer.
      *

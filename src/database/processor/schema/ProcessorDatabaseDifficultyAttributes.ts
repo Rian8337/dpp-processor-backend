@@ -1,7 +1,7 @@
 /**
  * The base of database difficulty attributes.
  */
-export interface DatabaseDifficultyAttributes {
+export interface ProcessorDatabaseDifficultyAttributes {
     /**
      * The ID of the beatmap.
      */
@@ -113,7 +113,7 @@ export interface DatabaseDifficultyAttributes {
  * The primary key of database difficulty attributes.
  */
 export type DatabaseDifficultyAttributesPrimaryKey = Pick<
-    DatabaseDifficultyAttributes,
+    ProcessorDatabaseDifficultyAttributes,
     | "beatmap_id"
     | "speed_multiplier"
     | "force_cs"

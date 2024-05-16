@@ -2,9 +2,9 @@ import { Mod, ModUtil, Modes } from "@rian8337/osu-base";
 import { OsuDifficultyAttributes } from "@rian8337/osu-rebalance-difficulty-calculator";
 import { DifficultyAttributesCacheManager } from "./DifficultyAttributesCacheManager";
 import { PPCalculationMethod } from "../../../structures/PPCalculationMethod";
-import { DatabaseTables } from "../../../database/postgres/DatabaseTables";
-import { DatabaseDifficultyAttributes } from "../../../database/postgres/schema/DatabaseDifficultyAttributes";
-import { DatabaseRebalanceOsuDifficultyAttributes } from "../../../database/postgres/schema/DatabaseRebalanceOsuDifficultyAttributes";
+import { ProcessorDatabaseTables } from "../../../database/processor/ProcessorDatabaseTables";
+import { ProcessorDatabaseDifficultyAttributes } from "../../../database/processor/schema/ProcessorDatabaseDifficultyAttributes";
+import { ProcessorDatabaseRebalanceOsuDifficultyAttributes } from "../../../database/processor/schema/ProcessorDatabaseRebalanceOsuDifficultyAttributes";
 import { RawDifficultyAttributes } from "../../../structures/attributes/RawDifficultyAttributes";
 
 /**
@@ -12,21 +12,21 @@ import { RawDifficultyAttributes } from "../../../structures/attributes/RawDiffi
  */
 export class RebalanceOsuDifficultyAttributesCacheManager extends DifficultyAttributesCacheManager<
     OsuDifficultyAttributes,
-    DatabaseRebalanceOsuDifficultyAttributes
+    ProcessorDatabaseRebalanceOsuDifficultyAttributes
 > {
     protected override readonly attributeType = PPCalculationMethod.rebalance;
     protected override readonly mode = Modes.osu;
     protected override readonly databaseTable =
-        DatabaseTables.rebalanceOsuDifficultyAttributes;
+        ProcessorDatabaseTables.rebalanceOsuDifficultyAttributes;
 
     protected override convertDatabaseMods(
-        attributes: DatabaseRebalanceOsuDifficultyAttributes
+        attributes: ProcessorDatabaseRebalanceOsuDifficultyAttributes
     ): Mod[] {
         return ModUtil.pcModbitsToMods(attributes.mods);
     }
 
     protected override convertDatabaseAttributesInternal(
-        attributes: DatabaseRebalanceOsuDifficultyAttributes
+        attributes: ProcessorDatabaseRebalanceOsuDifficultyAttributes
     ): Omit<OsuDifficultyAttributes, keyof RawDifficultyAttributes> {
         return { speedDifficulty: attributes.speed_difficulty };
     }
@@ -34,8 +34,8 @@ export class RebalanceOsuDifficultyAttributesCacheManager extends DifficultyAttr
     protected override convertDifficultyAttributesInternal(
         attributes: OsuDifficultyAttributes
     ): Omit<
-        DatabaseRebalanceOsuDifficultyAttributes,
-        keyof DatabaseDifficultyAttributes
+        ProcessorDatabaseRebalanceOsuDifficultyAttributes,
+        keyof ProcessorDatabaseDifficultyAttributes
     > {
         return {
             speed_difficulty: attributes.speedDifficulty,

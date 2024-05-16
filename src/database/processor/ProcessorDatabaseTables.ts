@@ -1,7 +1,7 @@
 /**
- * Available database table names.
+ * Available table names in the processor's database.
  */
-export enum DatabaseTables {
+export enum ProcessorDatabaseTables {
     beatmapLastUpdate = "beatmap_last_update",
     liveDroidDifficultyAttributes = "live_droid_difficulty_attributes",
     rebalanceDroidDifficultyAttributes = "rebalance_droid_difficulty_attributes",

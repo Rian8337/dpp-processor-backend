@@ -13,17 +13,17 @@ import {
 import { DroidPerformanceAttributes } from "../../structures/attributes/DroidPerformanceAttributes";
 import { RebalanceDroidPerformanceAttributes } from "../../structures/attributes/RebalanceDroidPerformanceAttributes";
 import { PerformanceCalculationParameters } from "./PerformanceCalculationParameters";
-import { DatabaseLiveDroidDifficultyAttributes } from "../../database/postgres/schema/DatabaseLiveDroidDifficultyAttributes";
-import { DatabaseRebalanceDroidDifficultyAttributes } from "../../database/postgres/schema/DatabaseRebalanceDroidDifficultyAttributes";
+import { ProcessorDatabaseLiveDroidDifficultyAttributes } from "../../database/processor/schema/ProcessorDatabaseLiveDroidDifficultyAttributes";
+import { ProcessorDatabaseRebalanceDroidDifficultyAttributes } from "../../database/processor/schema/ProcessorDatabaseRebalanceDroidDifficultyAttributes";
 
 /**
  * A helper class for calculating osu!droid difficulty and performance of beatmaps or scores.
  */
 export class BeatmapDroidDifficultyCalculator extends BeatmapDifficultyCalculator<
     ExtendedDroidDifficultyAttributes,
-    DatabaseLiveDroidDifficultyAttributes,
+    ProcessorDatabaseLiveDroidDifficultyAttributes,
     RebalanceExtendedDroidDifficultyAttributes,
-    DatabaseRebalanceDroidDifficultyAttributes,
+    ProcessorDatabaseRebalanceDroidDifficultyAttributes,
     DroidPerformanceAttributes,
     RebalanceDroidPerformanceAttributes
 > {

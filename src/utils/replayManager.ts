@@ -243,12 +243,17 @@ export async function persistReplay(
  * @param customSpeedMultiplier The custom speed multiplier used in the replay.
  * @returns The replay file, `null` if not found.
  */
-export function getPersistedReplay(
+export async function getPersistedReplay(
     playerId: number,
     mapMD5: string,
     mods: (Mod & IModApplicableToDroid)[],
     customSpeedMultiplier = 1
 ): Promise<Buffer | null> {
+    if (Util.isDebug) {
+        // Debug should not have access to persisted replays.
+        return null;
+    }
+
     return readFile(
         join(
             localReplayDirectory,
@@ -268,10 +273,14 @@ export function getPersistedReplay(
  * @param filename The name of the replay file.
  * @returns The replay file, `null` if not found.
  */
-export function getUnprocessedReplay(filename: string): Promise<Buffer | null> {
-    return readFile(join(unprocessedReplayDirectory, filename)).catch(
-        () => null
-    );
+export async function getUnprocessedReplay(
+    filename: string
+): Promise<Buffer | null> {
+    return Util.isDebug
+        ? null
+        : readFile(join(unprocessedReplayDirectory, filename)).catch(
+              () => null
+          );
 }
 
 /**
@@ -279,7 +288,12 @@ export function getUnprocessedReplay(filename: string): Promise<Buffer | null> {
  *
  * @param path The path to the replay file.
  */
-export function deleteUnprocessedReplay(path: string): Promise<void> {
+export async function deleteUnprocessedReplay(path: string): Promise<void> {
+    if (Util.isDebug) {
+        // Debug should not have access to unprocessed replays.
+        return;
+    }
+
     return unlink(path);
 }
 
@@ -292,13 +306,14 @@ export function deleteUnprocessedReplay(path: string): Promise<void> {
 export function getOnlineReplay(
     scoreId: string | number
 ): Promise<Buffer | null> {
-    return fetch(`https://osudroid.moe/api/upload/${scoreId}.odr`)
-        .then((res) => res.arrayBuffer())
-        .then(Buffer.from)
-        .catch(() => null);
-    // return readFile(join(onlineReplayDirectory, `${scoreId}.odr`)).catch(
-    //     () => null
-    // );
+    return Util.isDebug
+        ? fetch(`https://osudroid.moe/api/upload/${scoreId}.odr`)
+              .then((res) => res.arrayBuffer())
+              .then(Buffer.from)
+              .catch(() => null)
+        : readFile(join(onlineReplayDirectory, `${scoreId}.odr`)).catch(
+              () => null
+          );
 }
 
 /**
@@ -311,11 +326,12 @@ export async function deleteReplays(
     uid: number | string,
     hash: string
 ): Promise<void> {
-    try {
-        await rm(join(localReplayDirectory, uid.toString(), hash));
-    } catch {
-        // Ignore error
+    if (Util.isDebug) {
+        // Debug should not have access to local replays.
+        return;
     }
+
+    return rm(join(localReplayDirectory, uid.toString(), hash));
 }
 
 /**
@@ -328,6 +344,11 @@ export async function wasBeatmapSubmitted(
     uid: number,
     hash: string
 ): Promise<boolean> {
+    if (Util.isDebug) {
+        // Debug should not have access to local replays.
+        return false;
+    }
+
     const dirStat = await stat(
         join(localReplayDirectory, uid.toString(), hash)
     );
@@ -341,9 +362,14 @@ export async function wasBeatmapSubmitted(
  * @param filePath The path to the replay file.
  * @returns The created path from `mkdir`.
  */
-function ensureBeatmapDirectoryExists(
+async function ensureBeatmapDirectoryExists(
     filePath: string
 ): Promise<string | undefined> {
+    if (Util.isDebug) {
+        // Debug should not have access to local replays.
+        return;
+    }
+
     const beatmapDirectory = filePath.split("/");
     beatmapDirectory.pop();
 

@@ -677,6 +677,7 @@ export abstract class DPPUtil {
 
         watch(join(unprocessedReplayDirectory, "*.odr"), {
             awaitWriteFinish: true,
+            ignoreInitial: true,
         }).on("add", processReplay);
 
         const replayFiles = await readdir(unprocessedReplayDirectory).catch(

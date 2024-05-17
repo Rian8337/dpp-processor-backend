@@ -723,7 +723,7 @@ export abstract class DPPUtil {
                 databaseColumns.join() || "*"
             } FROM ${constructOfficialDatabaseTable(
                 OfficialDatabaseTables.user
-            )} WHERE username = $1;`,
+            )} WHERE username = ?;`,
             [username]
         );
 
@@ -754,7 +754,7 @@ export abstract class DPPUtil {
                 databaseColumns.join() || "*"
             } FROM ${constructOfficialDatabaseTable(
                 OfficialDatabaseTables.score
-            )} WHERE uid = $1 AND hash = $2;`,
+            )} WHERE uid = ? AND hash = ? AND score > 0;`,
             [uid, hash]
         );
 

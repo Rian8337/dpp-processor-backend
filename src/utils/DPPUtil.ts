@@ -695,7 +695,7 @@ export abstract class DPPUtil {
         );
 
         for (const replayFile of replayFiles ?? []) {
-            await processReplay(replayFile);
+            await processReplay(join(unprocessedReplayDirectory, replayFile));
         }
 
         console.log("Unprocessed replay file(s) processing complete");

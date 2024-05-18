@@ -651,7 +651,12 @@ export abstract class DPPUtil {
                 return deleteUnprocessedReplay(path);
             }
 
-            const file = await readFile(path).catch(() => null);
+            const file = await readFile(path).catch((e) => {
+                console.error("Error when reading replay file:\n", e);
+
+                return null;
+            });
+
             if (!file) {
                 return;
             }
@@ -662,13 +667,21 @@ export abstract class DPPUtil {
 
             const analyzer = new ReplayAnalyzer({ scoreID: scoreId });
             analyzer.originalODR = file;
-            await analyzer.analyze().catch(() => {});
+            await analyzer
+                .analyze()
+                .catch((e) =>
+                    console.error("Error when analyzing replay:\n", e)
+                );
 
             const result = await this.submitReplay(
                 [analyzer],
                 undefined,
                 true
-            ).catch(() => null);
+            ).catch((e) => {
+                console.error("Error when processing replay:\n", e);
+
+                return null;
+            });
 
             if (result) {
                 await deleteUnprocessedReplay(path);

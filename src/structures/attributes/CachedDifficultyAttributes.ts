@@ -7,14 +7,17 @@ import { Collection } from "@discordjs/collection";
  */
 export interface CachedDifficultyAttributes<T extends RawDifficultyAttributes> {
     /**
-     * The time at which the beatmap was last updated.
+     * The MD5 hash of the beatmap.
      */
-    lastUpdate: Date;
+    readonly hash: string;
 
     /**
      * The difficulty attributes of the beatmap, following the formatting rule:
      *
      * `"<mods (in droid mod string for droid, in bitwise for standard)>[|<speed multiplier>x[|AR<force AR>]]": {}`
      */
-    difficultyAttributes: Collection<string, CacheableDifficultyAttributes<T>>;
+    readonly difficultyAttributes: Collection<
+        string,
+        CacheableDifficultyAttributes<T>
+    >;
 }

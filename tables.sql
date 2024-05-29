@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS live_droid_difficulty_attributes (
     vibro_factor                            float           NOT NULL,
 
     PRIMARY KEY (beatmap_id, mods, speed_multiplier, force_cs, force_ar, force_od, old_statistics),
-    CONSTRAINT fk_live_droid_difficulty_attributes_beatmap_id FOREIGN KEY (beatmap_id) REFERENCES beatmap(id)
+    CONSTRAINT fk_live_droid_difficulty_attributes_beatmap_id FOREIGN KEY (beatmap_id) REFERENCES beatmap(id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS live_droid_difficulty_attributes_main_idx ON live_droid_difficulty_attributes(beatmap_id, mods, speed_multiplier, force_cs, force_ar, force_od, old_statistics);
@@ -87,7 +87,7 @@ CREATE TABLE IF NOT EXISTS rebalance_droid_difficulty_attributes (
     vibro_factor                            float           NOT NULL,
 
     PRIMARY KEY (beatmap_id, mods, speed_multiplier, force_cs, force_ar, force_od, old_statistics),
-    CONSTRAINT fk_rebalance_droid_difficulty_attributes_beatmap_id FOREIGN KEY (beatmap_id) REFERENCES beatmap(id)
+    CONSTRAINT fk_rebalance_droid_difficulty_attributes_beatmap_id FOREIGN KEY (beatmap_id) REFERENCES beatmap(id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS rebalance_droid_difficulty_attributes_main_idx ON rebalance_droid_difficulty_attributes(beatmap_id, mods, speed_multiplier, force_cs, force_ar, force_od, old_statistics);
@@ -116,7 +116,7 @@ CREATE TABLE IF NOT EXISTS live_osu_difficulty_attributes (
     spinner_count                           int             NOT NULL,
 
     PRIMARY KEY (beatmap_id, mods, speed_multiplier, force_cs, force_ar, force_od, old_statistics),
-    CONSTRAINT fk_live_osu_difficulty_attributes_beatmap_id FOREIGN KEY (beatmap_id) REFERENCES beatmap(id)
+    CONSTRAINT fk_live_osu_difficulty_attributes_beatmap_id FOREIGN KEY (beatmap_id) REFERENCES beatmap(id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS live_osu_difficulty_attributes_main_idx ON live_osu_difficulty_attributes(beatmap_id, mods, speed_multiplier, force_cs, force_ar, force_od, old_statistics);
@@ -145,7 +145,7 @@ CREATE TABLE IF NOT EXISTS rebalance_osu_difficulty_attributes (
     spinner_count                           int             NOT NULL,
 
     PRIMARY KEY (beatmap_id, mods, speed_multiplier, force_cs, force_ar, force_od, old_statistics),
-    CONSTRAINT fk_rebalance_osu_difficulty_attributes_beatmap_id FOREIGN KEY (beatmap_id) REFERENCES beatmap(id)
+    CONSTRAINT fk_rebalance_osu_difficulty_attributes_beatmap_id FOREIGN KEY (beatmap_id) REFERENCES beatmap(id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS rebalance_osu_difficulty_attributes_main_idx ON rebalance_osu_difficulty_attributes(beatmap_id, mods, speed_multiplier, force_cs, force_ar, force_od, old_statistics);

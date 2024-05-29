@@ -7,6 +7,11 @@ import { Collection } from "@discordjs/collection";
  */
 export interface CachedDifficultyAttributes<T extends RawDifficultyAttributes> {
     /**
+     * The ID of the beatmap.
+     */
+    readonly id: number;
+
+    /**
      * The MD5 hash of the beatmap.
      */
     readonly hash: string;

@@ -1,17 +1,16 @@
 import { Collection } from "@discordjs/collection";
-import { MapInfo, Mod, Modes, ModUtil } from "@rian8337/osu-base";
+import { Mod, Modes, ModUtil } from "@rian8337/osu-base";
 import { Util } from "../../Util";
 import { PPCalculationMethod } from "../../../structures/PPCalculationMethod";
 import { RawDifficultyAttributes } from "../../../structures/attributes/RawDifficultyAttributes";
 import { CacheableDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
-import { CachedDifficultyAttributes } from "../../../structures/attributes/CachedDifficultyAttributes";
 import { processorPool } from "../../../database/processor/ProcessorDatabasePool";
 import {
     ProcessorDatabaseDifficultyAttributes,
     DatabaseDifficultyAttributesPrimaryKey,
 } from "../../../database/processor/schema/ProcessorDatabaseDifficultyAttributes";
-import { ProcessorDatabaseBeatmap } from "../../../database/processor/schema/ProcessorDatabaseBeatmap";
 import { ProcessorDatabaseTables } from "../../../database/processor/ProcessorDatabaseTables";
+import { getBeatmap } from "../beatmapStorage";
 
 /**
  * A cache manager for difficulty attributes.
@@ -43,42 +42,42 @@ export abstract class DifficultyAttributesCacheManager<
      */
     private readonly cache = new Collection<
         number,
-        CachedDifficultyAttributes<TAttributes>
+        Collection<string, CacheableDifficultyAttributes<TAttributes>>
     >();
 
     /**
      * Gets all difficulty attributes cache of a beatmap.
      *
-     * @param beatmapInfo The information about the beatmap.
+     * @param beatmapId The ID of the beatmap.
      */
     getBeatmapAttributes(
-        beatmapInfo: MapInfo
-    ): Promise<CachedDifficultyAttributes<TAttributes> | null> {
-        return this.getCache(beatmapInfo);
+        beatmapId: number
+    ): Promise<Collection<
+        string,
+        CacheableDifficultyAttributes<TAttributes>
+    > | null> {
+        return this.getCache(beatmapId);
     }
 
     /**
      * Gets a specific difficulty attributes cache of a beatmap.
      *
-     * @param beatmapInfo The information about the beatmap.
+     * @param beatmapId The ID of the beatmap.
      * @param attributeName The name of the attribute.
      */
     getDifficultyAttributes(
-        beatmapInfo: MapInfo,
+        beatmapId: number,
         attributeName: string
     ): Promise<CacheableDifficultyAttributes<TAttributes> | null> {
-        return this.getCache(beatmapInfo)
-            .then(
-                (cache) =>
-                    cache?.difficultyAttributes.get(attributeName) ?? null
-            )
+        return this.getCache(beatmapId)
+            .then((cache) => cache?.get(attributeName) ?? null)
             .catch(() => null);
     }
 
     /**
      * Adds an attribute to the beatmap difficulty cache.
      *
-     * @param beatmapInfo The information about the beatmap.
+     * @param beatmapId The ID of the beatmap.
      * @param difficultyAttributes The difficulty attributes to add.
      * @param oldStatistics Whether the difficulty attributes uses old statistics (pre-1.6.8 pre-release).
      * @param customSpeedMultiplier The custom speed multiplier that was used to generate the attributes.
@@ -88,7 +87,7 @@ export abstract class DifficultyAttributesCacheManager<
      * @returns The difficulty attributes that were cached.
      */
     async addAttribute(
-        beatmapInfo: MapInfo,
+        beatmapId: number,
         difficultyAttributes: TAttributes,
         oldStatistics = false,
         customSpeedMultiplier = 1,
@@ -96,10 +95,8 @@ export abstract class DifficultyAttributesCacheManager<
         forceAR?: number,
         forceOD?: number
     ): Promise<CacheableDifficultyAttributes<TAttributes>> {
-        const cache = (await this.getBeatmapAttributes(beatmapInfo)) ?? {
-            hash: beatmapInfo.hash,
-            difficultyAttributes: new Collection(),
-        };
+        const cache =
+            (await this.getBeatmapAttributes(beatmapId)) ?? new Collection();
 
         const attributeName = this.getAttributeName(
             difficultyAttributes.mods,
@@ -116,13 +113,13 @@ export abstract class DifficultyAttributesCacheManager<
                 mods: ModUtil.modsToOsuString(difficultyAttributes.mods),
             };
 
-        cache.difficultyAttributes.set(attributeName, cacheableAttributes);
+        cache.set(attributeName, cacheableAttributes);
 
-        this.cache.set(beatmapInfo.beatmapId, cache);
+        this.cache.set(beatmapId, cache);
 
         // Also add to database.
         const databaseAttributes = {
-            beatmap_id: beatmapInfo.beatmapId,
+            beatmap_id: beatmapId,
             force_cs: forceCS ?? -1,
             force_ar: forceAR ?? -1,
             force_od: forceOD ?? -1,
@@ -208,6 +205,15 @@ export abstract class DifficultyAttributesCacheManager<
         }
 
         return attributeName;
+    }
+
+    /**
+     * Invalidates the cache of a beatmap.
+     *
+     * @param beatmapId The ID of the beatmap.
+     */
+    invalidateCache(beatmapId: number) {
+        this.cache.delete(beatmapId);
     }
 
     /**
@@ -301,56 +307,29 @@ export abstract class DifficultyAttributesCacheManager<
     /**
      * Gets the difficulty attributes cache of a beatmap.
      *
-     * Includes logic to invalidate the beatmap's cache if it's no longer valid.
-     *
-     * @param beatmapInfo The information about the beatmap.
+     * @param beatmapId The MD5 hash of the beatmap.
+     * @returns The difficulty attributes cache, `null` if not found.
      */
     private async getCache(
-        beatmapInfo: MapInfo
-    ): Promise<CachedDifficultyAttributes<TAttributes> | null> {
-        let cache = this.cache.get(beatmapInfo.beatmapId);
+        beatmapId: number
+    ): Promise<Collection<
+        string,
+        CacheableDifficultyAttributes<TAttributes>
+    > | null> {
+        let cache = this.cache.get(beatmapId);
 
         if (!cache) {
-            cache = {
-                hash: beatmapInfo.hash,
-                difficultyAttributes: new Collection(),
-            };
-
             // Try to get cache from database.
-            let beatmapDatabaseCache = await processorPool
-                .query<ProcessorDatabaseBeatmap>(
-                    `SELECT * FROM ${ProcessorDatabaseTables.beatmap} WHERE id = $1`,
-                    [beatmapInfo.beatmapId]
-                )
-                .then((res) => res.rows.at(0) ?? null)
-                .catch(() => null);
+            const beatmap = await getBeatmap(beatmapId);
 
-            if (
-                beatmapDatabaseCache &&
-                beatmapDatabaseCache.hash !== beatmapInfo.hash
-            ) {
-                await this.invalidateCache(beatmapInfo.beatmapId);
-
+            if (!beatmap) {
                 return null;
-            }
-
-            if (!beatmapDatabaseCache) {
-                beatmapDatabaseCache = {
-                    id: beatmapInfo.beatmapId,
-                    hash: beatmapInfo.hash,
-                    ranked_status: beatmapInfo.approved,
-                };
-
-                await processorPool.query<ProcessorDatabaseBeatmap>(
-                    `INSERT INTO ${ProcessorDatabaseTables.beatmap} (id, last_update) VALUES ($1, $2)`,
-                    [beatmapInfo.beatmapId, beatmapInfo.lastUpdate]
-                );
             }
 
             const difficultyAttributesCache = await processorPool
                 .query<TDatabaseAttributes>(
-                    `SELECT * FROM ${this.databaseTable} WHERE beatmap_id = $1`,
-                    [beatmapInfo.beatmapId]
+                    `SELECT * FROM ${this.databaseTable} WHERE beatmap_id = $1;`,
+                    [beatmap.id]
                 )
                 .then((res) =>
                     res.rows.map<{
@@ -381,37 +360,15 @@ export abstract class DifficultyAttributesCacheManager<
                 return null;
             }
 
+            cache = new Collection();
+
             for (const attribute of difficultyAttributesCache) {
-                cache.difficultyAttributes.set(
-                    attribute.name,
-                    attribute.attributes
-                );
+                cache.set(attribute.name, attribute.attributes);
             }
 
-            this.cache.set(beatmapInfo.beatmapId, cache);
-        }
-
-        if (cache.hash !== beatmapInfo.hash) {
-            await this.invalidateCache(beatmapInfo.beatmapId);
-
-            return null;
+            this.cache.set(beatmapId, cache);
         }
 
         return cache;
-    }
-
-    /**
-     * Invalidates a difficulty attributes cache.
-     *
-     * @param beatmapId The ID of the beatmap to invalidate.
-     */
-    private async invalidateCache(beatmapId: number): Promise<void> {
-        this.cache.delete(beatmapId);
-
-        // Also delete from database.
-        await processorPool.query<TDatabaseAttributes>(
-            `DELETE FROM ${this.databaseTable} WHERE beatmap_id = $1`,
-            [beatmapId]
-        );
     }
 }

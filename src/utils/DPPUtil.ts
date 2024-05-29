@@ -10,7 +10,7 @@ import {
 import { getBeatmap } from "./cache/beatmapStorage";
 import { DatabaseManager } from "../database/managers/DatabaseManager";
 import { BeatmapDroidDifficultyCalculator } from "./calculator/BeatmapDroidDifficultyCalculator";
-import { MapInfo, MathUtils, RankedStatus } from "@rian8337/osu-base";
+import { MathUtils, RankedStatus } from "@rian8337/osu-base";
 import { PerformanceCalculationResult } from "./calculator/PerformanceCalculationResult";
 import { DPPSubmissionValidity } from "../enums/DPPSubmissionValidity";
 import { WhitelistUtil } from "./WhitelistUtil";
@@ -40,6 +40,7 @@ import {
 import { RowDataPacket } from "mysql2";
 import { Util } from "./Util";
 import { OfficialDatabaseScore } from "../database/official/schema/OfficialDatabaseScore";
+import { ProcessorDatabaseBeatmap } from "../database/processor/schema/ProcessorDatabaseBeatmap";
 
 /**
  * Utilities that are related to dpp.
@@ -75,7 +76,7 @@ export abstract class DPPUtil {
 
         const insertRecentScore = (
             replayData: ReplayData,
-            apiBeatmap?: MapInfo,
+            beatmap?: ProcessorDatabaseBeatmap,
             droidAttribs?: PerformanceCalculationResult<
                 DroidDifficultyAttributes,
                 DroidPerformanceAttributes
@@ -91,8 +92,7 @@ export abstract class DPPUtil {
                     ...replayData.accuracy,
                 },
                 title:
-                    apiBeatmap?.fullTitle ??
-                    replayData.fileName.replace(".osu", ""),
+                    beatmap?.title ?? replayData.fileName.replace(".osu", ""),
                 combo: replayData.maxCombo,
                 date: new Date(),
                 score: replayData.score,
@@ -101,7 +101,7 @@ export abstract class DPPUtil {
                     (a, v) => a + v.acronym,
                     ""
                 ),
-                hash: apiBeatmap?.hash ?? replayData.hash,
+                hash: beatmap?.hash ?? replayData.hash,
             };
 
             if (droidAttribs) {
@@ -293,9 +293,9 @@ export abstract class DPPUtil {
             }
 
             const submitToRecent = submitAsRecent && replay.scoreID === 0;
-            const apiBeatmap = await getBeatmap(data.hash);
+            const beatmap = await getBeatmap(data.hash);
 
-            if (!apiBeatmap) {
+            if (!beatmap) {
                 statuses.push({
                     success: false,
                     reason: "Beatmap not found",
@@ -334,7 +334,7 @@ export abstract class DPPUtil {
 
                 insertRecentScore(
                     data,
-                    apiBeatmap,
+                    beatmap,
                     droidAttribs,
                     typeof osuAttribs === "string" ? undefined : osuAttribs
                 );
@@ -351,7 +351,7 @@ export abstract class DPPUtil {
             }
 
             const submissionValidity = await this.checkSubmissionValidity(
-                apiBeatmap
+                beatmap
             );
             if (submissionValidity !== DPPSubmissionValidity.valid) {
                 let reason: string;
@@ -389,7 +389,7 @@ export abstract class DPPUtil {
             }
 
             const ppEntry = DPPUtil.scoreToPPEntry(
-                apiBeatmap,
+                beatmap,
                 uid,
                 data,
                 droidAttribs
@@ -404,8 +404,8 @@ export abstract class DPPUtil {
             }
 
             if (
-                apiBeatmap.approved === RankedStatus.ranked ||
-                apiBeatmap.approved === RankedStatus.approved
+                beatmap.ranked_status === RankedStatus.ranked ||
+                beatmap.ranked_status === RankedStatus.approved
             ) {
                 this.insertScore(inGamePP.pp, ppEntry, 100);
             }
@@ -417,8 +417,8 @@ export abstract class DPPUtil {
                 ++playCountIncrement;
 
                 if (
-                    apiBeatmap.approved === RankedStatus.ranked ||
-                    apiBeatmap.approved === RankedStatus.approved
+                    beatmap.ranked_status === RankedStatus.ranked ||
+                    beatmap.ranked_status === RankedStatus.approved
                 ) {
                     ++inGamePP.playc;
                 }
@@ -781,7 +781,7 @@ export abstract class DPPUtil {
      * @returns The validity of the beatmap.
      */
     private static async checkSubmissionValidity(
-        beatmap: MapInfo
+        beatmap: ProcessorDatabaseBeatmap
     ): Promise<DPPSubmissionValidity>;
 
     /**
@@ -795,14 +795,14 @@ export abstract class DPPUtil {
     ): Promise<DPPSubmissionValidity>;
 
     private static async checkSubmissionValidity(
-        beatmapOrScore: Score | MapInfo
+        beatmapOrScore: Score | ProcessorDatabaseBeatmap
     ): Promise<DPPSubmissionValidity> {
-        const apiBeatmap =
-            beatmapOrScore instanceof MapInfo
-                ? beatmapOrScore
-                : await getBeatmap(beatmapOrScore.hash);
+        const beatmap =
+            beatmapOrScore instanceof Score
+                ? await getBeatmap(beatmapOrScore.hash)
+                : beatmapOrScore;
 
-        if (!apiBeatmap) {
+        if (!beatmap) {
             return DPPSubmissionValidity.beatmapNotFound;
         }
 
@@ -813,15 +813,17 @@ export abstract class DPPUtil {
                     beatmapOrScore.forceOD !== undefined ||
                     beatmapOrScore.forceHP !== undefined):
                 return DPPSubmissionValidity.scoreUsesCustomStats;
-            case apiBeatmap.approved === RankedStatus.loved &&
-                (apiBeatmap.hitLength < 30 ||
-                    apiBeatmap.hitLength / apiBeatmap.totalLength < 0.6):
+            case beatmap.ranked_status === RankedStatus.loved &&
+                (beatmap.hit_length < 30 ||
+                    beatmap.hit_length / beatmap.total_length < 0.6):
                 return DPPSubmissionValidity.beatmapTooShort;
-            case await WhitelistUtil.isBlacklisted(apiBeatmap.beatmapId):
+            case await WhitelistUtil.isBlacklisted(beatmap.id):
                 return DPPSubmissionValidity.beatmapIsBlacklisted;
-            case WhitelistUtil.beatmapNeedsWhitelisting(apiBeatmap.approved) &&
+            case WhitelistUtil.beatmapNeedsWhitelisting(
+                beatmap.ranked_status
+            ) &&
                 (await WhitelistUtil.getBeatmapWhitelistStatus(
-                    apiBeatmap.hash
+                    beatmap.hash
                 )) !== "updated":
                 return DPPSubmissionValidity.beatmapNotWhitelisted;
             default:
@@ -860,7 +862,7 @@ export abstract class DPPUtil {
      * @returns A PP entry from the beatmap and calculation result.
      */
     private static scoreToPPEntry(
-        beatmap: MapInfo,
+        beatmap: ProcessorDatabaseBeatmap,
         playerId: number,
         replayData: ReplayData,
         calculationResult: PerformanceCalculationResult<
@@ -871,7 +873,7 @@ export abstract class DPPUtil {
         return {
             uid: playerId,
             hash: beatmap.hash,
-            title: beatmap.fullTitle,
+            title: beatmap.title,
             pp: MathUtils.round(calculationResult.result.total, 2),
             mods: calculationResult.difficultyAttributes.mods.reduce(
                 (a, v) => a + v.acronym,

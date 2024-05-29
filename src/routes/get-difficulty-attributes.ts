@@ -12,7 +12,7 @@ import {
     liveOsuDifficultyCache,
     rebalanceDroidDifficultyCache,
     rebalanceOsuDifficultyCache,
-} from "../utils/cache/difficultyAtributesStorage";
+} from "../utils/cache/difficultyAttributesStorage";
 import { PerformanceCalculationParameters } from "../utils/calculator/PerformanceCalculationParameters";
 import { CacheableDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
 import { ProcessorDatabaseDifficultyAttributes } from "../database/processor/schema/ProcessorDatabaseDifficultyAttributes";
@@ -93,11 +93,11 @@ router.get<
         return res.status(400).json({ error: "Invalid calculation method" });
     }
 
-    const apiBeatmap = await getBeatmap(
+    const beatmap = await getBeatmap(
         beatmapid !== undefined ? parseInt(beatmapid) : beatmaphash!
     );
 
-    if (!apiBeatmap) {
+    if (!beatmap) {
         return res.status(404).json({ error: "Beatmap not found" });
     }
 
@@ -113,8 +113,8 @@ router.get<
     const calculationParams = new PerformanceCalculationParameters({
         mods: mods,
         customSpeedMultiplier: customSpeedMultiplier,
-        combo: apiBeatmap.maxCombo,
-        accuracy: new Accuracy({ nobjects: apiBeatmap.objects }),
+        combo: beatmap.max_combo,
+        accuracy: new Accuracy({ nobjects: beatmap.object_count }),
         forceCS: forceCS,
         forceAR: forceAR,
         forceOD: forceOD,
@@ -153,7 +153,7 @@ router.get<
     }
 
     difficultyAttributes = await difficultyCacheManager.getDifficultyAttributes(
-        apiBeatmap,
+        beatmap.id,
         difficultyCacheManager.getAttributeName(
             mods,
             oldStatistics,
@@ -168,11 +168,11 @@ router.get<
         const calculationResult = await (calculationMethod ===
         PPCalculationMethod.live
             ? difficultyCalculator.calculateBeatmapPerformance(
-                  apiBeatmap,
+                  beatmap,
                   calculationParams
               )
             : difficultyCalculator.calculateBeatmapRebalancePerformance(
-                  apiBeatmap,
+                  beatmap,
                   calculationParams
               )
         ).catch((e: Error) => {

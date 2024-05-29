@@ -9,7 +9,7 @@ import {
 import {
     liveDroidDifficultyCache,
     rebalanceDroidDifficultyCache,
-} from "../cache/difficultyAtributesStorage";
+} from "../cache/difficultyAttributesStorage";
 import { DroidPerformanceAttributes } from "../../structures/attributes/DroidPerformanceAttributes";
 import { RebalanceDroidPerformanceAttributes } from "../../structures/attributes/RebalanceDroidPerformanceAttributes";
 import { PerformanceCalculationParameters } from "./PerformanceCalculationParameters";

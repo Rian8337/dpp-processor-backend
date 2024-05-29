@@ -124,16 +124,16 @@ router.get<
             n100: Math.max(0, parseInt(req.query.n100 ?? "0")),
             n50: Math.max(0, parseInt(req.query.n50 ?? "0")),
             nmiss: Math.max(0, parseInt(req.query.nmiss ?? "0")),
-            nobjects: apiBeatmap.objects,
+            nobjects: apiBeatmap.object_count,
         }),
         combo:
             typeof req.query.maxcombo === "string"
                 ? MathUtils.clamp(
                       parseInt(req.query.maxcombo),
                       0,
-                      apiBeatmap.maxCombo
+                      apiBeatmap.max_combo
                   )
-                : apiBeatmap.maxCombo,
+                : apiBeatmap.max_combo,
         tapPenalty: parseInt(req.query.tappenalty ?? "1"),
         sliderCheesePenalty: {
             aimPenalty: parseInt(req.query.aimslidercheesepenalty ?? "1"),

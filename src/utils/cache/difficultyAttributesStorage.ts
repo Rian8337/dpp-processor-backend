@@ -14,3 +14,15 @@ export const rebalanceDroidDifficultyCache =
 
 export const rebalanceOsuDifficultyCache =
     new RebalanceOsuDifficultyAttributesCacheManager();
+
+/**
+ * Invalidates the cache of difficulty attributes for a beatmap.
+ *
+ * @param beatmapId The ID of the beatmap.
+ */
+export function invalidateDifficultyAttributesCache(beatmapId: number) {
+    liveDroidDifficultyCache.invalidateCache(beatmapId);
+    liveOsuDifficultyCache.invalidateCache(beatmapId);
+    rebalanceDroidDifficultyCache.invalidateCache(beatmapId);
+    rebalanceOsuDifficultyCache.invalidateCache(beatmapId);
+}

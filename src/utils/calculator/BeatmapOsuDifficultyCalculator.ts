@@ -4,7 +4,7 @@ import { OsuDifficultyAttributes as RebalanceOsuDifficultyAttributes } from "@ri
 import {
     liveOsuDifficultyCache,
     rebalanceOsuDifficultyCache,
-} from "../cache/difficultyAtributesStorage";
+} from "../cache/difficultyAttributesStorage";
 import { OsuPerformanceAttributes } from "../../structures/attributes/OsuPerformanceAttributes";
 import { Modes } from "@rian8337/osu-base";
 import { ProcessorDatabaseLiveOsuDifficultyAttributes } from "../../database/processor/schema/ProcessorDatabaseLiveOsuDifficultyAttributes";

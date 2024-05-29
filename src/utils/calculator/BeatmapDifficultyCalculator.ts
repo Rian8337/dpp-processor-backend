@@ -1,4 +1,4 @@
-import { Accuracy, MapInfo, Modes } from "@rian8337/osu-base";
+import { Accuracy, Modes } from "@rian8337/osu-base";
 import { DifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
 import { DifficultyAttributes as RebalanceDifficultyAttributes } from "@rian8337/osu-rebalance-difficulty-calculator";
 import { DifficultyAttributesCacheManager } from "../cache/difficultyattributes/DifficultyAttributesCacheManager";
@@ -13,6 +13,7 @@ import { PPCalculationMethod } from "../../structures/PPCalculationMethod";
 import { CompleteCalculationAttributes } from "../../structures/attributes/CompleteCalculationAttributes";
 import { PerformanceAttributes } from "../../structures/attributes/PerformanceAttributes";
 import { ProcessorDatabaseDifficultyAttributes } from "../../database/processor/schema/ProcessorDatabaseDifficultyAttributes";
+import { ProcessorDatabaseBeatmap } from "../../database/processor/schema/ProcessorDatabaseBeatmap";
 
 /**
  * A helper class for calculating difficulty and performance of beatmaps or replays.
@@ -135,11 +136,11 @@ export abstract class BeatmapDifficultyCalculator<
      * @returns The result of the calculation. Errors will be thrown whenever necessary.
      */
     async calculateBeatmapPerformance(
-        beatmap: MapInfo | number | string,
+        beatmap: ProcessorDatabaseBeatmap | number | string,
         calculationParams?: PerformanceCalculationParameters
     ): Promise<PerformanceCalculationResult<DA, PA>> {
-        const apiBeatmap: MapInfo | null =
-            beatmap instanceof MapInfo ? beatmap : await getBeatmap(beatmap);
+        const apiBeatmap =
+            typeof beatmap === "object" ? beatmap : await getBeatmap(beatmap);
 
         if (!apiBeatmap) {
             throw new Error("Beatmap not found");
@@ -160,11 +161,11 @@ export abstract class BeatmapDifficultyCalculator<
      * @returns The result of the calculation. Errors will be thrown whenever necessary.
      */
     async calculateBeatmapRebalancePerformance(
-        beatmap: MapInfo | number | string,
+        beatmap: ProcessorDatabaseBeatmap | number | string,
         calculationParams?: PerformanceCalculationParameters
     ): Promise<RebalancePerformanceCalculationResult<RDA, RPA>> {
-        const apiBeatmap: MapInfo | null =
-            beatmap instanceof MapInfo ? beatmap : await getBeatmap(beatmap);
+        const apiBeatmap =
+            typeof beatmap === "object" ? beatmap : await getBeatmap(beatmap);
 
         if (!apiBeatmap) {
             throw new Error("Beatmap not found");
@@ -178,21 +179,21 @@ export abstract class BeatmapDifficultyCalculator<
     }
 
     private async calculatePerformance(
-        apiBeatmap: MapInfo,
+        beatmap: ProcessorDatabaseBeatmap,
         calculationMethod: PPCalculationMethod.live,
         calculationParams?: PerformanceCalculationParameters,
         replay?: ReplayAnalyzer
     ): Promise<PerformanceCalculationResult<DA, PA>>;
 
     private async calculatePerformance(
-        apiBeatmap: MapInfo,
+        beatmap: ProcessorDatabaseBeatmap,
         calculationMethod: PPCalculationMethod.rebalance,
         calculationParams?: PerformanceCalculationParameters,
         replay?: ReplayAnalyzer
     ): Promise<RebalancePerformanceCalculationResult<RDA, RPA>>;
 
     private async calculatePerformance(
-        apiBeatmap: MapInfo,
+        beatmap: ProcessorDatabaseBeatmap,
         calculationMethod: PPCalculationMethod,
         calculationParams?: PerformanceCalculationParameters,
         replay?: ReplayAnalyzer
@@ -200,15 +201,16 @@ export abstract class BeatmapDifficultyCalculator<
         | PerformanceCalculationResult<DA, PA>
         | RebalancePerformanceCalculationResult<RDA, RPA>
     > {
-        const beatmapFile = await getBeatmapFile(apiBeatmap);
-        if (!beatmapFile) {
-            throw new Error("Beatmap not found");
-        }
-
         const cacheManager =
             calculationMethod === PPCalculationMethod.live
                 ? this.liveDifficultyAttributesCache
                 : this.rebalanceDifficultyAttributesCache;
+
+        const beatmapFile = await getBeatmapFile(beatmap.id);
+
+        if (!beatmapFile) {
+            throw new Error("Beatmap not found");
+        }
 
         const forceCS = calculationParams?.forceCS;
         const forceAR = calculationParams?.forceAR;
@@ -224,7 +226,7 @@ export abstract class BeatmapDifficultyCalculator<
         );
 
         const cachedAttributes = await cacheManager.getDifficultyAttributes(
-            apiBeatmap,
+            beatmap.id,
             attributeName
         );
 
@@ -265,7 +267,7 @@ export abstract class BeatmapDifficultyCalculator<
 
                     if (!cachedAttributes) {
                         await cacheManager.addAttribute(
-                            apiBeatmap,
+                            beatmap.id,
                             diffAttribs,
                             calculationParams?.oldStatistics,
                             calculationParams?.customSpeedMultiplier,

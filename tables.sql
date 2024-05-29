@@ -1,7 +1,13 @@
 CREATE TABLE IF NOT EXISTS beatmap (
     id                       int             NOT NULL,
     hash                     varchar(32)     NOT NULL,
+    title                    text            NOT NULL,
+    hit_length               int             NOT NULL,
+    total_length             int             NOT NULL,
+    max_combo                int             NOT NULL,
+    object_count             int             NOT NULL,
     ranked_status            smallint        NOT NULL,
+    last_checked             timestamp       NOT NULL,
 
     PRIMARY KEY (id)
 );

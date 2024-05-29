@@ -2,5 +2,5 @@ dist
 node_modules
 .env
 
-# Difficulty attributes cache
-files/difficultyattributescache
+# Beatmap files
+beatmaps

@@ -3,8 +3,14 @@ import { processorPool } from "../../ProcessorDatabasePool";
 import { ProcessorDatabaseBeatmap } from "../../schema/ProcessorDatabaseBeatmap";
 import { ProcessorDatabaseTables } from "../../ProcessorDatabaseTables";
 import { MapInfo } from "@rian8337/osu-base";
+import { mkdirSync } from "fs";
+import { join } from "path";
+import { getBeatmapFile } from "../../../../utils/cache/beatmapStorage";
 
 config();
+
+// Create beatmap file directory if it doesn't exist
+mkdirSync(join(process.cwd(), "beatmaps"), { recursive: true });
 
 processorPool.connect().then(async () => {
     // Select beatmaps with empty hash
@@ -48,6 +54,13 @@ processorPool.connect().then(async () => {
         );
 
         console.log(`Updated beatmap with ID ${beatmap.id}`);
+
+        // Also download the beatmap file
+        await getBeatmapFile(apiBeatmap.beatmapId);
+
+        console.log(
+            `Downloaded beatmap file for beatmap with ID ${beatmap.id}`
+        );
     }
 
     console.log("Finished updating beatmaps with empty hash");

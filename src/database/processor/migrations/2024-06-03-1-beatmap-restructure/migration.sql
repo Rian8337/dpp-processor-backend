@@ -34,3 +34,20 @@ ALTER INDEX beatmap_last_update_id_idx RENAME TO beatmap_id_idx;
 
 -- Rename primary key index
 ALTER TABLE beatmap RENAME CONSTRAINT beatmap_last_update_pkey TO beatmap_pkey;
+
+-- Change constraints in difficulty attributes table to apply on delete cascade operation
+ALTER TABLE live_droid_difficulty_attributes
+    DROP CONSTRAINT IF EXISTS fk_live_droid_difficulty_attributes_beatmap_id,
+    ADD CONSTRAINT fk_live_droid_difficulty_attributes_beatmap_id FOREIGN KEY (beatmap_id) REFERENCES beatmap(id) ON DELETE CASCADE;
+
+ALTER TABLE rebalance_droid_difficulty_attributes
+    DROP CONSTRAINT IF EXISTS fk_rebalance_droid_difficulty_attributes_beatmap_id,
+    ADD CONSTRAINT fk_rebalance_droid_difficulty_attributes_beatmap_id FOREIGN KEY (beatmap_id) REFERENCES beatmap(id) ON DELETE CASCADE;
+
+ALTER TABLE live_osu_difficulty_attributes
+    DROP CONSTRAINT IF EXISTS fk_live_osu_difficulty_attributes_beatmap_id,
+    ADD CONSTRAINT fk_live_osu_difficulty_attributes_beatmap_id FOREIGN KEY (beatmap_id) REFERENCES beatmap(id) ON DELETE CASCADE;
+
+ALTER TABLE rebalance_osu_difficulty_attributes
+    DROP CONSTRAINT IF EXISTS fk_rebalance_osu_difficulty_attributes_beatmap_id,
+    ADD CONSTRAINT fk_rebalance_osu_difficulty_attributes_beatmap_id FOREIGN KEY (beatmap_id) REFERENCES beatmap(id) ON DELETE CASCADE;

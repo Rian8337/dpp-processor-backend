@@ -95,7 +95,7 @@ export async function getBeatmap(
             // Beatmap has been updated - invalidate cache.
             invalidateDifficultyAttributesCache(apiBeatmap.beatmapId);
 
-            await unlink(`beatmaps/${apiBeatmap.beatmapId}.osu`).catch(
+            await unlink(join("beatmaps", `${apiBeatmap.beatmapId}.osu`)).catch(
                 () => null
             );
 

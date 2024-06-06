@@ -75,6 +75,22 @@ export async function getBeatmap(
             ranked_status: apiBeatmap.approved,
             last_checked: new Date(),
         };
+
+        // Insert the cache to the database.
+        await processorPool.query<ProcessorDatabaseBeatmap>(
+            `INSERT INTO ${ProcessorDatabaseTables.beatmap} (id, hash, title, hit_length, total_length, max_combo, object_count, ranked_status, last_checked) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);`,
+            [
+                cache.id,
+                cache.hash,
+                cache.title,
+                cache.hit_length,
+                cache.total_length,
+                cache.max_combo,
+                cache.object_count,
+                cache.ranked_status,
+                cache.last_checked,
+            ]
+        );
     }
 
     // For unranked beatmaps, check the status if 30 minutes have passed since the last check.

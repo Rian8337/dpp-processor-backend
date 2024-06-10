@@ -97,7 +97,6 @@ export async function getBeatmap(
     if (
         cache.ranked_status !== RankedStatus.ranked &&
         cache.ranked_status !== RankedStatus.approved &&
-        cache.ranked_status !== RankedStatus.loved &&
         cache.last_checked < new Date(Date.now() - 1800000)
     ) {
         const apiBeatmap = await MapInfo.getInformation(cache.id, false);

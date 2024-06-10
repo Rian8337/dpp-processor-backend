@@ -132,4 +132,9 @@ export interface IRecentPlay {
         OsuDifficultyAttributes,
         OsuPerformanceAttributes
     >;
+
+    /**
+     * The ID of this play, if it was submitted to the game server.
+     */
+    scoreId?: number;
 }

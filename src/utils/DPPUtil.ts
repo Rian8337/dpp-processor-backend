@@ -76,6 +76,7 @@ export abstract class DPPUtil {
 
         const insertRecentScore = (
             replayData: ReplayData,
+            scoreId: number,
             beatmap?: ProcessorDatabaseBeatmap,
             droidAttribs?: PerformanceCalculationResult<
                 DroidDifficultyAttributes,
@@ -102,6 +103,7 @@ export abstract class DPPUtil {
                     ""
                 ),
                 hash: beatmap?.hash ?? replayData.hash,
+                scoreId: scoreId ? scoreId : undefined,
             };
 
             if (droidAttribs) {
@@ -292,7 +294,6 @@ export abstract class DPPUtil {
                 continue;
             }
 
-            const submitToRecent = submitAsRecent && replay.scoreID === 0;
             const beatmap = await getBeatmap(data.hash);
 
             if (!beatmap) {
@@ -302,8 +303,8 @@ export abstract class DPPUtil {
                     pp: 0,
                 });
 
-                if (submitToRecent) {
-                    insertRecentScore(data);
+                if (submitAsRecent) {
+                    insertRecentScore(data, replay.scoreID);
                 }
 
                 continue;
@@ -320,20 +321,21 @@ export abstract class DPPUtil {
                     pp: 0,
                 });
 
-                if (submitToRecent) {
-                    insertRecentScore(data);
+                if (submitAsRecent) {
+                    insertRecentScore(data, replay.scoreID);
                 }
 
                 continue;
             }
 
-            if (submitToRecent) {
+            if (submitAsRecent) {
                 const osuAttribs = await this.osuDifficultyCalculator
                     .calculateReplayPerformance(replay)
                     .catch((e: Error) => e.message);
 
                 insertRecentScore(
                     data,
+                    replay.scoreID,
                     beatmap,
                     droidAttribs,
                     typeof osuAttribs === "string" ? undefined : osuAttribs
@@ -353,6 +355,7 @@ export abstract class DPPUtil {
             const submissionValidity = await this.checkSubmissionValidity(
                 beatmap
             );
+
             if (submissionValidity !== DPPSubmissionValidity.valid) {
                 let reason: string;
                 switch (submissionValidity) {

@@ -39,22 +39,8 @@ export async function getBeatmap(
             ? databaseBeatmapIdCache.get(beatmapIdOrHash)
             : databaseBeatmapHashCache.get(beatmapIdOrHash)) ?? null;
 
-    // If still not found, check the beatmap in the database.
-    if (!cache) {
-        cache = await processorPool
-            .query<ProcessorDatabaseBeatmap>(
-                `SELECT * FROM ${ProcessorDatabaseTables.beatmap} WHERE ${
-                    typeof beatmapIdOrHash === "number" ? "id" : "hash"
-                } = $1;`,
-                [beatmapIdOrHash]
-            )
-            .then((res) => res.rows.at(0) ?? null)
-            .catch((e) => {
-                console.error(e);
-
-                return null;
-            });
-    }
+    // If not found, get the beatmap from the database.
+    cache ??= await getBeatmapFromDatabase(beatmapIdOrHash);
 
     // If still not found, request from osu! API.
     if (!cache) {
@@ -75,6 +61,21 @@ export async function getBeatmap(
             ranked_status: apiBeatmap.approved,
             last_checked: new Date(),
         };
+
+        // When retrieving with beatmap hash, the beatmap may be invalid when the new hash is retrieved.
+        // In that case, invalidate the cache.
+        if (typeof beatmapIdOrHash === "string") {
+            if (databaseBeatmapHashCache.has(beatmapIdOrHash)) {
+                await invalidateBeatmapCache(beatmapIdOrHash, cache);
+            } else {
+                // Check if the old beatmap cache is in the database.
+                const oldCache = await getBeatmapFromDatabase(cache.id);
+
+                if (oldCache && oldCache.hash !== apiBeatmap.hash) {
+                    await invalidateBeatmapCache(beatmapIdOrHash, cache);
+                }
+            }
+        }
 
         // Insert the cache to the database.
         await processorPool.query<ProcessorDatabaseBeatmap>(
@@ -108,11 +109,7 @@ export async function getBeatmap(
 
         if (cache.hash !== apiBeatmap.hash) {
             // Beatmap has been updated - invalidate cache.
-            invalidateDifficultyAttributesCache(apiBeatmap.beatmapId);
-
-            await unlink(join("beatmaps", `${apiBeatmap.beatmapId}.osu`)).catch(
-                () => null
-            );
+            const oldHash = cache.hash;
 
             cache = {
                 id: apiBeatmap.beatmapId,
@@ -126,27 +123,7 @@ export async function getBeatmap(
                 last_checked: new Date(),
             };
 
-            // Delete the cache from the database. This will force all difficulty attributes to be dropped as well.
-            await processorPool.query<ProcessorDatabaseBeatmap>(
-                `DELETE FROM ${ProcessorDatabaseTables.beatmap} WHERE id = $1;`,
-                [cache.id]
-            );
-
-            // Insert the new cache.
-            await processorPool.query<ProcessorDatabaseBeatmap>(
-                `INSERT INTO ${ProcessorDatabaseTables.beatmap} (id, hash, title, hit_length, total_length, max_combo, object_count, ranked_status, last_checked) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);`,
-                [
-                    cache.id,
-                    cache.hash,
-                    cache.title,
-                    cache.hit_length,
-                    cache.total_length,
-                    cache.max_combo,
-                    cache.object_count,
-                    cache.ranked_status,
-                    cache.last_checked,
-                ]
-            );
+            await invalidateBeatmapCache(oldHash, cache);
         } else {
             // Update the last checked date.
             cache.last_checked = new Date();
@@ -201,4 +178,57 @@ export async function getBeatmapFile(id: number): Promise<string | null> {
     await writeFile(join("beatmaps", `${id}.osu`), beatmapFile);
 
     return beatmapFile;
+}
+
+function getBeatmapFromDatabase(
+    beatmapIdOrHash: number | string
+): Promise<ProcessorDatabaseBeatmap | null> {
+    return processorPool
+        .query<ProcessorDatabaseBeatmap>(
+            `SELECT * FROM ${ProcessorDatabaseTables.beatmap} WHERE ${
+                typeof beatmapIdOrHash === "number" ? "id" : "hash"
+            } = $1;`,
+            [beatmapIdOrHash]
+        )
+        .then((res) => res.rows.at(0) ?? null)
+        .catch((e) => {
+            console.error(e);
+
+            return null;
+        });
+}
+
+async function invalidateBeatmapCache(
+    oldHash: string,
+    newCache: ProcessorDatabaseBeatmap
+) {
+    invalidateDifficultyAttributesCache(newCache.id);
+
+    databaseBeatmapIdCache.delete(newCache.id);
+    databaseBeatmapHashCache.delete(oldHash);
+
+    // Delete the beatmap file.
+    await unlink(join("beatmaps", `${newCache.id}.osu`)).catch(() => null);
+
+    // Delete the cache from the database. This will force all difficulty attributes to be dropped as well.
+    await processorPool.query<ProcessorDatabaseBeatmap>(
+        `DELETE FROM ${ProcessorDatabaseTables.beatmap} WHERE id = $1;`,
+        [newCache.id]
+    );
+
+    // Insert the new cache.
+    await processorPool.query<ProcessorDatabaseBeatmap>(
+        `INSERT INTO ${ProcessorDatabaseTables.beatmap} (id, hash, title, hit_length, total_length, max_combo, object_count, ranked_status, last_checked) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);`,
+        [
+            newCache.id,
+            newCache.hash,
+            newCache.title,
+            newCache.hit_length,
+            newCache.total_length,
+            newCache.max_combo,
+            newCache.object_count,
+            newCache.ranked_status,
+            newCache.last_checked,
+        ]
+    );
 }

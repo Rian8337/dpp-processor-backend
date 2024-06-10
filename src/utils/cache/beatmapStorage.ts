@@ -65,7 +65,7 @@ export async function getBeatmap(
         // When retrieving with beatmap hash, the beatmap may be invalid when the new hash is retrieved.
         // In that case, invalidate the cache.
         if (typeof beatmapIdOrHash === "string") {
-            if (databaseBeatmapHashCache.has(beatmapIdOrHash)) {
+            if (databaseBeatmapIdCache.has(cache.id)) {
                 await invalidateBeatmapCache(beatmapIdOrHash, cache);
             } else {
                 // Check if the old beatmap cache is in the database.

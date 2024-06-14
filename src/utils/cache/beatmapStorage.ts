@@ -108,7 +108,7 @@ export async function getBeatmap(
         }
 
         if (cache.hash !== apiBeatmap.hash) {
-            // Beatmap has been updated - invalidate cache.
+            // Beatmap has been updated - invalidate cache completely.
             const oldHash = cache.hash;
 
             cache = {
@@ -128,10 +128,19 @@ export async function getBeatmap(
             // Update the last checked date.
             cache.last_checked = new Date();
 
-            await processorPool.query<ProcessorDatabaseBeatmap>(
-                `UPDATE ${ProcessorDatabaseTables.beatmap} SET last_checked = $1 WHERE id = $2;`,
-                [cache.last_checked, cache.id]
-            );
+            if (apiBeatmap.approved !== cache.ranked_status) {
+                cache.ranked_status = apiBeatmap.approved;
+
+                await processorPool.query<ProcessorDatabaseBeatmap>(
+                    `UPDATE ${ProcessorDatabaseTables.beatmap} SET last_checked = $1, ranked_status = $2 WHERE id = $3;`,
+                    [cache.last_checked, cache.ranked_status, cache.id]
+                );
+            } else {
+                await processorPool.query<ProcessorDatabaseBeatmap>(
+                    `UPDATE ${ProcessorDatabaseTables.beatmap} SET last_checked = $1 WHERE id = $2;`,
+                    [cache.last_checked, cache.id]
+                );
+            }
         }
     }
 

@@ -1,8 +1,8 @@
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import { Router } from "express";
-import { DPPUtil } from "../utils/DPPUtil";
-import { Util } from "../utils/Util";
+import { validatePOSTInternalKey } from "../utils/util";
 import { getOnlineReplay } from "../utils/replayManager";
+import { submitReplayToDppDatabase } from "../utils/dppUtil";
 
 const router = Router();
 
@@ -11,7 +11,7 @@ router.post<
     unknown,
     unknown,
     { key: string; uid: string; scoreids: string }
->("/", Util.validatePOSTInternalKey, async (req, res) => {
+>("/", validatePOSTInternalKey, async (req, res) => {
     const scoreIds = req.body.scoreids.split(",").map((v) => parseInt(v));
     const replays: ReplayAnalyzer[] = [];
 
@@ -23,13 +23,16 @@ router.post<
         // Retrieve replay locally.
         analyzer.originalODR = await getOnlineReplay(scoreId);
         await analyzer.analyze().catch(() => {
-            console.error(`Score of ID ${scoreId} cannot be parsed`);
+            console.error(`Score of ID ${scoreId.toString()} cannot be parsed`);
         });
 
         replays.push(analyzer);
     }
 
-    const result = await DPPUtil.submitReplay(replays, parseInt(req.body.uid));
+    const result = await submitReplayToDppDatabase(
+        replays,
+        parseInt(req.body.uid),
+    );
 
     res.json(result);
 });

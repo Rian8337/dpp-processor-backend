@@ -8,34 +8,38 @@ import {
     unprocessedReplayDirectory,
 } from "./utils/replayManager";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
-import { DPPUtil } from "./utils/DPPUtil";
+import { submitReplayToDppDatabase } from "./utils/dppUtil";
 
 config();
 
-Promise.all([DatabaseManager.init(), processorPool.connect()]).then(
-    async () => {
+Promise.all([DatabaseManager.init(), processorPool.connect()])
+    .then(async () => {
         const files = await readdir(unprocessedReplayDirectory);
 
         console.log("Initiating replay submission process");
 
         for (const file of files) {
             const replay = await readFile(
-                join(unprocessedReplayDirectory, file)
+                join(unprocessedReplayDirectory, file),
             );
 
             const replayAnalyzer = new ReplayAnalyzer({ scoreID: 0 });
             replayAnalyzer.originalODR = replay;
 
-            await replayAnalyzer
-                .analyze()
-                .catch(() => console.error(`Cannot process replay ${file}`));
+            await replayAnalyzer.analyze().catch(() => {
+                console.error(`Cannot process replay ${file}`);
+            });
 
             const result = replayAnalyzer.data
-                ? await DPPUtil.submitReplay([replayAnalyzer], undefined, true)
+                ? await submitReplayToDppDatabase(
+                      [replayAnalyzer],
+                      undefined,
+                      true,
+                  )
                 : null;
 
             await deleteUnprocessedReplay(
-                join(unprocessedReplayDirectory, file)
+                join(unprocessedReplayDirectory, file),
             );
 
             if (result?.statuses.at(0)?.success) {
@@ -44,5 +48,8 @@ Promise.all([DatabaseManager.init(), processorPool.connect()]).then(
         }
 
         console.log("Replay submission process has been completed");
-    }
-);
+    })
+    .catch((e: unknown) => {
+        console.error(e);
+        process.exit(1);
+    });

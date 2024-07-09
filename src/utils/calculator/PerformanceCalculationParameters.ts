@@ -51,7 +51,7 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
      * @param data The data.
      */
     static from(
-        data: CloneablePerformanceCalculationParameters
+        data: CloneablePerformanceCalculationParameters,
     ): PerformanceCalculationParameters {
         return new this({
             ...data,
@@ -97,14 +97,14 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
     applyFromAttributes(
         attributes:
             | CacheableDifficultyAttributes<RawDifficultyAttributes>
-            | RawDifficultyAttributes
+            | RawDifficultyAttributes,
     ): void {
         const objectCount =
             attributes.hitCircleCount +
             attributes.sliderCount +
             attributes.spinnerCount;
 
-        if (this.accuracy && (this.accuracy.n50 || this.accuracy.n100)) {
+        if (this.accuracy.n50 || this.accuracy.n100) {
             this.accuracy = new Accuracy({
                 ...this.accuracy,
                 // Add remaining objects as misses.
@@ -113,7 +113,7 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
                     objectCount -
                         this.accuracy.n300 -
                         this.accuracy.n100 -
-                        this.accuracy.n50
+                        this.accuracy.n50,
                 ),
             });
         }
@@ -141,7 +141,7 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
     applyToOptions(
         options:
             | PerformanceCalculationOptions
-            | RebalancePerformanceCalculationOptions
+            | RebalancePerformanceCalculationOptions,
     ): void {
         options.combo = this.combo;
         options.accPercent = this.accuracy;

@@ -13,7 +13,7 @@ import getOnlineScoreAttributes from "./routes/get-online-score-attributes";
 import persistLocalReplay from "./routes/persist-local-replay";
 import persistOnlineReplay from "./routes/persist-online-replay";
 import submitScores from "./routes/submit-scores";
-import { DPPUtil } from "./utils/DPPUtil";
+import { initiateReplayProcessing } from "./utils/dppUtil";
 import { processorPool } from "./database/processor/ProcessorDatabasePool";
 import { mkdir } from "fs/promises";
 
@@ -47,13 +47,15 @@ Promise.all([
     mkdir("beatmaps", { recursive: true }),
 ])
     .then(async () => {
-        const port = parseInt(process.env.PORT || "3006");
+        const port = parseInt(process.env.PORT ?? "3006");
 
-        app.listen(port, () => console.log("DPP processor backend is up"));
+        app.listen(port, () => {
+            console.log("DPP processor backend is up");
+        });
 
-        await DPPUtil.initiateReplayProcessing();
+        await initiateReplayProcessing();
     })
-    .catch((e) => {
+    .catch((e: unknown) => {
         console.error(e);
         process.exit(1);
     });

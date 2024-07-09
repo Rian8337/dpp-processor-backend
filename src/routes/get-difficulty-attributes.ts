@@ -5,7 +5,6 @@ import { PPCalculationMethod } from "../structures/PPCalculationMethod";
 import { RawDifficultyAttributes } from "../structures/attributes/RawDifficultyAttributes";
 import { BeatmapDroidDifficultyCalculator } from "../utils/calculator/BeatmapDroidDifficultyCalculator";
 import { BeatmapOsuDifficultyCalculator } from "../utils/calculator/BeatmapOsuDifficultyCalculator";
-import { Util } from "../utils/Util";
 import { DifficultyAttributesCacheManager } from "../utils/cache/difficultyattributes/DifficultyAttributesCacheManager";
 import {
     liveDroidDifficultyCache,
@@ -16,6 +15,7 @@ import {
 import { PerformanceCalculationParameters } from "../utils/calculator/PerformanceCalculationParameters";
 import { CacheableDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
 import { ProcessorDatabaseDifficultyAttributes } from "../database/processor/schema/ProcessorDatabaseDifficultyAttributes";
+import { validateGETInternalKey } from "../utils/util";
 
 const router = Router();
 
@@ -37,7 +37,7 @@ router.get<
         forcear?: string;
         forceod?: string;
     }
->("/", Util.validateGETInternalKey, async (req, res) => {
+>("/", validateGETInternalKey, async (req, res) => {
     if (!req.query.beatmapid && !req.query.beatmaphash) {
         return res
             .status(400)
@@ -50,7 +50,7 @@ router.get<
     const customSpeedMultiplier = MathUtils.clamp(
         parseFloat(req.query.customspeedmultiplier ?? "1"),
         0.5,
-        2
+        2,
     );
     if (Number.isNaN(customSpeedMultiplier)) {
         return res
@@ -82,19 +82,22 @@ router.get<
     const { beatmapid, beatmaphash, gamemode } = req.query;
     const calculationMethod = parseInt(req.query.calculationmethod);
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     if (gamemode !== Modes.droid && gamemode !== Modes.osu) {
         return res.status(400).json({ error: "Invalid gamemode" });
     }
 
     if (
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
         calculationMethod !== PPCalculationMethod.live &&
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
         calculationMethod !== PPCalculationMethod.rebalance
     ) {
         return res.status(400).json({ error: "Invalid calculation method" });
     }
 
     const beatmap = await getBeatmap(
-        beatmapid !== undefined ? parseInt(beatmapid) : beatmaphash!
+        beatmapid !== undefined ? parseInt(beatmapid) : beatmaphash!,
     );
 
     if (!beatmap) {
@@ -160,29 +163,29 @@ router.get<
             customSpeedMultiplier,
             forceCS,
             forceAR,
-            forceOD
-        )
+            forceOD,
+        ),
     );
 
     if (!difficultyAttributes) {
-        const calculationResult = await (calculationMethod ===
-        PPCalculationMethod.live
-            ? difficultyCalculator.calculateBeatmapPerformance(
-                  beatmap,
-                  calculationParams
-              )
-            : difficultyCalculator.calculateBeatmapRebalancePerformance(
-                  beatmap,
-                  calculationParams
-              )
-        ).catch((e: Error) => {
+        const calculationResult = await (
+            calculationMethod === PPCalculationMethod.live
+                ? difficultyCalculator.calculateBeatmapPerformance(
+                      beatmap,
+                      calculationParams,
+                  )
+                : difficultyCalculator.calculateBeatmapRebalancePerformance(
+                      beatmap,
+                      calculationParams,
+                  )
+        ).catch((e: unknown) => {
             console.log(
                 "Calculation failed for URL:",
-                req.url.replace(process.env.DROID_SERVER_INTERNAL_KEY!, "")
+                req.url.replace(process.env.DROID_SERVER_INTERNAL_KEY!, ""),
             );
             console.error(e);
 
-            return e.message;
+            return e instanceof Error ? e.message : "Calculation failed";
         });
 
         if (typeof calculationResult === "string") {
@@ -192,7 +195,7 @@ router.get<
         difficultyAttributes = {
             ...calculationResult.difficultyAttributes,
             mods: ModUtil.modsToOsuString(
-                calculationResult.difficultyAttributes.mods
+                calculationResult.difficultyAttributes.mods,
             ),
         };
     }

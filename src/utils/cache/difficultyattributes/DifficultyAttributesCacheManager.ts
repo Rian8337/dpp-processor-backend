@@ -1,6 +1,5 @@
 import { Collection } from "@discordjs/collection";
 import { Mod, Modes, ModUtil } from "@rian8337/osu-base";
-import { Util } from "../../Util";
 import { PPCalculationMethod } from "../../../structures/PPCalculationMethod";
 import { RawDifficultyAttributes } from "../../../structures/attributes/RawDifficultyAttributes";
 import { CacheableDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
@@ -11,13 +10,14 @@ import {
 } from "../../../database/processor/schema/ProcessorDatabaseDifficultyAttributes";
 import { ProcessorDatabaseTables } from "../../../database/processor/ProcessorDatabaseTables";
 import { getBeatmap } from "../beatmapStorage";
+import { sortAlphabet } from "../../util";
 
 /**
  * A cache manager for difficulty attributes.
  */
 export abstract class DifficultyAttributesCacheManager<
     TAttributes extends RawDifficultyAttributes,
-    TDatabaseAttributes extends ProcessorDatabaseDifficultyAttributes
+    TDatabaseAttributes extends ProcessorDatabaseDifficultyAttributes,
 > {
     /**
      * The type of the attribute.
@@ -51,7 +51,7 @@ export abstract class DifficultyAttributesCacheManager<
      * @param beatmapId The ID of the beatmap.
      */
     getBeatmapAttributes(
-        beatmapId: number
+        beatmapId: number,
     ): Promise<Collection<
         string,
         CacheableDifficultyAttributes<TAttributes>
@@ -67,7 +67,7 @@ export abstract class DifficultyAttributesCacheManager<
      */
     getDifficultyAttributes(
         beatmapId: number,
-        attributeName: string
+        attributeName: string,
     ): Promise<CacheableDifficultyAttributes<TAttributes> | null> {
         return this.getCache(beatmapId)
             .then((cache) => cache?.get(attributeName) ?? null)
@@ -93,7 +93,7 @@ export abstract class DifficultyAttributesCacheManager<
         customSpeedMultiplier = 1,
         forceCS?: number,
         forceAR?: number,
-        forceOD?: number
+        forceOD?: number,
     ): Promise<CacheableDifficultyAttributes<TAttributes>> {
         const cache =
             (await this.getBeatmapAttributes(beatmapId)) ?? new Collection();
@@ -104,7 +104,7 @@ export abstract class DifficultyAttributesCacheManager<
             customSpeedMultiplier,
             forceCS,
             forceAR,
-            forceOD
+            forceOD,
         );
 
         const cacheableAttributes: CacheableDifficultyAttributes<TAttributes> =
@@ -132,9 +132,9 @@ export abstract class DifficultyAttributesCacheManager<
 
         await processorPool.query<TDatabaseAttributes>(
             `INSERT INTO ${this.databaseTable} (${keys.join(
-                ","
-            )}) VALUES (${keys.map((_, i) => `$${i + 1}`)})`,
-            Object.values(databaseAttributes)
+                ",",
+            )}) VALUES (${keys.map((_, i) => `$${(i + 1).toString()}`).join()})`,
+            Object.values(databaseAttributes),
         );
 
         return cacheableAttributes;
@@ -156,14 +156,14 @@ export abstract class DifficultyAttributesCacheManager<
         customSpeedMultiplier = 1,
         forceCS?: number,
         forceAR?: number,
-        forceOD?: number
+        forceOD?: number,
     ): string {
         let attributeName = "";
 
         switch (this.mode) {
             case Modes.droid:
                 attributeName +=
-                    Util.sortAlphabet(
+                    sortAlphabet(
                         (Array.isArray(mods)
                             ? mods
                             : ModUtil.droidStringToMods(mods)
@@ -171,17 +171,19 @@ export abstract class DifficultyAttributesCacheManager<
                             (a, m) =>
                                 a +
                                 (m.isApplicableToDroid() ? m.droidString : ""),
-                            ""
-                        )
+                            "",
+                        ),
                     ) || "-";
                 break;
             case Modes.osu:
                 attributeName += (
                     Array.isArray(mods) ? mods : ModUtil.pcStringToMods(mods)
-                ).reduce(
-                    (a, m) => a | (m.isApplicableToOsu() ? m.bitwise : 0),
-                    0
-                );
+                )
+                    .reduce(
+                        (a, m) => a | (m.isApplicableToOsu() ? m.bitwise : 0),
+                        0,
+                    )
+                    .toString();
         }
 
         if (customSpeedMultiplier !== 1) {
@@ -189,15 +191,15 @@ export abstract class DifficultyAttributesCacheManager<
         }
 
         if (forceCS !== undefined && forceCS !== -1) {
-            attributeName += `|CS${forceCS}`;
+            attributeName += `|CS${forceCS.toString()}`;
         }
 
         if (forceAR !== undefined && forceAR !== -1) {
-            attributeName += `|AR${forceAR}`;
+            attributeName += `|AR${forceAR.toString()}`;
         }
 
         if (forceOD !== undefined && forceOD !== -1) {
-            attributeName += `|OD${forceOD}`;
+            attributeName += `|OD${forceOD.toString()}`;
         }
 
         if (oldStatistics) {
@@ -223,7 +225,7 @@ export abstract class DifficultyAttributesCacheManager<
      * @returns The converted mods.
      */
     protected abstract convertDatabaseMods(
-        attributes: TDatabaseAttributes
+        attributes: TDatabaseAttributes,
     ): Mod[];
 
     /**
@@ -234,7 +236,7 @@ export abstract class DifficultyAttributesCacheManager<
      * @returns The converted difficulty attributes.
      */
     protected abstract convertDatabaseAttributesInternal(
-        attributes: TDatabaseAttributes
+        attributes: TDatabaseAttributes,
     ): Omit<TAttributes, keyof RawDifficultyAttributes>;
 
     /**
@@ -245,7 +247,7 @@ export abstract class DifficultyAttributesCacheManager<
      * @returns The converted database attributes.
      */
     protected abstract convertDifficultyAttributesInternal(
-        attributes: TAttributes
+        attributes: TAttributes,
     ): Omit<TDatabaseAttributes, keyof ProcessorDatabaseDifficultyAttributes>;
 
     /**
@@ -255,7 +257,7 @@ export abstract class DifficultyAttributesCacheManager<
      * @returns The converted difficulty attributes.
      */
     private convertDatabaseAttributes(
-        attributes: TDatabaseAttributes
+        attributes: TDatabaseAttributes,
     ): TAttributes {
         return {
             ...this.convertDatabaseAttributesInternal(attributes),
@@ -282,7 +284,7 @@ export abstract class DifficultyAttributesCacheManager<
      * @returns The converted database attributes.
      */
     private convertDifficultyAttributes(
-        attributes: TAttributes
+        attributes: TAttributes,
     ): Omit<TDatabaseAttributes, keyof DatabaseDifficultyAttributesPrimaryKey> {
         return {
             ...this.convertDifficultyAttributesInternal(attributes),
@@ -311,7 +313,7 @@ export abstract class DifficultyAttributesCacheManager<
      * @returns The difficulty attributes cache, `null` if not found.
      */
     private async getCache(
-        beatmapId: number
+        beatmapId: number,
     ): Promise<Collection<
         string,
         CacheableDifficultyAttributes<TAttributes>
@@ -329,7 +331,7 @@ export abstract class DifficultyAttributesCacheManager<
             const difficultyAttributesCache = await processorPool
                 .query<TDatabaseAttributes>(
                     `SELECT * FROM ${this.databaseTable} WHERE beatmap_id = $1;`,
-                    [beatmap.id]
+                    [beatmap.id],
                 )
                 .then((res) =>
                     res.rows.map<{
@@ -345,14 +347,14 @@ export abstract class DifficultyAttributesCacheManager<
                                 v.speed_multiplier,
                                 v.force_cs,
                                 v.force_ar,
-                                v.force_od
+                                v.force_od,
                             ),
                             attributes: {
                                 ...attributes,
                                 mods: ModUtil.modsToOsuString(attributes.mods),
                             },
                         };
-                    })
+                    }),
                 )
                 .catch(() => null);
 

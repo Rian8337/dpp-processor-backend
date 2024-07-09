@@ -34,12 +34,13 @@ export abstract class DatabaseCollectionManager<T extends Document> {
 
     /**
      * Gets multiple documents from the collection.
+     *
      * @param filter The document filter.
      * @param options The options for retrieving the documents.
      * @returns The documents.
      */
     get(filter: Filter<T> = {}, options?: FindOptions<T>): Promise<T[]> {
-        return <Promise<T[]>>this.collection.find(filter, options).toArray();
+        return this.collection.find(filter, options).toArray() as Promise<T[]>;
     }
 
     /**
@@ -52,7 +53,7 @@ export abstract class DatabaseCollectionManager<T extends Document> {
      */
     getOne(
         filter: Filter<T> = {},
-        options?: FindOptions<T>
+        options?: FindOptions<T>,
     ): Promise<T | null> {
         return this.collection.findOne(filter, options);
     }
@@ -68,7 +69,7 @@ export abstract class DatabaseCollectionManager<T extends Document> {
     updateMany(
         filter: Filter<T>,
         query: UpdateFilter<T> | Partial<T>,
-        options: UpdateOptions = {}
+        options: UpdateOptions = {},
     ): Promise<UpdateResult<T>> {
         return this.collection.updateMany(filter, query, options);
     }
@@ -84,7 +85,7 @@ export abstract class DatabaseCollectionManager<T extends Document> {
     updateOne(
         filter: Filter<T>,
         query: UpdateFilter<T> | Partial<T>,
-        options: UpdateOptions = {}
+        options: UpdateOptions = {},
     ): Promise<UpdateResult<T>> {
         return this.collection.updateOne(filter, query, options);
     }
@@ -98,10 +99,11 @@ export abstract class DatabaseCollectionManager<T extends Document> {
         return this.collection.insertMany(
             docs.map(
                 (v) =>
-                    <OptionalUnlessRequiredId<T>>(
-                        Object.assign(this.defaultDocument, v)
-                    )
-            )
+                    Object.assign(
+                        this.defaultDocument,
+                        v,
+                    ) as OptionalUnlessRequiredId<T>,
+            ),
         );
     }
 

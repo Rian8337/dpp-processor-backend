@@ -24,13 +24,13 @@ export class LiveDroidDifficultyAttributesCacheManager extends DifficultyAttribu
         ProcessorDatabaseTables.liveDroidDifficultyAttributes;
 
     protected override convertDatabaseMods(
-        attributes: ProcessorDatabaseLiveDroidDifficultyAttributes
+        attributes: ProcessorDatabaseLiveDroidDifficultyAttributes,
     ): Mod[] {
         return ModUtil.droidStringToMods(attributes.mods);
     }
 
     protected override convertDatabaseAttributesInternal(
-        attributes: ProcessorDatabaseLiveDroidDifficultyAttributes
+        attributes: ProcessorDatabaseLiveDroidDifficultyAttributes,
     ): Omit<ExtendedDroidDifficultyAttributes, keyof RawDifficultyAttributes> {
         return {
             mode: "live",
@@ -92,7 +92,7 @@ export class LiveDroidDifficultyAttributesCacheManager extends DifficultyAttribu
     }
 
     protected override convertDifficultyAttributesInternal(
-        attributes: ExtendedDroidDifficultyAttributes
+        attributes: ExtendedDroidDifficultyAttributes,
     ): Omit<
         ProcessorDatabaseLiveDroidDifficultyAttributes,
         keyof ProcessorDatabaseDifficultyAttributes
@@ -102,20 +102,23 @@ export class LiveDroidDifficultyAttributesCacheManager extends DifficultyAttribu
             aim_note_count: attributes.aimNoteCount,
             average_speed_delta_time: attributes.averageSpeedDeltaTime,
             difficult_sliders: attributes.difficultSliders
-                .map((slider) => `${slider.index} ${slider.difficultyRating}`)
+                .map(
+                    (slider) =>
+                        `${slider.index.toString()} ${slider.difficultyRating.toString()}`,
+                )
                 .join(" "),
             flashlight_difficult_strain_count:
                 attributes.flashlightDifficultStrainCount,
             flashlight_slider_factor: attributes.flashlightSliderFactor,
             mods: attributes.mods.reduce(
                 (a, m) => a + (m.isApplicableToDroid() ? m.droidString : ""),
-                ""
+                "",
             ),
             possible_three_fingered_sections:
                 attributes.possibleThreeFingeredSections
                     .map(
                         (section) =>
-                            `${section.firstObjectIndex} ${section.lastObjectIndex} ${section.sumStrain}`
+                            `${section.firstObjectIndex.toString()} ${section.lastObjectIndex.toString()} ${section.sumStrain.toString()}`,
                     )
                     .join(" "),
             rhythm_difficulty: attributes.rhythmDifficulty,

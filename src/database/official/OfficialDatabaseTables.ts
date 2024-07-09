@@ -16,8 +16,8 @@ export enum OfficialDatabaseTables {
  * @param table The table name.
  * @returns The constructed table name.
  */
-export function constructOfficialDatabaseTable(
+export function constructOfficialDatabaseTableName(
     table: OfficialDatabaseTables
 ): string {
-    return `${process.env.OFFICIAL_DB_PREFIX}${table}`;
+    return `${process.env.OFFICIAL_DB_PREFIX!}${table}`;
 }

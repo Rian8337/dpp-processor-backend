@@ -20,8 +20,11 @@ import { CompleteCalculationAttributes } from "../structures/attributes/Complete
 import { DroidPerformanceAttributes } from "../structures/attributes/DroidPerformanceAttributes";
 import { OsuPerformanceAttributes } from "../structures/attributes/OsuPerformanceAttributes";
 import { PerformanceCalculationParameters } from "../utils/calculator/PerformanceCalculationParameters";
-import { LocalBeatmapDifficultyCalculator } from "../utils/calculator/LocalBeatmapDifficultyCalculator";
-import { Util } from "../utils/Util";
+import { validatePOSTInternalKey } from "../utils/util";
+import {
+    calculateLocalBeatmapDifficulty,
+    calculateLocalBeatmapPerformance,
+} from "../utils/calculator/LocalBeatmapDifficultyCalculator";
 
 const router = Router();
 
@@ -36,8 +39,10 @@ function readFileStream(stream: ReadStream): Promise<Buffer> {
 
     return new Promise((resolve, reject) => {
         stream.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
-        stream.on("error", (err) => reject(err));
-        stream.on("end", () => resolve(Buffer.concat(chunks)));
+        stream.on("error", reject);
+        stream.on("end", () => {
+            resolve(Buffer.concat(chunks));
+        });
     });
 }
 
@@ -65,9 +70,10 @@ router.post<
         flashlightslidercheesepenalty?: string;
         visualslidercheesepenalty?: string;
     }
->("/", Util.validatePOSTInternalKey, async (req, res) => {
+>("/", validatePOSTInternalKey, async (req, res) => {
     // @ts-expect-error: Bad typings
-    const fileStream: ReadStream = req.files.file;
+    const fileStream = (req.files as Record<string, ReadStream | undefined>)
+        .file;
 
     if (!fileStream) {
         return res.status(400).json({ error: "Beatmap not found" });
@@ -81,7 +87,7 @@ router.post<
     const customSpeedMultiplier = MathUtils.clamp(
         parseFloat(req.body.customspeedmultiplier ?? "1"),
         0.5,
-        2
+        2,
     );
     if (Number.isNaN(customSpeedMultiplier)) {
         return res
@@ -113,12 +119,15 @@ router.post<
     const { gamemode } = req.body;
     const calculationMethod = parseInt(req.body.calculationmethod);
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     if (gamemode !== Modes.droid && gamemode !== Modes.osu) {
         return res.status(400).json({ error: "Invalid gamemode" });
     }
 
     if (
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
         calculationMethod !== PPCalculationMethod.live &&
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
         calculationMethod !== PPCalculationMethod.rebalance
     ) {
         return res.status(400).json({ error: "Invalid calculation method" });
@@ -143,13 +152,13 @@ router.post<
         combo: MathUtils.clamp(
             parseInt(req.body.maxcombo ?? beatmap.maxCombo.toString()),
             0,
-            beatmap.maxCombo
+            beatmap.maxCombo,
         ),
         tapPenalty: parseInt(req.body.tappenalty ?? "1"),
         sliderCheesePenalty: {
             aimPenalty: parseInt(req.body.aimslidercheesepenalty ?? "1"),
             flashlightPenalty: parseInt(
-                req.body.flashlightslidercheesepenalty ?? "1"
+                req.body.flashlightslidercheesepenalty ?? "1",
             ),
             visualPenalty: parseInt(req.body.visualslidercheesepenalty ?? "1"),
         },
@@ -159,16 +168,15 @@ router.post<
         case Modes.droid: {
             switch (calculationMethod) {
                 case PPCalculationMethod.live: {
-                    const result =
-                        LocalBeatmapDifficultyCalculator.calculatePerformance(
-                            LocalBeatmapDifficultyCalculator.calculateDifficulty(
-                                beatmap,
-                                calculationParams,
-                                gamemode,
-                                calculationMethod
-                            ),
-                            calculationParams
-                        );
+                    const result = calculateLocalBeatmapPerformance(
+                        calculateLocalBeatmapDifficulty(
+                            beatmap,
+                            calculationParams,
+                            gamemode,
+                            calculationMethod,
+                        ),
+                        calculationParams,
+                    );
 
                     const attributes: CompleteCalculationAttributes<
                         DroidDifficultyAttributes,
@@ -179,7 +187,7 @@ router.post<
                             ...result.difficultyAttributes,
                             mods: result.difficultyAttributes.mods.reduce(
                                 (a, v) => a + v.acronym,
-                                ""
+                                "",
                             ),
                         },
                         performance: {
@@ -206,16 +214,15 @@ router.post<
                     break;
                 }
                 case PPCalculationMethod.rebalance: {
-                    const result =
-                        LocalBeatmapDifficultyCalculator.calculatePerformance(
-                            LocalBeatmapDifficultyCalculator.calculateDifficulty(
-                                beatmap,
-                                calculationParams,
-                                gamemode,
-                                calculationMethod
-                            ),
-                            calculationParams
-                        );
+                    const result = calculateLocalBeatmapPerformance(
+                        calculateLocalBeatmapDifficulty(
+                            beatmap,
+                            calculationParams,
+                            gamemode,
+                            calculationMethod,
+                        ),
+                        calculationParams,
+                    );
 
                     const attributes: CompleteCalculationAttributes<
                         RebalanceDroidDifficultyAttributes,
@@ -226,7 +233,7 @@ router.post<
                             ...result.difficultyAttributes,
                             mods: result.difficultyAttributes.mods.reduce(
                                 (a, v) => a + v.acronym,
-                                ""
+                                "",
                             ),
                         },
                         performance: {
@@ -259,16 +266,15 @@ router.post<
         case Modes.osu: {
             switch (calculationMethod) {
                 case PPCalculationMethod.live: {
-                    const result =
-                        LocalBeatmapDifficultyCalculator.calculatePerformance(
-                            LocalBeatmapDifficultyCalculator.calculateDifficulty(
-                                beatmap,
-                                calculationParams,
-                                gamemode,
-                                calculationMethod
-                            ),
-                            calculationParams
-                        );
+                    const result = calculateLocalBeatmapPerformance(
+                        calculateLocalBeatmapDifficulty(
+                            beatmap,
+                            calculationParams,
+                            gamemode,
+                            calculationMethod,
+                        ),
+                        calculationParams,
+                    );
 
                     const attributes: CompleteCalculationAttributes<
                         OsuDifficultyAttributes,
@@ -279,7 +285,7 @@ router.post<
                             ...result.difficultyAttributes,
                             mods: result.difficultyAttributes.mods.reduce(
                                 (a, v) => a + v.acronym,
-                                ""
+                                "",
                             ),
                         },
                         performance: {
@@ -296,16 +302,15 @@ router.post<
                     break;
                 }
                 case PPCalculationMethod.rebalance: {
-                    const result =
-                        LocalBeatmapDifficultyCalculator.calculatePerformance(
-                            LocalBeatmapDifficultyCalculator.calculateDifficulty(
-                                beatmap,
-                                calculationParams,
-                                gamemode,
-                                calculationMethod
-                            ),
-                            calculationParams
-                        );
+                    const result = calculateLocalBeatmapPerformance(
+                        calculateLocalBeatmapDifficulty(
+                            beatmap,
+                            calculationParams,
+                            gamemode,
+                            calculationMethod,
+                        ),
+                        calculationParams,
+                    );
 
                     const attributes: CompleteCalculationAttributes<
                         RebalanceOsuDifficultyAttributes,
@@ -316,7 +321,7 @@ router.post<
                             ...result.difficultyAttributes,
                             mods: result.difficultyAttributes.mods.reduce(
                                 (a, v) => a + v.acronym,
-                                ""
+                                "",
                             ),
                         },
                         performance: {

@@ -71,9 +71,9 @@ export class CalculationWorkerPool extends EventEmitter {
     /**
      * Closes this worker pool and terminates all workers.
      */
-    close() {
+    async close() {
         for (const { worker } of this.workers) {
-            worker.terminate();
+            await worker.terminate();
         }
     }
 

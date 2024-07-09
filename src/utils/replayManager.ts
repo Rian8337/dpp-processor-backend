@@ -11,7 +11,7 @@ import {
 } from "fs/promises";
 import { homedir } from "os";
 import { join } from "path";
-import { Util } from "./Util";
+import { isDebug, sortAlphabet } from "./util";
 
 const mainDirectory = join(homedir(), "..", "..");
 
@@ -25,7 +25,7 @@ export const localReplayDirectory = join(mainDirectory, "data", "dpp-replays");
  */
 export const unprocessedReplayDirectory = join(
     localReplayDirectory,
-    "unprocessed"
+    "unprocessed",
 );
 
 /**
@@ -36,7 +36,7 @@ export const onlineReplayDirectory = join(
     "DroidData",
     "osudroid",
     "zip",
-    "upload"
+    "upload",
 );
 
 /**
@@ -48,7 +48,7 @@ export const onlineReplayDirectory = join(
  */
 export async function saveReplay(
     playerId: number,
-    replayAnalyzer: ReplayAnalyzer
+    replayAnalyzer: ReplayAnalyzer,
 ): Promise<boolean> {
     const { originalODR, data } = replayAnalyzer;
     if (!originalODR || !data) {
@@ -62,7 +62,7 @@ export async function saveReplay(
         data.speedMultiplier,
         data.forceCS,
         data.forceAR,
-        data.forceOD
+        data.forceOD,
     );
 
     // Ensure directory exists before performing read/write operations.
@@ -73,7 +73,10 @@ export async function saveReplay(
     const { accuracy: newAccuracy } = data;
 
     for (let i = 1; i <= 5; ++i) {
-        const replayPath = join(localReplayDirectory, `${filePath}_${i}.odr`);
+        const replayPath = join(
+            localReplayDirectory,
+            `${filePath}_${i.toString()}.odr`,
+        );
         const replayFile = await readFile(replayPath).catch(() => null);
         if (!replayFile) {
             replayIncrementId = i;
@@ -82,7 +85,7 @@ export async function saveReplay(
 
         const analyzer = new ReplayAnalyzer({ scoreID: 0 });
         analyzer.originalODR = replayFile;
-        await analyzer.analyze().catch(() => {});
+        await analyzer.analyze().catch(() => null);
 
         if (!analyzer.data) {
             continue;
@@ -133,19 +136,25 @@ export async function saveReplay(
     // Overwrite existing incremental IDs.
     for (let i = replayIncrementId; i < 5; ++i) {
         const name = join(localReplayDirectory, filePath);
-        const nameWithIncrementId = `${name}_${i}.odr`;
+        const nameWithIncrementId = `${name}_${i.toString()}.odr`;
         const file = await readFile(nameWithIncrementId).catch(() => null);
 
         if (!file) {
             continue;
         }
 
-        await copyFile(nameWithIncrementId, `${name}_${i + 1}.odr`);
+        await copyFile(
+            nameWithIncrementId,
+            `${name}_${(i + 1).toString()}.odr`,
+        );
     }
 
     return writeFile(
-        join(localReplayDirectory, `${filePath}_${replayIncrementId}.odr`),
-        originalODR
+        join(
+            localReplayDirectory,
+            `${filePath}_${replayIncrementId.toString()}.odr`,
+        ),
+        originalODR,
     )
         .then(() => true)
         .catch(() => false);
@@ -167,31 +176,29 @@ export function generateReplayFilePath(
     playerId: number,
     mapMD5: string,
     mods: (Mod & IModApplicableToDroid)[],
-    customSpeedMultiplier: number = 1,
+    customSpeedMultiplier = 1,
     forceCS?: number,
     forceAR?: number,
-    forceOD?: number
+    forceOD?: number,
 ) {
     let filePath = join(
         playerId.toString(),
         mapMD5,
-        `${Util.sortAlphabet(
-            mods.reduce((a, v) => a + v.droidString, "") || "-"
-        )}`
+        sortAlphabet(mods.reduce((a, v) => a + v.droidString, "") || "-"),
     );
 
     if (customSpeedMultiplier !== 1) {
-        filePath += `_${customSpeedMultiplier}x`;
+        filePath += `_${customSpeedMultiplier.toString()}x`;
     }
 
     if (forceCS !== undefined) {
-        filePath += `_CS${forceCS}`;
+        filePath += `_CS${forceCS.toString()}`;
     }
     if (forceAR !== undefined) {
-        filePath += `_AR${forceAR}`;
+        filePath += `_AR${forceAR.toString()}`;
     }
     if (forceOD !== undefined) {
-        filePath += `_OD${forceOD}`;
+        filePath += `_OD${forceOD.toString()}`;
     }
 
     return filePath;
@@ -208,7 +215,7 @@ export function generateReplayFilePath(
  */
 export async function persistReplay(
     playerId: number,
-    replay: ReplayAnalyzer
+    replay: ReplayAnalyzer,
 ): Promise<boolean> {
     const { data, originalODR } = replay;
     if (!data || !originalODR) {
@@ -223,12 +230,12 @@ export async function persistReplay(
             data.speedMultiplier,
             data.forceCS,
             data.forceAR,
-            data.forceOD
+            data.forceOD,
         ) + "_persisted.odr";
 
     return ensureBeatmapDirectoryExists(filePath)
         .then(() =>
-            writeFile(join(localReplayDirectory, filePath), originalODR)
+            writeFile(join(localReplayDirectory, filePath), originalODR),
         )
         .then(() => true)
         .catch(() => false);
@@ -247,9 +254,9 @@ export async function getPersistedReplay(
     playerId: number,
     mapMD5: string,
     mods: (Mod & IModApplicableToDroid)[],
-    customSpeedMultiplier = 1
+    customSpeedMultiplier = 1,
 ): Promise<Buffer | null> {
-    if (Util.isDebug) {
+    if (isDebug) {
         // Debug should not have access to persisted replays.
         return null;
     }
@@ -261,9 +268,9 @@ export async function getPersistedReplay(
                 playerId,
                 mapMD5,
                 mods,
-                customSpeedMultiplier
-            ) + "_persisted.odr"
-        )
+                customSpeedMultiplier,
+            ) + "_persisted.odr",
+        ),
     ).catch(() => null);
 }
 
@@ -274,12 +281,12 @@ export async function getPersistedReplay(
  * @returns The replay file, `null` if not found.
  */
 export async function getUnprocessedReplay(
-    filename: string
+    filename: string,
 ): Promise<Buffer | null> {
-    return Util.isDebug
+    return isDebug
         ? null
         : readFile(join(unprocessedReplayDirectory, filename)).catch(
-              () => null
+              () => null,
           );
 }
 
@@ -289,7 +296,7 @@ export async function getUnprocessedReplay(
  * @param path The path to the replay file.
  */
 export async function deleteUnprocessedReplay(path: string): Promise<void> {
-    if (Util.isDebug) {
+    if (isDebug) {
         // Debug should not have access to unprocessed replays.
         return;
     }
@@ -304,16 +311,16 @@ export async function deleteUnprocessedReplay(path: string): Promise<void> {
  * @returns The replay file, `null` if not found.
  */
 export function getOnlineReplay(
-    scoreId: string | number
+    scoreId: string | number,
 ): Promise<Buffer | null> {
-    return Util.isDebug
-        ? fetch(`https://osudroid.moe/api/upload/${scoreId}.odr`)
+    return isDebug
+        ? fetch(`https://osudroid.moe/api/upload/${scoreId.toString()}.odr`)
               .then((res) => res.arrayBuffer())
-              .then(Buffer.from)
+              .then((res) => Buffer.from(res))
               .catch(() => null)
-        : readFile(join(onlineReplayDirectory, `${scoreId}.odr`)).catch(
-              () => null
-          );
+        : readFile(
+              join(onlineReplayDirectory, `${scoreId.toString()}.odr`),
+          ).catch(() => null);
 }
 
 /**
@@ -324,9 +331,9 @@ export function getOnlineReplay(
  */
 export async function deleteReplays(
     uid: number | string,
-    hash: string
+    hash: string,
 ): Promise<void> {
-    if (Util.isDebug) {
+    if (isDebug) {
         // Debug should not have access to local replays.
         return;
     }
@@ -342,15 +349,15 @@ export async function deleteReplays(
  */
 export async function wasBeatmapSubmitted(
     uid: number,
-    hash: string
+    hash: string,
 ): Promise<boolean> {
-    if (Util.isDebug) {
+    if (isDebug) {
         // Debug should not have access to local replays.
         return false;
     }
 
     const dirStat = await stat(
-        join(localReplayDirectory, uid.toString(), hash)
+        join(localReplayDirectory, uid.toString(), hash),
     );
 
     return dirStat.isDirectory();
@@ -363,9 +370,9 @@ export async function wasBeatmapSubmitted(
  * @returns The created path from `mkdir`.
  */
 async function ensureBeatmapDirectoryExists(
-    filePath: string
+    filePath: string,
 ): Promise<string | undefined> {
-    if (Util.isDebug) {
+    if (isDebug) {
         // Debug should not have access to local replays.
         return;
     }

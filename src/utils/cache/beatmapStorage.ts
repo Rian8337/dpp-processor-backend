@@ -31,7 +31,7 @@ const databaseBeatmapHashCache = new Collection<
  * @returns A `MapInfo` instance representing the beatmap.
  */
 export async function getBeatmap(
-    beatmapIdOrHash: number | string
+    beatmapIdOrHash: number | string,
 ): Promise<ProcessorDatabaseBeatmap | null> {
     // Check existing cache first.
     let cache =
@@ -90,7 +90,7 @@ export async function getBeatmap(
                 cache.object_count,
                 cache.ranked_status,
                 cache.last_checked,
-            ]
+            ],
         );
     }
 
@@ -133,12 +133,12 @@ export async function getBeatmap(
 
                 await processorPool.query<ProcessorDatabaseBeatmap>(
                     `UPDATE ${ProcessorDatabaseTables.beatmap} SET last_checked = $1, ranked_status = $2 WHERE id = $3;`,
-                    [cache.last_checked, cache.ranked_status, cache.id]
+                    [cache.last_checked, cache.ranked_status, cache.id],
                 );
             } else {
                 await processorPool.query<ProcessorDatabaseBeatmap>(
                     `UPDATE ${ProcessorDatabaseTables.beatmap} SET last_checked = $1 WHERE id = $2;`,
-                    [cache.last_checked, cache.id]
+                    [cache.last_checked, cache.id],
                 );
             }
         }
@@ -160,8 +160,8 @@ export async function getBeatmap(
 export async function getBeatmapFile(id: number): Promise<string | null> {
     // Check existing file first.
     let beatmapFile = await readFile(
-        join("beatmaps", `${id}.osu`),
-        "utf-8"
+        join("beatmaps", `${id.toString()}.osu`),
+        "utf-8",
     ).catch(() => null);
 
     if (beatmapFile) {
@@ -169,7 +169,7 @@ export async function getBeatmapFile(id: number): Promise<string | null> {
     }
 
     // If there is not, request from osu! API.
-    beatmapFile = await fetch(`https://osu.ppy.sh/osu/${id}`)
+    beatmapFile = await fetch(`https://osu.ppy.sh/osu/${id.toString()}`)
         .then((res) => {
             if (!res.ok) {
                 return null;
@@ -184,23 +184,23 @@ export async function getBeatmapFile(id: number): Promise<string | null> {
     }
 
     // Cache the beatmap file.
-    await writeFile(join("beatmaps", `${id}.osu`), beatmapFile);
+    await writeFile(join("beatmaps", `${id.toString()}.osu`), beatmapFile);
 
     return beatmapFile;
 }
 
 function getBeatmapFromDatabase(
-    beatmapIdOrHash: number | string
+    beatmapIdOrHash: number | string,
 ): Promise<ProcessorDatabaseBeatmap | null> {
     return processorPool
         .query<ProcessorDatabaseBeatmap>(
             `SELECT * FROM ${ProcessorDatabaseTables.beatmap} WHERE ${
                 typeof beatmapIdOrHash === "number" ? "id" : "hash"
             } = $1;`,
-            [beatmapIdOrHash]
+            [beatmapIdOrHash],
         )
         .then((res) => res.rows.at(0) ?? null)
-        .catch((e) => {
+        .catch((e: unknown) => {
             console.error(e);
 
             return null;
@@ -209,7 +209,7 @@ function getBeatmapFromDatabase(
 
 async function invalidateBeatmapCache(
     oldHash: string,
-    newCache: ProcessorDatabaseBeatmap
+    newCache: ProcessorDatabaseBeatmap,
 ) {
     invalidateDifficultyAttributesCache(newCache.id);
 
@@ -217,12 +217,14 @@ async function invalidateBeatmapCache(
     databaseBeatmapHashCache.delete(oldHash);
 
     // Delete the beatmap file.
-    await unlink(join("beatmaps", `${newCache.id}.osu`)).catch(() => null);
+    await unlink(join("beatmaps", `${newCache.id.toString()}.osu`)).catch(
+        () => null,
+    );
 
     // Delete the cache from the database. This will force all difficulty attributes to be dropped as well.
     await processorPool.query<ProcessorDatabaseBeatmap>(
         `DELETE FROM ${ProcessorDatabaseTables.beatmap} WHERE id = $1;`,
-        [newCache.id]
+        [newCache.id],
     );
 
     // Insert the new cache.
@@ -238,6 +240,6 @@ async function invalidateBeatmapCache(
             newCache.object_count,
             newCache.ranked_status,
             newCache.last_checked,
-        ]
+        ],
     );
 }

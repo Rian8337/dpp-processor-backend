@@ -24,7 +24,7 @@ export abstract class BeatmapDifficultyCalculator<
     RDA extends RebalanceDifficultyAttributes,
     TRDA extends ProcessorDatabaseDifficultyAttributes,
     PA extends PerformanceAttributes,
-    RPA extends PerformanceAttributes = PA
+    RPA extends PerformanceAttributes = PA,
 > {
     /**
      * The gamemode to calculate for.
@@ -58,7 +58,7 @@ export abstract class BeatmapDifficultyCalculator<
      * @param replay The replay.
      */
     static getCalculationParameters(
-        replay: ReplayAnalyzer
+        replay: ReplayAnalyzer,
     ): PerformanceCalculationParameters {
         const { data } = replay;
 
@@ -83,7 +83,7 @@ export abstract class BeatmapDifficultyCalculator<
      * @returns The result of the calculation. Errors will be thrown whenever necessary.
      */
     async calculateReplayPerformance(
-        replay: ReplayAnalyzer
+        replay: ReplayAnalyzer,
     ): Promise<PerformanceCalculationResult<DA, PA>> {
         if (!replay.data) {
             throw new Error("No replay data found");
@@ -98,7 +98,7 @@ export abstract class BeatmapDifficultyCalculator<
             apiBeatmap,
             PPCalculationMethod.live,
             BeatmapDifficultyCalculator.getCalculationParameters(replay),
-            replay
+            replay,
         );
     }
 
@@ -109,7 +109,7 @@ export abstract class BeatmapDifficultyCalculator<
      * @returns The result of the calculation. Errors will be thrown whenever necessary.
      */
     async calculateReplayRebalancePerformance(
-        replay: ReplayAnalyzer
+        replay: ReplayAnalyzer,
     ): Promise<RebalancePerformanceCalculationResult<RDA, RPA>> {
         if (!replay.data) {
             throw new Error("No replay data found");
@@ -124,7 +124,7 @@ export abstract class BeatmapDifficultyCalculator<
             apiBeatmap,
             PPCalculationMethod.rebalance,
             BeatmapDifficultyCalculator.getCalculationParameters(replay),
-            replay
+            replay,
         );
     }
 
@@ -137,7 +137,7 @@ export abstract class BeatmapDifficultyCalculator<
      */
     async calculateBeatmapPerformance(
         beatmap: ProcessorDatabaseBeatmap | number | string,
-        calculationParams?: PerformanceCalculationParameters
+        calculationParams?: PerformanceCalculationParameters,
     ): Promise<PerformanceCalculationResult<DA, PA>> {
         const apiBeatmap =
             typeof beatmap === "object" ? beatmap : await getBeatmap(beatmap);
@@ -149,7 +149,7 @@ export abstract class BeatmapDifficultyCalculator<
         return this.calculatePerformance(
             apiBeatmap,
             PPCalculationMethod.live,
-            calculationParams
+            calculationParams,
         );
     }
 
@@ -162,7 +162,7 @@ export abstract class BeatmapDifficultyCalculator<
      */
     async calculateBeatmapRebalancePerformance(
         beatmap: ProcessorDatabaseBeatmap | number | string,
-        calculationParams?: PerformanceCalculationParameters
+        calculationParams?: PerformanceCalculationParameters,
     ): Promise<RebalancePerformanceCalculationResult<RDA, RPA>> {
         const apiBeatmap =
             typeof beatmap === "object" ? beatmap : await getBeatmap(beatmap);
@@ -174,7 +174,7 @@ export abstract class BeatmapDifficultyCalculator<
         return this.calculatePerformance(
             apiBeatmap,
             PPCalculationMethod.rebalance,
-            calculationParams
+            calculationParams,
         );
     }
 
@@ -182,21 +182,21 @@ export abstract class BeatmapDifficultyCalculator<
         beatmap: ProcessorDatabaseBeatmap,
         calculationMethod: PPCalculationMethod.live,
         calculationParams?: PerformanceCalculationParameters,
-        replay?: ReplayAnalyzer
+        replay?: ReplayAnalyzer,
     ): Promise<PerformanceCalculationResult<DA, PA>>;
 
     private async calculatePerformance(
         beatmap: ProcessorDatabaseBeatmap,
         calculationMethod: PPCalculationMethod.rebalance,
         calculationParams?: PerformanceCalculationParameters,
-        replay?: ReplayAnalyzer
+        replay?: ReplayAnalyzer,
     ): Promise<RebalancePerformanceCalculationResult<RDA, RPA>>;
 
     private async calculatePerformance(
         beatmap: ProcessorDatabaseBeatmap,
         calculationMethod: PPCalculationMethod,
         calculationParams?: PerformanceCalculationParameters,
-        replay?: ReplayAnalyzer
+        replay?: ReplayAnalyzer,
     ): Promise<
         | PerformanceCalculationResult<DA, PA>
         | RebalancePerformanceCalculationResult<RDA, RPA>
@@ -222,12 +222,12 @@ export abstract class BeatmapDifficultyCalculator<
             calculationParams?.customSpeedMultiplier,
             forceCS,
             forceAR,
-            forceOD
+            forceOD,
         );
 
         const cachedAttributes = await cacheManager.getDifficultyAttributes(
             beatmap.id,
-            attributeName
+            attributeName,
         );
 
         const data: CalculationWorkerData = {
@@ -249,31 +249,33 @@ export abstract class BeatmapDifficultyCalculator<
                     result: CompleteCalculationAttributes<
                         DifficultyAttributes | RebalanceDifficultyAttributes,
                         PerformanceAttributes
-                    >
+                    >,
                 ) => {
                     if (err) {
-                        return reject(err);
+                        reject(err);
+
+                        return;
                     }
 
                     // Reconstruct the parameters in case some parameters were changed.
                     calculationParams = PerformanceCalculationParameters.from(
-                        result.params
+                        result.params,
                     );
 
-                    const diffAttribs = <DA & RDA>{
+                    const diffAttribs = {
                         ...result.difficulty,
-                        mods: calculationParams?.mods ?? [],
-                    };
+                        mods: calculationParams.mods,
+                    } as DA & RDA;
 
                     if (!cachedAttributes) {
                         await cacheManager.addAttribute(
                             beatmap.id,
                             diffAttribs,
-                            calculationParams?.oldStatistics,
-                            calculationParams?.customSpeedMultiplier,
+                            calculationParams.oldStatistics,
+                            calculationParams.customSpeedMultiplier,
                             forceCS,
                             forceAR,
-                            forceOD
+                            forceOD,
                         );
                     }
 
@@ -282,18 +284,18 @@ export abstract class BeatmapDifficultyCalculator<
                             new PerformanceCalculationResult(
                                 calculationParams,
                                 diffAttribs,
-                                <PA>result.performance,
-                                result.replay
-                            )
+                                result.performance as PA,
+                                result.replay,
+                            ),
                         );
                     } else {
                         resolve(
                             new RebalancePerformanceCalculationResult(
                                 calculationParams,
                                 diffAttribs,
-                                <RPA>result.performance,
-                                result.replay
-                            )
+                                result.performance as RPA,
+                                result.replay,
+                            ),
                         );
                     }
                 },

@@ -17,7 +17,7 @@ import {
 import { OsuPerformanceAttributes } from "../structures/attributes/OsuPerformanceAttributes";
 import { CompleteCalculationAttributes } from "../structures/attributes/CompleteCalculationAttributes";
 import { RebalanceDroidPerformanceAttributes } from "../structures/attributes/RebalanceDroidPerformanceAttributes";
-import { Util } from "../utils/Util";
+import { validateGETInternalKey } from "../utils/util";
 
 const router = Router();
 
@@ -48,7 +48,7 @@ router.get<
         flashlightslidercheesepenalty?: string;
         visualslidercheesepenalty?: string;
     }
->("/", Util.validateGETInternalKey, async (req, res) => {
+>("/", validateGETInternalKey, async (req, res) => {
     if (!req.query.beatmapid && !req.query.beatmaphash) {
         return res
             .status(400)
@@ -61,7 +61,7 @@ router.get<
     const customSpeedMultiplier = MathUtils.clamp(
         parseFloat(req.query.customspeedmultiplier ?? "1"),
         0.5,
-        2
+        2,
     );
     if (Number.isNaN(customSpeedMultiplier)) {
         return res
@@ -93,19 +93,22 @@ router.get<
     const { beatmapid, beatmaphash, gamemode } = req.query;
     const calculationMethod = parseInt(req.query.calculationmethod);
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     if (gamemode !== Modes.droid && gamemode !== Modes.osu) {
         return res.status(400).json({ error: "Invalid gamemode" });
     }
 
     if (
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
         calculationMethod !== PPCalculationMethod.live &&
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
         calculationMethod !== PPCalculationMethod.rebalance
     ) {
         return res.status(400).json({ error: "Invalid calculation method" });
     }
 
     const apiBeatmap = await getBeatmap(
-        beatmapid !== undefined ? parseInt(beatmapid) : beatmaphash!
+        beatmapid !== undefined ? parseInt(beatmapid) : beatmaphash!,
     );
 
     if (!apiBeatmap) {
@@ -131,14 +134,14 @@ router.get<
                 ? MathUtils.clamp(
                       parseInt(req.query.maxcombo),
                       0,
-                      apiBeatmap.max_combo
+                      apiBeatmap.max_combo,
                   )
                 : apiBeatmap.max_combo,
         tapPenalty: parseInt(req.query.tappenalty ?? "1"),
         sliderCheesePenalty: {
             aimPenalty: parseInt(req.query.aimslidercheesepenalty ?? "1"),
             flashlightPenalty: parseInt(
-                req.query.flashlightslidercheesepenalty ?? "1"
+                req.query.flashlightslidercheesepenalty ?? "1",
             ),
             visualPenalty: parseInt(req.query.visualslidercheesepenalty ?? "1"),
         },
@@ -153,19 +156,21 @@ router.get<
                     const calculationResult = await difficultyCalculator
                         .calculateBeatmapPerformance(
                             apiBeatmap,
-                            calculationParams
+                            calculationParams,
                         )
-                        .catch((e: Error) => {
+                        .catch((e: unknown) => {
                             console.log(
                                 "Calculation failed for URL:",
                                 req.url.replace(
                                     process.env.DROID_SERVER_INTERNAL_KEY!,
-                                    ""
-                                )
+                                    "",
+                                ),
                             );
                             console.error(e);
 
-                            return e.message;
+                            return e instanceof Error
+                                ? e.message
+                                : "Calculation failed";
                         });
 
                     if (typeof calculationResult === "string") {
@@ -185,7 +190,7 @@ router.get<
                             ...calculationResult.difficultyAttributes,
                             mods: calculationResult.difficultyAttributes.mods.reduce(
                                 (a, v) => a + v.acronym,
-                                ""
+                                "",
                             ),
                         },
                         performance: {
@@ -216,19 +221,21 @@ router.get<
                     const calculationResult = await difficultyCalculator
                         .calculateBeatmapRebalancePerformance(
                             apiBeatmap,
-                            calculationParams
+                            calculationParams,
                         )
-                        .catch((e: Error) => {
+                        .catch((e: unknown) => {
                             console.log(
                                 "Calculation failed for URL:",
                                 req.url.replace(
                                     process.env.DROID_SERVER_INTERNAL_KEY!,
-                                    ""
-                                )
+                                    "",
+                                ),
                             );
                             console.error(e);
 
-                            return e.message;
+                            return e instanceof Error
+                                ? e.message
+                                : "Calculation failed";
                         });
 
                     if (typeof calculationResult === "string") {
@@ -248,7 +255,7 @@ router.get<
                             ...calculationResult.difficultyAttributes,
                             mods: calculationResult.difficultyAttributes.mods.reduce(
                                 (a, v) => a + v.acronym,
-                                ""
+                                "",
                             ),
                         },
                         performance: {
@@ -270,11 +277,11 @@ router.get<
                             calculatedUnstableRate: 0,
                             estimatedUnstableRate: MathUtils.round(
                                 result.deviation * 10,
-                                2
+                                2,
                             ),
                             estimatedSpeedUnstableRate: MathUtils.round(
                                 result.tapDeviation * 10,
-                                2
+                                2,
                             ),
                         },
                         replay: calculationResult.replay,
@@ -296,19 +303,21 @@ router.get<
                     const calculationResult = await difficultyCalculator
                         .calculateBeatmapPerformance(
                             apiBeatmap,
-                            calculationParams
+                            calculationParams,
                         )
-                        .catch((e: Error) => {
+                        .catch((e: unknown) => {
                             console.log(
                                 "Calculation failed for URL:",
                                 req.url.replace(
                                     process.env.DROID_SERVER_INTERNAL_KEY!,
-                                    ""
-                                )
+                                    "",
+                                ),
                             );
                             console.error(e);
 
-                            return e.message;
+                            return e instanceof Error
+                                ? e.message
+                                : "Calculation failed";
                         });
 
                     if (typeof calculationResult === "string") {
@@ -328,7 +337,7 @@ router.get<
                             ...calculationResult.difficultyAttributes,
                             mods: calculationResult.difficultyAttributes.mods.reduce(
                                 (a, v) => a + v.acronym,
-                                ""
+                                "",
                             ),
                         },
                         performance: {
@@ -348,19 +357,21 @@ router.get<
                     const calculationResult = await difficultyCalculator
                         .calculateBeatmapRebalancePerformance(
                             apiBeatmap,
-                            calculationParams
+                            calculationParams,
                         )
-                        .catch((e: Error) => {
+                        .catch((e: unknown) => {
                             console.log(
                                 "Calculation failed for URL:",
                                 req.url.replace(
                                     process.env.DROID_SERVER_INTERNAL_KEY!,
-                                    ""
-                                )
+                                    "",
+                                ),
                             );
                             console.error(e);
 
-                            return e.message;
+                            return e instanceof Error
+                                ? e.message
+                                : "Calculation failed";
                         });
 
                     if (typeof calculationResult === "string") {
@@ -380,7 +391,7 @@ router.get<
                             ...calculationResult.difficultyAttributes,
                             mods: calculationResult.difficultyAttributes.mods.reduce(
                                 (a, v) => a + v.acronym,
-                                ""
+                                "",
                             ),
                         },
                         performance: {

@@ -16,7 +16,6 @@ import {
     ReplayAnalyzer,
     ReplayData,
 } from "@rian8337/osu-droid-replay-analyzer";
-import { LocalBeatmapDifficultyCalculator } from "../calculator/LocalBeatmapDifficultyCalculator";
 import { PPCalculationMethod } from "../../structures/PPCalculationMethod";
 import {
     CacheableDifficultyAttributes,
@@ -40,17 +39,18 @@ import { OsuPerformanceAttributes } from "../../structures/attributes/OsuPerform
 import { SliderTickInformation } from "../../structures/SliderTickInformation";
 import { createHash } from "crypto";
 import { LimitedCapacityCollection } from "../LimitedCapacityCollection";
+import { calculateLocalBeatmapDifficulty } from "../calculator/LocalBeatmapDifficultyCalculator";
 
 const beatmapCache = new LimitedCapacityCollection<string, Beatmap>(
     250,
-    180000
+    180000,
 );
 
 function processTickInformation(
     beatmap: Beatmap,
     data: ReplayData,
     sliderTickInformation: SliderTickInformation,
-    sliderEndInformation: SliderTickInformation
+    sliderEndInformation: SliderTickInformation,
 ): void {
     for (let i = 0; i < data.hitObjectData.length; ++i) {
         const object = beatmap.hitObjects.objects[i];
@@ -104,11 +104,11 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
     const analyzer = new ReplayAnalyzer({ scoreID: 0, map: beatmap });
     if (data.replayFile) {
         analyzer.originalODR = Buffer.from(await data.replayFile.arrayBuffer());
-        await analyzer.analyze().catch(() => {});
+        await analyzer.analyze().catch(() => null);
 
         if (!analyzer.data) {
             return parentPort?.postMessage(
-                new Error("Unable to obtain replay data")
+                new Error("Unable to obtain replay data"),
             );
         }
 
@@ -128,17 +128,16 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
         case Modes.droid: {
             switch (calculationMethod) {
                 case PPCalculationMethod.live: {
-                    const difficultyAttributes = <
-                        CacheableDifficultyAttributes<ExtendedDroidDifficultyAttributes> | null
-                    >data.difficultyAttributes ?? {
-                        ...LocalBeatmapDifficultyCalculator.calculateDifficulty(
-                            beatmap,
-                            calculationParams,
-                            gamemode,
-                            calculationMethod
-                        ).attributes,
-                        mods: parameters?.mods ?? "",
-                    };
+                    const difficultyAttributes =
+                        (data.difficultyAttributes as CacheableDifficultyAttributes<ExtendedDroidDifficultyAttributes> | null) ?? {
+                            ...calculateLocalBeatmapDifficulty(
+                                beatmap,
+                                calculationParams,
+                                gamemode,
+                                calculationMethod,
+                            ).attributes,
+                            mods: parameters?.mods ?? "",
+                        };
 
                     calculationParams.applyFromAttributes(difficultyAttributes);
 
@@ -146,7 +145,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                         const extendedDifficultyAttributes: ExtendedDroidDifficultyAttributes =
                             {
                                 ...difficultyAttributes,
-                                mods: calculationParams?.mods ?? [],
+                                mods: calculationParams.mods,
                             };
 
                         if (
@@ -154,11 +153,11 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                 calculationParams,
                                 beatmap,
                                 analyzer,
-                                extendedDifficultyAttributes
+                                extendedDifficultyAttributes,
                             )
                         ) {
                             return parentPort?.postMessage(
-                                new Error("Unable to analyze for three-finger")
+                                new Error("Unable to analyze for three-finger"),
                             );
                         }
 
@@ -167,13 +166,13 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                 calculationParams,
                                 beatmap,
                                 analyzer,
-                                extendedDifficultyAttributes
+                                extendedDifficultyAttributes,
                             )
                         ) {
                             return parentPort?.postMessage(
                                 new Error(
-                                    "Unable to analyze for slider cheesing"
-                                )
+                                    "Unable to analyze for slider cheesing",
+                                ),
                             );
                         }
 
@@ -181,7 +180,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                     }
 
                     const perfCalc = new DroidPerformanceCalculator(
-                        difficultyAttributes
+                        difficultyAttributes,
                     ).calculate(calculationOptions);
 
                     const sliderTickInformation: SliderTickInformation = {
@@ -198,7 +197,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                             beatmap,
                             analyzer.data,
                             sliderTickInformation,
-                            sliderEndInformation
+                            sliderEndInformation,
                         );
                     }
 
@@ -240,17 +239,16 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                     break;
                 }
                 case PPCalculationMethod.rebalance: {
-                    const difficultyAttributes = <
-                        CacheableDifficultyAttributes<RebalanceExtendedDroidDifficultyAttributes> | null
-                    >data.difficultyAttributes ?? {
-                        ...LocalBeatmapDifficultyCalculator.calculateDifficulty(
-                            beatmap,
-                            calculationParams,
-                            gamemode,
-                            calculationMethod
-                        ).attributes,
-                        mods: parameters?.mods ?? "",
-                    };
+                    const difficultyAttributes =
+                        (data.difficultyAttributes as CacheableDifficultyAttributes<RebalanceExtendedDroidDifficultyAttributes> | null) ?? {
+                            ...calculateLocalBeatmapDifficulty(
+                                beatmap,
+                                calculationParams,
+                                gamemode,
+                                calculationMethod,
+                            ).attributes,
+                            mods: parameters?.mods ?? "",
+                        };
 
                     calculationParams.applyFromAttributes(difficultyAttributes);
 
@@ -258,7 +256,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                         const extendedDifficultyAttributes: RebalanceExtendedDroidDifficultyAttributes =
                             {
                                 ...difficultyAttributes,
-                                mods: calculationParams?.mods ?? [],
+                                mods: calculationParams.mods,
                             };
 
                         if (
@@ -266,11 +264,11 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                 calculationParams,
                                 beatmap,
                                 analyzer,
-                                extendedDifficultyAttributes
+                                extendedDifficultyAttributes,
                             )
                         ) {
                             return parentPort?.postMessage(
-                                new Error("Unable to analyze for three-finger")
+                                new Error("Unable to analyze for three-finger"),
                             );
                         }
 
@@ -279,13 +277,13 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                 calculationParams,
                                 beatmap,
                                 analyzer,
-                                extendedDifficultyAttributes
+                                extendedDifficultyAttributes,
                             )
                         ) {
                             return parentPort?.postMessage(
                                 new Error(
-                                    "Unable to analyze for slider cheesing"
-                                )
+                                    "Unable to analyze for slider cheesing",
+                                ),
                             );
                         }
 
@@ -293,7 +291,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                     }
 
                     const perfCalc = new RebalanceDroidPerformanceCalculator(
-                        difficultyAttributes
+                        difficultyAttributes,
                     ).calculate(calculationOptions);
                     const hitError = analyzer.calculateHitError();
 
@@ -311,7 +309,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                             beatmap,
                             analyzer.data,
                             sliderTickInformation,
-                            sliderEndInformation
+                            sliderEndInformation,
                         );
                     }
 
@@ -343,11 +341,11 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                 : 0,
                             estimatedUnstableRate: MathUtils.round(
                                 perfCalc.deviation * 10,
-                                2
+                                2,
                             ),
                             estimatedSpeedUnstableRate: MathUtils.round(
                                 perfCalc.tapDeviation * 10,
-                                2
+                                2,
                             ),
                         },
                         replay: analyzer.data
@@ -370,18 +368,16 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
             switch (calculationMethod) {
                 case PPCalculationMethod.live: {
                     const difficultyAttributes =
-                        <
-                            CacheableDifficultyAttributes<OsuDifficultyAttributes> | null
-                        >data.difficultyAttributes ??
-                        LocalBeatmapDifficultyCalculator.calculateDifficulty(
+                        (data.difficultyAttributes as CacheableDifficultyAttributes<OsuDifficultyAttributes> | null) ??
+                        calculateLocalBeatmapDifficulty(
                             beatmap,
                             calculationParams,
                             gamemode,
-                            calculationMethod
+                            calculationMethod,
                         ).cacheableAttributes;
 
                     const perfCalc = new OsuPerformanceCalculator(
-                        difficultyAttributes
+                        difficultyAttributes,
                     ).calculate(calculationOptions);
 
                     const attributes: CompleteCalculationAttributes<
@@ -405,18 +401,16 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                 }
                 case PPCalculationMethod.rebalance: {
                     const difficultyAttributes =
-                        <
-                            CacheableDifficultyAttributes<RebalanceOsuDifficultyAttributes> | null
-                        >data.difficultyAttributes ??
-                        LocalBeatmapDifficultyCalculator.calculateDifficulty(
+                        (data.difficultyAttributes as CacheableDifficultyAttributes<RebalanceOsuDifficultyAttributes> | null) ??
+                        calculateLocalBeatmapDifficulty(
                             beatmap,
                             calculationParams,
                             gamemode,
-                            calculationMethod
+                            calculationMethod,
                         ).cacheableAttributes;
 
                     const perfCalc = new RebalanceOsuPerformanceCalculator(
-                        difficultyAttributes
+                        difficultyAttributes,
                     ).calculate(calculationOptions);
 
                     const attributes: CompleteCalculationAttributes<

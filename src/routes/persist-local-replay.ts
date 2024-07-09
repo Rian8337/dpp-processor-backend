@@ -1,9 +1,9 @@
 import { Router } from "express";
-import { Util } from "../utils/Util";
 import { join } from "path";
 import { localReplayDirectory, persistReplay } from "../utils/replayManager";
 import { readFile, readdir } from "fs/promises";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
+import { computeMD5, validatePOSTInternalKey } from "../utils/util";
 
 const router = Router();
 
@@ -12,32 +12,30 @@ router.put<
     unknown,
     unknown,
     { key: string; playerid: number; beatmaphash: string; replayhash: string }
->("/", Util.validatePOSTInternalKey, async (req, res) => {
+>("/", validatePOSTInternalKey, async (req, res) => {
     const replayDirectory = join(
         localReplayDirectory,
         req.body.playerid.toString(),
-        req.body.beatmaphash
+        req.body.beatmaphash,
     );
     const replayFiles = await readdir(replayDirectory).catch(() => null);
 
     for (const replayFile of replayFiles ?? []) {
         const file = await readFile(join(replayDirectory, replayFile)).catch(
-            () => null
+            () => null,
         );
 
-        if (!file || Util.computeMD5(file) !== req.body.replayhash) {
+        if (!file || computeMD5(file) !== req.body.replayhash) {
             continue;
         }
 
         const analyzer = new ReplayAnalyzer({ scoreID: 0 });
         analyzer.originalODR = file;
-        await analyzer
-            .analyze()
-            .catch(() =>
-                console.error(
-                    `Score of uid ${req.body.playerid} from beatmap ${req.body.beatmaphash} cannot be parsed`
-                )
+        await analyzer.analyze().catch(() => {
+            console.error(
+                `Score of uid ${req.body.playerid.toString()} from beatmap ${req.body.beatmaphash} cannot be parsed`,
             );
+        });
 
         const success = await persistReplay(req.body.playerid, analyzer);
 

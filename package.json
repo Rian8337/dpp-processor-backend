@@ -23,6 +23,7 @@
     "@typescript-eslint/eslint-plugin": "^7.1.0",
     "@typescript-eslint/parser": "^7.1.0",
     "eslint": "^8.41.0",
+    "prettier": "^3.3.2",
     "typescript": "^5.0.4"
   },
   "dependencies": {
@@ -40,31 +41,5 @@
     "mongodb": "^6.0.0",
     "mysql2": "^3.9.7",
     "pg": "^8.11.5"
-  },
-  "eslintConfig": {
-    "env": {
-      "es2022": true,
-      "node": true
-    },
-    "extends": [
-      "eslint:recommended",
-      "plugin:@typescript-eslint/recommended"
-    ],
-    "parser": "@typescript-eslint/parser",
-    "parserOptions": {
-      "ecmaVersion": 2022,
-      "sourceType": "module"
-    },
-    "plugins": [
-      "@typescript-eslint"
-    ],
-    "rules": {
-      "@typescript-eslint/no-inferrable-types": "off",
-      "@typescript-eslint/no-non-null-assertion": "off",
-      "no-prototype-builtins": "off"
-    }
-  },
-  "prettier": {
-    "tabWidth": 4
   }
 }

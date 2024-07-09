@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { getOnlineReplay, persistReplay } from "../utils/replayManager";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
-import { Util } from "../utils/Util";
+import { validatePOSTInternalKey } from "../utils/util";
 
 const router = Router();
 
@@ -10,13 +10,15 @@ router.put<
     unknown,
     unknown,
     { key: string; uid: number; scoreid: number }
->("/", Util.validatePOSTInternalKey, async (req, res) => {
+>("/", validatePOSTInternalKey, async (req, res) => {
     const analyzer = new ReplayAnalyzer({
         scoreID: req.body.scoreid,
     });
     analyzer.originalODR = await getOnlineReplay(req.body.scoreid);
     await analyzer.analyze().catch(() => {
-        console.error(`Score of ID ${req.body.scoreid} cannot be parsed`);
+        console.error(
+            `Score of ID ${req.body.scoreid.toString()} cannot be parsed`,
+        );
     });
 
     const success = await persistReplay(req.body.uid, analyzer);

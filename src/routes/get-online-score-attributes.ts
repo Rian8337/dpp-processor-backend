@@ -1,5 +1,4 @@
 import { Router } from "express";
-import { Util } from "../utils/Util";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import { MathUtils, Modes } from "@rian8337/osu-base";
 import { BeatmapDroidDifficultyCalculator } from "../utils/calculator/BeatmapDroidDifficultyCalculator";
@@ -18,6 +17,7 @@ import {
 import { PPCalculationMethod } from "../structures/PPCalculationMethod";
 import { RebalanceDroidPerformanceAttributes } from "../structures/attributes/RebalanceDroidPerformanceAttributes";
 import { getOnlineReplay } from "../utils/replayManager";
+import { validateGETInternalKey } from "../utils/util";
 
 const router = Router();
 
@@ -32,18 +32,20 @@ router.get<
         calculationmethod: string;
         scoreid: string;
     }
->("/", Util.validateGETInternalKey, async (req, res) => {
-    if (
-        req.query.gamemode !== Modes.droid &&
-        req.query.gamemode !== Modes.osu
-    ) {
+>("/", validateGETInternalKey, async (req, res) => {
+    const { gamemode } = req.query;
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    if (gamemode !== Modes.droid && gamemode !== Modes.osu) {
         return res.status(400).json({ error: "Invalid gamemode" });
     }
 
     const calculationMethod = parseInt(req.query.calculationmethod);
 
     if (
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
         calculationMethod !== PPCalculationMethod.live &&
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
         calculationMethod !== PPCalculationMethod.rebalance
     ) {
         return res.status(400).json({ error: "Invalid calculation method" });
@@ -64,7 +66,7 @@ router.get<
         return res.status(404).json({ error: "Replay not found" });
     }
 
-    switch (req.query.gamemode) {
+    switch (gamemode) {
         case Modes.droid: {
             const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
 
@@ -72,17 +74,19 @@ router.get<
                 case PPCalculationMethod.live: {
                     const calculationResult = await difficultyCalculator
                         .calculateReplayPerformance(analyzer)
-                        .catch((e: Error) => {
+                        .catch((e: unknown) => {
                             console.log(
                                 "Calculation failed for URL:",
                                 req.url.replace(
                                     process.env.DROID_SERVER_INTERNAL_KEY!,
-                                    ""
-                                )
+                                    "",
+                                ),
                             );
                             console.error(e);
 
-                            return e.message;
+                            return e instanceof Error
+                                ? e.message
+                                : "Calculation failed";
                         });
 
                     if (typeof calculationResult === "string") {
@@ -102,7 +106,7 @@ router.get<
                             ...calculationResult.difficultyAttributes,
                             mods: calculationResult.difficultyAttributes.mods.reduce(
                                 (a, v) => a + v.acronym,
-                                ""
+                                "",
                             ),
                         },
                         performance: {
@@ -132,7 +136,20 @@ router.get<
                 case PPCalculationMethod.rebalance: {
                     const calculationResult = await difficultyCalculator
                         .calculateReplayRebalancePerformance(analyzer)
-                        .catch((e: Error) => e.message);
+                        .catch((e: unknown) => {
+                            console.log(
+                                "Calculation failed for URL:",
+                                req.url.replace(
+                                    process.env.DROID_SERVER_INTERNAL_KEY!,
+                                    "",
+                                ),
+                            );
+                            console.error(e);
+
+                            return e instanceof Error
+                                ? e.message
+                                : "Calculation failed";
+                        });
 
                     if (typeof calculationResult === "string") {
                         return res
@@ -151,7 +168,7 @@ router.get<
                             ...calculationResult.difficultyAttributes,
                             mods: calculationResult.difficultyAttributes.mods.reduce(
                                 (a, v) => a + v.acronym,
-                                ""
+                                "",
                             ),
                         },
                         performance: {
@@ -174,11 +191,11 @@ router.get<
                                 result.calculatedUnstableRate,
                             estimatedUnstableRate: MathUtils.round(
                                 result.deviation * 10,
-                                2
+                                2,
                             ),
                             estimatedSpeedUnstableRate: MathUtils.round(
                                 result.tapDeviation * 10,
-                                2
+                                2,
                             ),
                         },
                         replay: calculationResult.replay,
@@ -199,7 +216,20 @@ router.get<
                 case PPCalculationMethod.live: {
                     const calculationResult = await difficultyCalculator
                         .calculateReplayPerformance(analyzer)
-                        .catch((e: Error) => e.message);
+                        .catch((e: unknown) => {
+                            console.log(
+                                "Calculation failed for URL:",
+                                req.url.replace(
+                                    process.env.DROID_SERVER_INTERNAL_KEY!,
+                                    "",
+                                ),
+                            );
+                            console.error(e);
+
+                            return e instanceof Error
+                                ? e.message
+                                : "Calculation failed";
+                        });
 
                     if (typeof calculationResult === "string") {
                         return res
@@ -218,7 +248,7 @@ router.get<
                             ...calculationResult.difficultyAttributes,
                             mods: calculationResult.difficultyAttributes.mods.reduce(
                                 (a, v) => a + v.acronym,
-                                ""
+                                "",
                             ),
                         },
                         performance: {
@@ -237,7 +267,20 @@ router.get<
                 case PPCalculationMethod.rebalance: {
                     const calculationResult = await difficultyCalculator
                         .calculateReplayRebalancePerformance(analyzer)
-                        .catch((e: Error) => e.message);
+                        .catch((e: unknown) => {
+                            console.log(
+                                "Calculation failed for URL:",
+                                req.url.replace(
+                                    process.env.DROID_SERVER_INTERNAL_KEY!,
+                                    "",
+                                ),
+                            );
+                            console.error(e);
+
+                            return e instanceof Error
+                                ? e.message
+                                : "Calculation failed";
+                        });
 
                     if (typeof calculationResult === "string") {
                         return res
@@ -256,7 +299,7 @@ router.get<
                             ...calculationResult.difficultyAttributes,
                             mods: calculationResult.difficultyAttributes.mods.reduce(
                                 (a, v) => a + v.acronym,
-                                ""
+                                "",
                             ),
                         },
                         performance: {

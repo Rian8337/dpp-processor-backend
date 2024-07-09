@@ -37,11 +37,15 @@ export class LimitedCapacityCollection<K, V> extends Collection<K, V> {
         this.lifetime = lifetime;
 
         if (capacity <= 0) {
-            throw new Error(`Invalid limited collection capacity: ${capacity}`);
+            throw new Error(
+                `Invalid limited collection capacity: ${capacity.toString()}`,
+            );
         }
 
         if (lifetime <= 0) {
-            throw new Error(`Invalid limited collection lifetime: ${lifetime}`);
+            throw new Error(
+                `Invalid limited collection lifetime: ${lifetime.toString()}`,
+            );
         }
     }
 
@@ -65,7 +69,7 @@ export class LimitedCapacityCollection<K, V> extends Collection<K, V> {
             });
 
             if (this.size === 0) {
-                clearInterval(this.interval!);
+                clearInterval(this.interval);
                 this.interval = undefined;
             }
         }, this.sweepInterval * 1000);

@@ -1,4 +1,3 @@
-import { Collection } from "mongodb";
 import { DatabaseCollectionManager } from "../DatabaseCollectionManager";
 import { IUserBind } from "../../structures/elainaDb/IUserBind";
 
@@ -20,13 +19,6 @@ export class UserBindCollectionManager extends DatabaseCollectionManager<IUserBi
     }
 
     /**
-     * @param collection The MongoDB collection.
-     */
-    constructor(collection: Collection<IUserBind>) {
-        super(collection);
-    }
-
-    /**
      * Gets the bind information of an osu!droid account from its uid.
      *
      * @param uid The uid of the osu!droid account.
@@ -45,7 +37,7 @@ export class UserBindCollectionManager extends DatabaseCollectionManager<IUserBi
                     pptotal: 1,
                     playc: 1,
                 },
-            }
+            },
         );
     }
 }

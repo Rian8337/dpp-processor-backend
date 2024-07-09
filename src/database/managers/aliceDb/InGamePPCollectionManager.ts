@@ -1,4 +1,3 @@
-import { Collection } from "mongodb";
 import { IInGamePP } from "../../structures/aliceDb/IInGamePP";
 import { DatabaseCollectionManager } from "../DatabaseCollectionManager";
 
@@ -20,10 +19,6 @@ export class InGamePPCollectionManager extends DatabaseCollectionManager<IInGame
         };
     }
 
-    constructor(collection: Collection<IInGamePP>) {
-        super(collection);
-    }
-
     /**
      * Gets the bind information of an osu!droid account from its uid.
      *
@@ -40,7 +35,7 @@ export class InGamePPCollectionManager extends DatabaseCollectionManager<IInGame
                     pp: 1,
                     playc: 1,
                 },
-            }
+            },
         );
     }
 }

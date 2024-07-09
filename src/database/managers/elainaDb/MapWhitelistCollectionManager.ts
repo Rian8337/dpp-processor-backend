@@ -1,6 +1,5 @@
 import { IMapWhitelist } from "../../structures/elainaDb/IMapWhitelist";
 import { DatabaseCollectionManager } from "../DatabaseCollectionManager";
-import { Collection } from "mongodb";
 
 /**
  * A manager for the `mapwhitelist` command.
@@ -20,12 +19,5 @@ export class MapWhitelistCollectionManager extends DatabaseCollectionManager<IMa
             mapid: 0,
             mapname: "",
         };
-    }
-
-    /**
-     * @param collection The MongoDB collection.
-     */
-    constructor(collection: Collection<IMapWhitelist>) {
-        super(collection);
     }
 }

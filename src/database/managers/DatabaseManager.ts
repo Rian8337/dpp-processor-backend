@@ -5,6 +5,7 @@ import { AliceDBCollection } from "./AliceDBCollection";
 /**
  * A manager for database.
  */
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export abstract class DatabaseManager {
     /**
      * Manager for Elaina DB.
@@ -49,7 +50,7 @@ export abstract class DatabaseManager {
 
         const elainaURI =
             "mongodb://" +
-            process.env.ELAINA_DB_KEY +
+            process.env.ELAINA_DB_KEY! +
             "@elainaDb-shard-00-00-r6qx3.mongodb.net:27017,elainaDb-shard-00-01-r6qx3.mongodb.net:27017,elainaDb-shard-00-02-r6qx3.mongodb.net:27017/test?ssl=true&replicaSet=ElainaDB-shard-0&authSource=admin&retryWrites=true";
 
         const elainaDb = await new MongoClient(elainaURI, {
@@ -71,7 +72,7 @@ export abstract class DatabaseManager {
 
         const aliceURI =
             "mongodb+srv://" +
-            process.env.ALICE_DB_KEY +
+            process.env.ALICE_DB_KEY! +
             "@alicedb-hoexz.gcp.mongodb.net/test?retryWrites=true&w=majority";
         const aliceDb = await new MongoClient(aliceURI, {
             ignoreUndefined: true,

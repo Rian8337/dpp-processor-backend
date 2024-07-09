@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { Util } from "../utils/Util";
 import { deleteReplays } from "../utils/replayManager";
-import { DPPUtil } from "../utils/DPPUtil";
+import { validateGETInternalKey } from "../utils/util";
+import { deleteScore } from "../utils/dppUtil";
 
 const router = Router();
 
@@ -11,13 +11,13 @@ router.get<
     unknown,
     unknown,
     { key: string; uid: string; hash: string }
->("/", Util.validateGETInternalKey, async (req, res) => {
+>("/", validateGETInternalKey, async (req, res) => {
     if (!req.query.uid || !req.query.hash) {
         return res.sendStatus(400);
     }
 
     await deleteReplays(req.query.uid, req.query.hash);
-    await DPPUtil.deleteScore(parseInt(req.query.uid), req.query.hash);
+    await deleteScore(parseInt(req.query.uid), req.query.hash);
 
     res.sendStatus(200);
 });

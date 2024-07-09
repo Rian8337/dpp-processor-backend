@@ -8,7 +8,7 @@ import {
     unprocessedReplayDirectory,
 } from "./utils/replayManager";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
-import { submitReplayToDppDatabase } from "./utils/dppUtil";
+import { submitReplay } from "./utils/dppUtil";
 
 config();
 
@@ -31,11 +31,7 @@ Promise.all([DatabaseManager.init(), processorPool.connect()])
             });
 
             const result = replayAnalyzer.data
-                ? await submitReplayToDppDatabase(
-                      [replayAnalyzer],
-                      undefined,
-                      true,
-                  )
+                ? await submitReplay([replayAnalyzer], undefined, true)
                 : null;
 
             await deleteUnprocessedReplay(

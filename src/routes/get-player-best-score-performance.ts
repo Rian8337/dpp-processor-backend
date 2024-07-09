@@ -159,6 +159,7 @@ router.get<
     const score = await getOfficialScore(
         parseInt(req.query.playerid),
         req.query.beatmaphash,
+        false,
         "id",
     );
 

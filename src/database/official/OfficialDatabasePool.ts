@@ -13,3 +13,5 @@ export const officialPool = createPool({
     password: process.env.OFFICIAL_DB_PASSWORD,
     port: parseInt(process.env.OFFICIAL_DB_PORT ?? "") || undefined,
 });
+
+officialPool.config.namedPlaceholders = true;

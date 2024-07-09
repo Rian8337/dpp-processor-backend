@@ -18,4 +18,5 @@ export interface OfficialDatabaseScore {
     readonly miss: number;
     readonly date: Date;
     readonly accuracy: number;
+    readonly pp: number | null;
 }

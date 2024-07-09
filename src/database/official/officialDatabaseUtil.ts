@@ -5,9 +5,10 @@ import {
     constructOfficialDatabaseTableName,
     OfficialDatabaseTables,
 } from "./OfficialDatabaseTables";
-import { RowDataPacket } from "mysql2";
+import { ResultSetHeader, RowDataPacket } from "mysql2";
 import { OfficialDatabaseScore } from "./schema/OfficialDatabaseScore";
 import { isDebug } from "../../utils/util";
+import { OfficialDatabaseBestScore } from "./schema/OfficialDatabaseBestScore";
 
 /**
  * Gets a player's information from their username.
@@ -43,20 +44,43 @@ export async function getPlayerFromUsername<
 /**
  * Gets a score from a player on a beatmap.
  *
- * In debug mode, the osu!droid API will be requested. Otherwise, the official database will be queried.
- *
  * @param uid The uid of the player.
  * @param hash The MD5 hash of the beatmap.
+ * @param forceDatabaseQuery Whether to force the database to be queried. In debug mode, setting this to `true` will make this function always return `null`.
  * @param databaseColumns The columns to retrieve from the database if the database is queried.
  * @returns The score, `null` if not found.
  */
 export async function getOfficialScore<K extends keyof OfficialDatabaseScore>(
     uid: number,
     hash: string,
+    forceDatabaseQuery: true,
+    ...databaseColumns: K[]
+): Promise<Pick<OfficialDatabaseScore, K> | null>;
+
+/**
+ * Gets a score from a player on a beatmap.
+ *
+ * @param uid The uid of the player.
+ * @param hash The MD5 hash of the beatmap.
+ * @param forceDatabaseQuery Whether to force the database to be queried. In debug mode, setting this to `true` will make this function always return `null`.
+ * @param databaseColumns The columns to retrieve from the database if the database is queried.
+ * @returns The score, `null` if not found.
+ */
+export async function getOfficialScore<K extends keyof OfficialDatabaseScore>(
+    uid: number,
+    hash: string,
+    forceDatabaseQuery: false,
+    ...databaseColumns: K[]
+): Promise<Pick<OfficialDatabaseScore, K> | Score | null>;
+
+export async function getOfficialScore<K extends keyof OfficialDatabaseScore>(
+    uid: number,
+    hash: string,
+    forceDatabaseQuery: boolean,
     ...databaseColumns: K[]
 ): Promise<Pick<OfficialDatabaseScore, K> | Score | null> {
     if (isDebug) {
-        return Score.getFromHash(uid, hash);
+        return forceDatabaseQuery ? null : Score.getFromHash(uid, hash);
     }
 
     const scoreQuery = await officialPool.query<RowDataPacket[]>(
@@ -69,4 +93,112 @@ export async function getOfficialScore<K extends keyof OfficialDatabaseScore>(
     );
 
     return (scoreQuery[0] as OfficialDatabaseScore[]).at(0) ?? null;
+}
+
+/**
+ * Gets the best score of a player on a beatmap.
+ *
+ * @param uid The uid of the player.
+ * @param hash The MD5 hash of the beatmap.
+ * @param databaseColumns The columns to retrieve from the database.
+ * @returns The best score, `null` if not found.
+ */
+export async function getOfficialBestScore<
+    K extends keyof OfficialDatabaseBestScore,
+>(
+    uid: number,
+    hash: string,
+    ...databaseColumns: K[]
+): Promise<Pick<OfficialDatabaseBestScore, K> | null> {
+    if (isDebug) {
+        // Debug does not have access to official database.
+        return null;
+    }
+
+    const scoreQuery = await officialPool.query<RowDataPacket[]>(
+        `SELECT ${
+            databaseColumns.join() || "*"
+        } FROM ${constructOfficialDatabaseTableName(
+            OfficialDatabaseTables.bestScore,
+        )} WHERE uid = ? AND hash = ?;`,
+        [uid, hash],
+    );
+
+    return (scoreQuery[0] as OfficialDatabaseBestScore[]).at(0) ?? null;
+}
+
+/**
+ * Updates the pp value of a score.
+ *
+ * @param scoreId The ID of the score.
+ * @param pp The new pp value.
+ * @returns Whether the update was successful.
+ */
+export function updateOfficialScorePPValue(
+    scoreId: number,
+    pp: number,
+): Promise<boolean> {
+    return officialPool
+        .query<ResultSetHeader>(
+            `UPDATE ${constructOfficialDatabaseTableName(
+                OfficialDatabaseTables.score,
+            )} SET pp = ? WHERE id = ?;`,
+            [pp, scoreId],
+        )
+        .then((res) => res[0].affectedRows === 1)
+        .catch((e: unknown) => {
+            console.error(e);
+
+            return false;
+        });
+}
+
+/**
+ * Updates the pp value of a best score.
+ *
+ * @param score The best score.
+ * @param pp The new pp value.
+ * @returns Whether the update was successful.
+ */
+export function updateBestScorePPValue(
+    score: OfficialDatabaseScore,
+    pp: number,
+): Promise<boolean> {
+    const updatedScore: OfficialDatabaseBestScore = { ...score, pp };
+
+    const scoreKeys = Object.keys(
+        updatedScore,
+    ) as (keyof OfficialDatabaseBestScore)[];
+
+    return officialPool
+        .query<ResultSetHeader>(
+            `INSERT INTO ${constructOfficialDatabaseTableName(
+                OfficialDatabaseTables.bestScore,
+            )} (${scoreKeys.join()})
+            VALUES (${scoreKeys.map((v) => `:${v}`).join()})
+            ON DUPLICATE KEY UPDATE
+            ${scoreKeys
+                .map((v) => {
+                    // We do not want to update id, uid, filename, and hash.
+                    switch (v) {
+                        case "id":
+                        case "uid":
+                        case "filename":
+                        case "hash":
+                            return "";
+
+                        default:
+                            return `${v} = VALUES(${v})`;
+                    }
+                })
+                .filter(Boolean)
+                .join()};`,
+            updatedScore,
+        )
+        .then((res) => res[0].affectedRows === 1)
+        .catch((e: unknown) => {
+            console.error(e);
+
+            return false;
+        });
 }

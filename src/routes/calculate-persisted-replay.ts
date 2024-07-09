@@ -9,7 +9,7 @@ import {
     ModUtil,
     Modes,
 } from "@rian8337/osu-base";
-import { getPersistedReplay } from "../utils/replayManager";
+import { getDppSystemPersistedReplay } from "../utils/replayManager";
 import { CompleteCalculationAttributes } from "../structures/attributes/CompleteCalculationAttributes";
 import {
     DroidDifficultyAttributes,
@@ -63,7 +63,7 @@ router.get<
         scoreID: 0,
     });
 
-    analyzer.originalODR = await getPersistedReplay(
+    analyzer.originalODR = await getDppSystemPersistedReplay(
         parseInt(playerid),
         beatmaphash,
         ModUtil.pcStringToMods(req.query.mods) as (Mod &

@@ -1,6 +1,9 @@
 import { Router } from "express";
 import { join } from "path";
-import { localReplayDirectory, persistReplay } from "../utils/replayManager";
+import {
+    localReplayDirectory,
+    persistReplayToDppSystem,
+} from "../utils/replayManager";
 import { readFile, readdir } from "fs/promises";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import { computeMD5, validatePOSTInternalKey } from "../utils/util";
@@ -37,7 +40,10 @@ router.put<
             );
         });
 
-        const success = await persistReplay(req.body.playerid, analyzer);
+        const success = await persistReplayToDppSystem(
+            req.body.playerid,
+            analyzer,
+        );
 
         if (!success) {
             return res.status(400).json({

@@ -5,6 +5,7 @@ import {
 import { Player, Score } from "@rian8337/osu-droid-utilities";
 import {
     DroidDifficultyAttributes,
+    ExtendedDroidDifficultyAttributes,
     OsuDifficultyAttributes,
 } from "@rian8337/osu-difficulty-calculator";
 import { getBeatmap } from "./cache/beatmapStorage";
@@ -22,8 +23,9 @@ import { PPEntry } from "../structures/PPEntry";
 import { PPSubmissionStatus } from "../structures/PPSubmissionStatus";
 import {
     deleteUnprocessedReplay,
-    persistReplay,
-    saveReplay,
+    persistReplayToDppSystem,
+    saveReplayToDppSystem,
+    saveReplayToOfficialPP,
     unprocessedReplayDirectory,
     wasBeatmapSubmitted,
 } from "./replayManager";
@@ -36,7 +38,13 @@ import { readFile, readdir } from "fs/promises";
 import { basename, join } from "path";
 import { watch } from "chokidar";
 import { ProcessorDatabaseBeatmap } from "../database/processor/schema/ProcessorDatabaseBeatmap";
-import { getPlayerFromUsername } from "../database/official/officialDatabaseUtil";
+import {
+    getOfficialBestScore,
+    getOfficialScore,
+    getPlayerFromUsername,
+    updateBestScorePPValue,
+    updateOfficialScorePPValue,
+} from "../database/official/officialDatabaseUtil";
 import { isDebug } from "./util";
 
 const droidDifficultyCalculator = new BeatmapDroidDifficultyCalculator();
@@ -50,7 +58,7 @@ const osuDifficultyCalculator = new BeatmapOsuDifficultyCalculator();
  * @param submitAsRecent Whether to submit these replays as recent plays. Defaults to `false`.
  * @returns Whether the submission for each replay was successful.
  */
-export async function submitReplayToDppDatabase(
+export async function submitReplay(
     replays: ReplayAnalyzer[],
     uid?: number,
     submitAsRecent?: boolean,
@@ -59,7 +67,7 @@ export async function submitReplayToDppDatabase(
     const recentPlays: IRecentPlay[] = [];
     let playCountIncrement = 0;
 
-    const preFillStatuses = (message: PPSubmissionStatus): void => {
+    const preFillStatuses = (message: PPSubmissionStatus) => {
         while (statuses.length < replays.length) {
             statuses.push(message);
         }
@@ -78,6 +86,10 @@ export async function submitReplayToDppDatabase(
             OsuPerformanceAttributes
         >,
     ) => {
+        if (!inGameDppSystem) {
+            return;
+        }
+
         const recentPlay: IRecentPlay = {
             uid: uid!,
             accuracy: {
@@ -220,53 +232,24 @@ export async function submitReplayToDppDatabase(
         }
     }
 
-    const isBanned =
+    const isBannedInDppSystem =
         await DatabaseManager.elainaDb.collections.dppBan.isPlayerBanned(uid);
 
-    if (isBanned && !submitAsRecent) {
-        preFillStatuses({
-            success: false,
-            reason: "Player is banned from system",
-            pp: 0,
-        });
-
-        return {
-            ppGained: 0,
-            newTotalPP: 0,
-            playCountIncrement: 0,
-            statuses: statuses,
-        };
-    }
-
-    const bindInfo =
+    const dppSystemBindInfo =
         await DatabaseManager.elainaDb.collections.userBind.getFromUid(uid);
 
-    if (!bindInfo) {
-        preFillStatuses({
-            success: false,
-            reason: "Bind information not found",
-            pp: 0,
-        });
-
-        return {
-            ppGained: 0,
-            newTotalPP: 0,
-            playCountIncrement: 0,
-            statuses: statuses,
-        };
-    }
-
-    const inGamePP =
-        (await DatabaseManager.aliceDb.collections.inGamePP.getFromUid(
-            uid,
-        )) ?? {
-            ...DatabaseManager.aliceDb.collections.inGamePP.defaultDocument,
-            discordid: bindInfo.discordid,
-            uid: uid,
-            prevpptotal: bindInfo.pptotal,
-            previous_bind: bindInfo.previous_bind,
-            username: bindInfo.username,
-        };
+    const inGameDppSystem = dppSystemBindInfo
+        ? (await DatabaseManager.aliceDb.collections.inGamePP.getFromUid(
+              uid,
+          )) ?? {
+              ...DatabaseManager.aliceDb.collections.inGamePP.defaultDocument,
+              discordid: dppSystemBindInfo.discordid,
+              uid: uid,
+              prevpptotal: dppSystemBindInfo.pptotal,
+              previous_bind: dppSystemBindInfo.previous_bind,
+              username: dppSystemBindInfo.username,
+          }
+        : null;
 
     for (const replay of replays) {
         const { data, originalODR } = replay;
@@ -315,6 +298,29 @@ export async function submitReplayToDppDatabase(
             continue;
         }
 
+        // Handle submission for official pp first, then switch to dpp system.
+        if (
+            beatmap.ranked_status === RankedStatus.ranked ||
+            beatmap.ranked_status === RankedStatus.approved
+        ) {
+            await submitReplayToOfficialPP(replay, uid, droidAttribs);
+        }
+
+        if (!dppSystemBindInfo) {
+            statuses.push({
+                success: false,
+                reason: "Bind information not found",
+                pp: 0,
+            });
+
+            return {
+                ppGained: 0,
+                newTotalPP: 0,
+                playCountIncrement: 0,
+                statuses: statuses,
+            };
+        }
+
         if (submitAsRecent) {
             const osuAttribs = await osuDifficultyCalculator
                 .calculateReplayPerformance(replay)
@@ -331,13 +337,14 @@ export async function submitReplayToDppDatabase(
             );
         }
 
-        if (isBanned) {
+        if (isBannedInDppSystem) {
             // No need to continue with submission if the player is dpp-banned.
-            preFillStatuses({
+            statuses.push({
                 success: false,
                 reason: "Player is banned from system",
                 pp: 0,
             });
+
             continue;
         }
 
@@ -367,7 +374,7 @@ export async function submitReplayToDppDatabase(
             continue;
         }
 
-        const saveReplayStatus = await saveReplay(uid, replay);
+        const saveReplayStatus = await saveReplayToDppSystem(uid, replay);
         if (!saveReplayStatus) {
             statuses.push({
                 success: false,
@@ -382,35 +389,40 @@ export async function submitReplayToDppDatabase(
 
         let replayNeedsPersistence = false;
 
-        if (checkScoreInsertion(bindInfo.pp, ppEntry)) {
+        if (checkScoreInsertion(dppSystemBindInfo.pp, ppEntry)) {
             ppEntry.pp = MathUtils.round(droidAttribs.result.total, 2);
 
-            replayNeedsPersistence = insertScore(bindInfo.pp, ppEntry);
+            replayNeedsPersistence = insertScore(dppSystemBindInfo.pp, ppEntry);
         }
 
-        if (
-            beatmap.ranked_status === RankedStatus.ranked ||
-            beatmap.ranked_status === RankedStatus.approved
-        ) {
-            insertScore(inGamePP.pp, ppEntry, 100);
-        }
-
-        if (
-            replay.scoreID > 0 &&
-            !(await wasBeatmapSubmitted(uid, data.hash))
-        ) {
-            ++playCountIncrement;
-
+        if (inGameDppSystem) {
             if (
                 beatmap.ranked_status === RankedStatus.ranked ||
                 beatmap.ranked_status === RankedStatus.approved
             ) {
-                ++inGamePP.playc;
+                insertScore(inGameDppSystem.pp, ppEntry, 100);
+            }
+
+            if (
+                replay.scoreID > 0 &&
+                !(await wasBeatmapSubmitted(uid, data.hash))
+            ) {
+                ++playCountIncrement;
+
+                if (
+                    beatmap.ranked_status === RankedStatus.ranked ||
+                    beatmap.ranked_status === RankedStatus.approved
+                ) {
+                    ++inGameDppSystem.playc;
+                }
             }
         }
 
         if (replayNeedsPersistence) {
-            const persistenceResult = await persistReplay(bindInfo.uid, replay);
+            const persistenceResult = await persistReplayToDppSystem(
+                dppSystemBindInfo.uid,
+                replay,
+            );
 
             if (!persistenceResult) {
                 statuses.push({
@@ -430,74 +442,87 @@ export async function submitReplayToDppDatabase(
         });
     }
 
-    const newTotal = calculateFinalPerformancePoints(
-        bindInfo.pp,
-        bindInfo.playc + playCountIncrement,
-    );
+    if (dppSystemBindInfo) {
+        const newTotal = calculateFinalPerformancePoints(
+            dppSystemBindInfo.pp,
+            dppSystemBindInfo.playc + playCountIncrement,
+        );
 
-    if (recentPlays.length > 0) {
-        await DatabaseManager.aliceDb.collections.recentPlays
-            .insert(...recentPlays)
+        if (recentPlays.length > 0) {
+            await DatabaseManager.aliceDb.collections.recentPlays
+                .insert(...recentPlays)
+                .catch(() => null);
+        }
+
+        const updateResult = await DatabaseManager.elainaDb.collections.userBind
+            .updateOne(
+                { discordid: dppSystemBindInfo.discordid },
+                {
+                    $set: {
+                        pptotal: newTotal,
+                        pp: dppSystemBindInfo.pp,
+                        weightedAccuracy: calculateWeightedAccuracy(
+                            dppSystemBindInfo.pp,
+                        ),
+                    },
+                    $inc: {
+                        playc: playCountIncrement,
+                    },
+                },
+            )
             .catch(() => null);
-    }
 
-    const updateResult = await DatabaseManager.elainaDb.collections.userBind
-        .updateOne(
-            { discordid: bindInfo.discordid },
-            {
-                $set: {
-                    pptotal: newTotal,
-                    pp: bindInfo.pp,
-                    weightedAccuracy: calculateWeightedAccuracy(bindInfo.pp),
-                },
-                $inc: {
-                    playc: playCountIncrement,
-                },
-            },
-        )
-        .catch(() => null);
+        if (!updateResult) {
+            for (const status of statuses) {
+                status.success = false;
+                status.reason = "Score submission to database failed";
+            }
 
-    if (!updateResult) {
-        for (const status of statuses) {
-            status.success = false;
-            status.reason = "Score submission to database failed";
+            return {
+                ppGained: 0,
+                newTotalPP: dppSystemBindInfo.pptotal,
+                playCountIncrement: 0,
+                statuses: statuses,
+            };
+        }
+
+        await updateDiscordMetadata(dppSystemBindInfo.discordid);
+
+        if (inGameDppSystem) {
+            await DatabaseManager.aliceDb.collections.inGamePP.updateOne(
+                { discordid: dppSystemBindInfo.discordid },
+                {
+                    $set: {
+                        playc: inGameDppSystem.playc,
+                        pptotal: calculateFinalPerformancePoints(
+                            inGameDppSystem.pp,
+                            inGameDppSystem.playc,
+                        ),
+                        pp: inGameDppSystem.pp,
+                        prevpptotal: newTotal,
+                    },
+                    $setOnInsert: {
+                        lastUpdate: Date.now(),
+                        uid: dppSystemBindInfo.uid,
+                        username: dppSystemBindInfo.username,
+                        previous_bind: dppSystemBindInfo.previous_bind,
+                    },
+                },
+                { upsert: true },
+            );
         }
 
         return {
-            ppGained: 0,
-            newTotalPP: bindInfo.pptotal,
-            playCountIncrement: 0,
+            ppGained: MathUtils.round(newTotal - dppSystemBindInfo.pptotal, 2),
+            newTotalPP: MathUtils.round(newTotal, 2),
+            playCountIncrement: playCountIncrement,
             statuses: statuses,
         };
     }
 
-    await DatabaseManager.aliceDb.collections.inGamePP.updateOne(
-        { discordid: bindInfo.discordid },
-        {
-            $set: {
-                playc: inGamePP.playc,
-                pptotal: calculateFinalPerformancePoints(
-                    inGamePP.pp,
-                    inGamePP.playc,
-                ),
-                pp: inGamePP.pp,
-                prevpptotal: newTotal,
-            },
-            $setOnInsert: {
-                lastUpdate: Date.now(),
-                uid: bindInfo.uid,
-                username: bindInfo.username,
-                previous_bind: bindInfo.previous_bind,
-            },
-        },
-        { upsert: true },
-    );
-
-    await updateDiscordMetadata(bindInfo.discordid);
-
     return {
-        ppGained: MathUtils.round(newTotal - bindInfo.pptotal, 2),
-        newTotalPP: MathUtils.round(newTotal, 2),
+        ppGained: 0,
+        newTotalPP: 0,
         playCountIncrement: playCountIncrement,
         statuses: statuses,
     };
@@ -649,15 +674,13 @@ export async function initiateReplayProcessing(): Promise<void> {
             console.error("Error when analyzing replay:\n", e);
         });
 
-        const result = await submitReplayToDppDatabase(
-            [analyzer],
-            undefined,
-            true,
-        ).catch((e: unknown) => {
-            console.error("Error when processing replay:\n", e);
+        const result = await submitReplay([analyzer], undefined, true).catch(
+            (e: unknown) => {
+                console.error("Error when processing replay:\n", e);
 
-            return null;
-        });
+                return null;
+            },
+        );
 
         if (result) {
             await deleteUnprocessedReplay(path);
@@ -684,6 +707,41 @@ export async function initiateReplayProcessing(): Promise<void> {
     }
 
     console.log("Unprocessed replay file(s) processing complete");
+}
+
+async function submitReplayToOfficialPP(
+    replay: ReplayAnalyzer,
+    uid: number,
+    scoreAttribs: PerformanceCalculationResult<
+        ExtendedDroidDifficultyAttributes,
+        DroidPerformanceAttributes
+    >,
+): Promise<void> {
+    if (!replay.data) {
+        return;
+    }
+
+    const score = await getOfficialScore(uid, replay.data.hash, true);
+
+    if (!score) {
+        return;
+    }
+
+    const bestScore = await getOfficialBestScore(uid, replay.data.hash);
+
+    // For overwriting scores, we need to update the pp value in the official score table.
+    if (replay.scoreID > 0) {
+        await updateOfficialScorePPValue(
+            replay.scoreID,
+            scoreAttribs.result.total,
+        );
+    }
+
+    // New top play for the player, or a new score.
+    if (bestScore === null || scoreAttribs.result.total > bestScore.pp) {
+        await updateBestScorePPValue(score, scoreAttribs.result.total);
+        await saveReplayToOfficialPP(replay);
+    }
 }
 
 /**

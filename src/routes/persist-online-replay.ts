@@ -1,5 +1,8 @@
 import { Router } from "express";
-import { getOnlineReplay, persistReplay } from "../utils/replayManager";
+import {
+    getOnlineReplay,
+    persistReplayToDppSystem,
+} from "../utils/replayManager";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import { validatePOSTInternalKey } from "../utils/util";
 
@@ -21,7 +24,7 @@ router.put<
         );
     });
 
-    const success = await persistReplay(req.body.uid, analyzer);
+    const success = await persistReplayToDppSystem(req.body.uid, analyzer);
     if (!success) {
         return res
             .status(400)

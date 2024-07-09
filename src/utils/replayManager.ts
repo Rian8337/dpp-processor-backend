@@ -40,13 +40,18 @@ export const onlineReplayDirectory = join(
 );
 
 /**
+ * The directory of official replays.
+ */
+export const officialReplayDirectory = join(localReplayDirectory, "official");
+
+/**
  * Saves a replay to the disk.
  *
  * @param playerId The ID of the player.
  * @param replayFile The replay file.
  * @returns The path to replay file was saved in if the operation is successful, `null` otherwise.
  */
-export async function saveReplay(
+export async function saveReplayToDppSystem(
     playerId: number,
     replayAnalyzer: ReplayAnalyzer,
 ): Promise<boolean> {
@@ -55,7 +60,7 @@ export async function saveReplay(
         return false;
     }
 
-    const filePath = generateReplayFilePath(
+    const filePath = generateDppSystemReplayFilePath(
         playerId,
         data.hash,
         data.convertedMods,
@@ -66,7 +71,7 @@ export async function saveReplay(
     );
 
     // Ensure directory exists before performing read/write operations.
-    await ensureBeatmapDirectoryExists(filePath);
+    await ensureReplayDirectoryExists(filePath);
 
     // Compare accuracy and miss count to determine the incremental ID of the replay.
     let replayIncrementId = 0;
@@ -161,6 +166,29 @@ export async function saveReplay(
 }
 
 /**
+ * Saves a replay to the official replay folder.
+ *
+ * @param replay The replay to save.
+ * @returns Whether the operation was successful.
+ */
+export async function saveReplayToOfficialPP(
+    replay: ReplayAnalyzer,
+): Promise<boolean> {
+    const { originalODR, data, scoreID } = replay;
+
+    if (!originalODR || !data) {
+        return false;
+    }
+
+    const filePath = join(officialReplayDirectory, `${scoreID.toString()}.odr`);
+
+    return ensureReplayDirectoryExists(filePath)
+        .then(() => writeFile(filePath, originalODR))
+        .then(() => true)
+        .catch(() => false);
+}
+
+/**
  * Generates a path for a replay.
  *
  * @param playerId The ID of the player.
@@ -172,7 +200,7 @@ export async function saveReplay(
  * @param forceOD The force OD value used in the replay.
  * @returns The path to the replay file, without the `.odr` extension.
  */
-export function generateReplayFilePath(
+export function generateDppSystemReplayFilePath(
     playerId: number,
     mapMD5: string,
     mods: (Mod & IModApplicableToDroid)[],
@@ -213,7 +241,7 @@ export function generateReplayFilePath(
  * @param replay The replay to persist.
  * @returns Whether the operation was successful.
  */
-export async function persistReplay(
+export async function persistReplayToDppSystem(
     playerId: number,
     replay: ReplayAnalyzer,
 ): Promise<boolean> {
@@ -223,7 +251,7 @@ export async function persistReplay(
     }
 
     const filePath =
-        generateReplayFilePath(
+        generateDppSystemReplayFilePath(
             playerId,
             data.hash,
             data.convertedMods,
@@ -233,7 +261,7 @@ export async function persistReplay(
             data.forceOD,
         ) + "_persisted.odr";
 
-    return ensureBeatmapDirectoryExists(filePath)
+    return ensureReplayDirectoryExists(filePath)
         .then(() =>
             writeFile(join(localReplayDirectory, filePath), originalODR),
         )
@@ -250,7 +278,7 @@ export async function persistReplay(
  * @param customSpeedMultiplier The custom speed multiplier used in the replay.
  * @returns The replay file, `null` if not found.
  */
-export async function getPersistedReplay(
+export async function getDppSystemPersistedReplay(
     playerId: number,
     mapMD5: string,
     mods: (Mod & IModApplicableToDroid)[],
@@ -264,7 +292,7 @@ export async function getPersistedReplay(
     return readFile(
         join(
             localReplayDirectory,
-            generateReplayFilePath(
+            generateDppSystemReplayFilePath(
                 playerId,
                 mapMD5,
                 mods,
@@ -364,12 +392,12 @@ export async function wasBeatmapSubmitted(
 }
 
 /**
- * Ensures the beatmap directory for a replay exists.
+ * Ensures the directory for a replay exists.
  *
  * @param filePath The path to the replay file.
  * @returns The created path from `mkdir`.
  */
-async function ensureBeatmapDirectoryExists(
+async function ensureReplayDirectoryExists(
     filePath: string,
 ): Promise<string | undefined> {
     if (isDebug) {

@@ -2,7 +2,7 @@ import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import { Router } from "express";
 import { validatePOSTInternalKey } from "../utils/util";
 import { getOnlineReplay } from "../utils/replayManager";
-import { submitReplayToDppDatabase } from "../utils/dppUtil";
+import { submitReplay } from "../utils/dppUtil";
 
 const router = Router();
 
@@ -29,10 +29,7 @@ router.post<
         replays.push(analyzer);
     }
 
-    const result = await submitReplayToDppDatabase(
-        replays,
-        parseInt(req.body.uid),
-    );
+    const result = await submitReplay(replays, parseInt(req.body.uid));
 
     res.json(result);
 });

@@ -161,39 +161,33 @@ export function updateOfficialScorePPValue(
  * @returns Whether the update was successful.
  */
 export function updateBestScorePPValue(
-    score: OfficialDatabaseScore,
+    scoreId: number,
     pp: number,
 ): Promise<boolean> {
-    const updatedScore: OfficialDatabaseBestScore = { ...score, pp };
-
-    const scoreKeys = Object.keys(
-        updatedScore,
-    ) as (keyof OfficialDatabaseBestScore)[];
-
     return officialPool
         .query<ResultSetHeader>(
-            `INSERT INTO ${constructOfficialDatabaseTableName(
-                OfficialDatabaseTables.bestScore,
-            )} (${scoreKeys.join()})
-            VALUES (${scoreKeys.map((v) => `:${v}`).join()})
-            ON DUPLICATE KEY UPDATE
-            ${scoreKeys
-                .map((v) => {
-                    // We do not want to update id, uid, filename, and hash.
-                    switch (v) {
-                        case "id":
-                        case "uid":
-                        case "filename":
-                        case "hash":
-                            return "";
+            `UPDATE ${constructOfficialDatabaseTableName(OfficialDatabaseTables.bestScore)} SET pp = ? WHERE id = ?;`,
+            [pp, scoreId],
+        )
+        .then((res) => res[0].affectedRows === 1)
+        .catch((e: unknown) => {
+            console.error(e);
 
-                        default:
-                            return `${v} = VALUES(${v})`;
-                    }
-                })
-                .filter(Boolean)
-                .join()};`,
-            updatedScore,
+            return false;
+        });
+}
+
+/**
+ * Copies a score as the best score.
+ *
+ * @param scoreId The ID of the score.
+ * @returns Whether the operation was successful.
+ */
+export function copyScoreAsBestScore(scoreId: number): Promise<boolean> {
+    return officialPool
+        .query<ResultSetHeader>(
+            `INSERT INTO ${constructOfficialDatabaseTableName(OfficialDatabaseTables.bestScore)} SELECT * FROM ${constructOfficialDatabaseTableName(OfficialDatabaseTables.score)} WHERE id = ?;`,
+            [scoreId],
         )
         .then((res) => res[0].affectedRows === 1)
         .catch((e: unknown) => {

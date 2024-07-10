@@ -39,6 +39,7 @@ import { basename, join } from "path";
 import { watch } from "chokidar";
 import { ProcessorDatabaseBeatmap } from "../database/processor/schema/ProcessorDatabaseBeatmap";
 import {
+    copyScoreAsBestScore,
     getOfficialBestScore,
     getOfficialScore,
     getPlayerFromUsername,
@@ -721,7 +722,7 @@ async function submitReplayToOfficialPP(
         return;
     }
 
-    const score = await getOfficialScore(uid, replay.data.hash, true);
+    const score = await getOfficialScore(uid, replay.data.hash, true, "id");
 
     if (!score) {
         return;
@@ -737,9 +738,13 @@ async function submitReplayToOfficialPP(
         );
     }
 
-    // New top play for the player, or a new score.
-    if (bestScore === null || scoreAttribs.result.total > bestScore.pp) {
-        await updateBestScorePPValue(score, scoreAttribs.result.total);
+    if (bestScore !== null && bestScore.pp < scoreAttribs.result.total) {
+        // New top play - update the pp value.
+        await updateBestScorePPValue(score.id, scoreAttribs.result.total);
+        await saveReplayToOfficialPP(replay);
+    } else if (!bestScore) {
+        // Best score is not found - insert the current score as the best score.
+        await copyScoreAsBestScore(score.id);
         await saveReplayToOfficialPP(replay);
     }
 }

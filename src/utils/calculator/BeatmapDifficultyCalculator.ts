@@ -10,7 +10,6 @@ import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import { CalculationWorkerPool } from "../workers/CalculationWorkerPool";
 import { CalculationWorkerData } from "../../structures/workers/CalculationWorkerData";
 import { PPCalculationMethod } from "../../structures/PPCalculationMethod";
-import { CompleteCalculationAttributes } from "../../structures/attributes/CompleteCalculationAttributes";
 import { PerformanceAttributes } from "../../structures/attributes/PerformanceAttributes";
 import { ProcessorDatabaseDifficultyAttributes } from "../../database/processor/schema/ProcessorDatabaseDifficultyAttributes";
 import { ProcessorDatabaseBeatmap } from "../../database/processor/schema/ProcessorDatabaseBeatmap";
@@ -80,10 +79,41 @@ export abstract class BeatmapDifficultyCalculator<
      * Calculates the difficulty and performance value of a replay.
      *
      * @param replay The replay.
+     * @param generateStrainChart Whether to generate strain chart.
      * @returns The result of the calculation. Errors will be thrown whenever necessary.
      */
     async calculateReplayPerformance(
         replay: ReplayAnalyzer,
+        generateStrainChart: true,
+    ): Promise<PerformanceCalculationResult<DA, PA, true>>;
+
+    /**
+     * Calculates the difficulty and performance value of a replay.
+     *
+     * @param replay The replay.
+     * @param generateStrainChart Whether to generate strain chart.
+     * @returns The result of the calculation. Errors will be thrown whenever necessary.
+     */
+    async calculateReplayPerformance(
+        replay: ReplayAnalyzer,
+        generateStrainChart: false,
+    ): Promise<PerformanceCalculationResult<DA, PA, false>>;
+
+    /**
+     * Calculates the difficulty and performance value of a replay.
+     *
+     * @param replay The replay.
+     * @param generateStrainChart Whether to generate strain chart.
+     * @returns The result of the calculation. Errors will be thrown whenever necessary.
+     */
+    async calculateReplayPerformance(
+        replay: ReplayAnalyzer,
+        generateStrainChart?: boolean,
+    ): Promise<PerformanceCalculationResult<DA, PA>>;
+
+    async calculateReplayPerformance(
+        replay: ReplayAnalyzer,
+        generateStrainChart?: boolean,
     ): Promise<PerformanceCalculationResult<DA, PA>> {
         if (!replay.data) {
             throw new Error("No replay data found");
@@ -99,6 +129,7 @@ export abstract class BeatmapDifficultyCalculator<
             PPCalculationMethod.live,
             BeatmapDifficultyCalculator.getCalculationParameters(replay),
             replay,
+            generateStrainChart,
         );
     }
 
@@ -106,10 +137,41 @@ export abstract class BeatmapDifficultyCalculator<
      * Calculates the rebalance difficulty and performance value of a replay.
      *
      * @param replay The replay.
+     * @param generateStrainChart Whether to generate strain chart.
      * @returns The result of the calculation. Errors will be thrown whenever necessary.
      */
     async calculateReplayRebalancePerformance(
         replay: ReplayAnalyzer,
+        generateStrainChart: true,
+    ): Promise<RebalancePerformanceCalculationResult<RDA, RPA, true>>;
+
+    /**
+     * Calculates the rebalance difficulty and performance value of a replay.
+     *
+     * @param replay The replay.
+     * @param generateStrainChart Whether to generate strain chart.
+     * @returns The result of the calculation. Errors will be thrown whenever necessary.
+     */
+    async calculateReplayRebalancePerformance(
+        replay: ReplayAnalyzer,
+        generateStrainChart: false,
+    ): Promise<RebalancePerformanceCalculationResult<RDA, RPA, false>>;
+
+    /**
+     * Calculates the rebalance difficulty and performance value of a replay.
+     *
+     * @param replay The replay.
+     * @param generateStrainChart Whether to generate strain chart.
+     * @returns The result of the calculation. Errors will be thrown whenever necessary.
+     */
+    async calculateReplayRebalancePerformance(
+        replay: ReplayAnalyzer,
+        generateStrainChart?: boolean,
+    ): Promise<RebalancePerformanceCalculationResult<RDA, RPA>>;
+
+    async calculateReplayRebalancePerformance(
+        replay: ReplayAnalyzer,
+        generateStrainChart?: boolean,
     ): Promise<RebalancePerformanceCalculationResult<RDA, RPA>> {
         if (!replay.data) {
             throw new Error("No replay data found");
@@ -125,8 +187,23 @@ export abstract class BeatmapDifficultyCalculator<
             PPCalculationMethod.rebalance,
             BeatmapDifficultyCalculator.getCalculationParameters(replay),
             replay,
+            generateStrainChart,
         );
     }
+
+    /**
+     * Calculates the difficulty and/or performance value of a beatmap.
+     *
+     * @param beatmap The beatmap to calculate.
+     * @param calculationParams Calculation parameters. If unspecified, will calculate for No Mod SS.
+     * @param generateStrainChart Whether to generate strain chart.
+     * @returns The result of the calculation. Errors will be thrown whenever necessary.
+     */
+    async calculateBeatmapPerformance(
+        beatmap: ProcessorDatabaseBeatmap | number | string,
+        calculationParams: PerformanceCalculationParameters,
+        generateStrainChart: true,
+    ): Promise<PerformanceCalculationResult<DA, PA, true>>;
 
     /**
      * Calculates the difficulty and/or performance value of a beatmap.
@@ -137,7 +214,28 @@ export abstract class BeatmapDifficultyCalculator<
      */
     async calculateBeatmapPerformance(
         beatmap: ProcessorDatabaseBeatmap | number | string,
+        calculationParams: PerformanceCalculationParameters,
+        generateStrainChart: false,
+    ): Promise<PerformanceCalculationResult<DA, PA, false>>;
+
+    /**
+     * Calculates the difficulty and/or performance value of a beatmap.
+     *
+     * @param beatmap The beatmap to calculate.
+     * @param calculationParams Calculation parameters. If unspecified, will calculate for No Mod SS.
+     * @param generateStrainChart Whether to generate strain chart.
+     * @returns The result of the calculation. Errors will be thrown whenever necessary.
+     */
+    async calculateBeatmapPerformance(
+        beatmap: ProcessorDatabaseBeatmap | number | string,
         calculationParams?: PerformanceCalculationParameters,
+        generateStrainChart?: boolean,
+    ): Promise<PerformanceCalculationResult<DA, PA>>;
+
+    async calculateBeatmapPerformance(
+        beatmap: ProcessorDatabaseBeatmap | number | string,
+        calculationParams?: PerformanceCalculationParameters,
+        generateStrainChart?: boolean,
     ): Promise<PerformanceCalculationResult<DA, PA>> {
         const apiBeatmap =
             typeof beatmap === "object" ? beatmap : await getBeatmap(beatmap);
@@ -150,6 +248,8 @@ export abstract class BeatmapDifficultyCalculator<
             apiBeatmap,
             PPCalculationMethod.live,
             calculationParams,
+            undefined,
+            generateStrainChart,
         );
     }
 
@@ -158,11 +258,47 @@ export abstract class BeatmapDifficultyCalculator<
      *
      * @param beatmap The beatmap to calculate.
      * @param calculationParams Calculation parameters. If unspecified, will calculate for No Mod SS.
+     * @param generateStrainChart Whether to generate strain chart.
+     * @returns The result of the calculation. Errors will be thrown whenever necessary.
+     */
+    async calculateBeatmapRebalancePerformance(
+        beatmap: ProcessorDatabaseBeatmap | number | string,
+        calculationParams: PerformanceCalculationParameters,
+        generateStrainChart: true,
+    ): Promise<RebalancePerformanceCalculationResult<RDA, RPA, true>>;
+
+    /**
+     * Calculates the rebalance difficulty and/or performance value of a beatmap.
+     *
+     * @param beatmap The beatmap to calculate.
+     * @param calculationParams Calculation parameters. If unspecified, will calculate for No Mod SS.
+     * @param generateStrainChart Whether to generate strain chart.
+     * @returns The result of the calculation. Errors will be thrown whenever necessary.
+     */
+    async calculateBeatmapRebalancePerformance(
+        beatmap: ProcessorDatabaseBeatmap | number | string,
+        calculationParams: PerformanceCalculationParameters,
+        generateStrainChart: false,
+    ): Promise<RebalancePerformanceCalculationResult<RDA, RPA, false>>;
+
+    /**
+     * Calculates the rebalance difficulty and/or performance value of a beatmap.
+     *
+     * @param beatmap The beatmap to calculate.
+     * @param calculationParams Calculation parameters. If unspecified, will calculate for No Mod SS.
+     * @param generateStrainChart Whether to generate strain chart.
      * @returns The result of the calculation. Errors will be thrown whenever necessary.
      */
     async calculateBeatmapRebalancePerformance(
         beatmap: ProcessorDatabaseBeatmap | number | string,
         calculationParams?: PerformanceCalculationParameters,
+        generateStrainChart?: boolean,
+    ): Promise<RebalancePerformanceCalculationResult<RDA, RPA>>;
+
+    async calculateBeatmapRebalancePerformance(
+        beatmap: ProcessorDatabaseBeatmap | number | string,
+        calculationParams?: PerformanceCalculationParameters,
+        generateStrainChart?: boolean,
     ): Promise<RebalancePerformanceCalculationResult<RDA, RPA>> {
         const apiBeatmap =
             typeof beatmap === "object" ? beatmap : await getBeatmap(beatmap);
@@ -175,6 +311,8 @@ export abstract class BeatmapDifficultyCalculator<
             apiBeatmap,
             PPCalculationMethod.rebalance,
             calculationParams,
+            undefined,
+            generateStrainChart,
         );
     }
 
@@ -183,6 +321,7 @@ export abstract class BeatmapDifficultyCalculator<
         calculationMethod: PPCalculationMethod.live,
         calculationParams?: PerformanceCalculationParameters,
         replay?: ReplayAnalyzer,
+        generateStrainChart?: boolean,
     ): Promise<PerformanceCalculationResult<DA, PA>>;
 
     private async calculatePerformance(
@@ -190,6 +329,7 @@ export abstract class BeatmapDifficultyCalculator<
         calculationMethod: PPCalculationMethod.rebalance,
         calculationParams?: PerformanceCalculationParameters,
         replay?: ReplayAnalyzer,
+        generateStrainChart?: boolean,
     ): Promise<RebalancePerformanceCalculationResult<RDA, RPA>>;
 
     private async calculatePerformance(
@@ -197,6 +337,7 @@ export abstract class BeatmapDifficultyCalculator<
         calculationMethod: PPCalculationMethod,
         calculationParams?: PerformanceCalculationParameters,
         replay?: ReplayAnalyzer,
+        generateStrainChart?: boolean,
     ): Promise<
         | PerformanceCalculationResult<DA, PA>
         | RebalancePerformanceCalculationResult<RDA, RPA>
@@ -239,18 +380,13 @@ export abstract class BeatmapDifficultyCalculator<
                 ? new Blob([replay.originalODR])
                 : undefined,
             parameters: calculationParams?.toCloneable(),
+            generateStrainChart: generateStrainChart,
         };
 
         return new Promise((resolve, reject) => {
             BeatmapDifficultyCalculator.calculatorPool.runTask({
                 data,
-                callback: async (
-                    err,
-                    result: CompleteCalculationAttributes<
-                        DifficultyAttributes | RebalanceDifficultyAttributes,
-                        PerformanceAttributes
-                    >,
-                ) => {
+                callback: async (err, result) => {
                     if (err) {
                         reject(err);
 
@@ -259,11 +395,11 @@ export abstract class BeatmapDifficultyCalculator<
 
                     // Reconstruct the parameters in case some parameters were changed.
                     calculationParams = PerformanceCalculationParameters.from(
-                        result.params,
+                        result.attributes.params,
                     );
 
                     const diffAttribs = {
-                        ...result.difficulty,
+                        ...result.attributes.difficulty,
                         mods: calculationParams.mods,
                     } as DA & RDA;
 
@@ -284,8 +420,11 @@ export abstract class BeatmapDifficultyCalculator<
                             new PerformanceCalculationResult(
                                 calculationParams,
                                 diffAttribs,
-                                result.performance as PA,
-                                result.replay,
+                                result.attributes.performance as PA,
+                                result.attributes.replay,
+                                result.strainChart
+                                    ? Buffer.from(result.strainChart)
+                                    : undefined,
                             ),
                         );
                     } else {
@@ -293,8 +432,11 @@ export abstract class BeatmapDifficultyCalculator<
                             new RebalancePerformanceCalculationResult(
                                 calculationParams,
                                 diffAttribs,
-                                result.performance as RPA,
-                                result.replay,
+                                result.attributes.performance as RPA,
+                                result.attributes.replay,
+                                result.strainChart
+                                    ? Buffer.from(result.strainChart)
+                                    : undefined,
                             ),
                         );
                     }

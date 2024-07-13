@@ -13,6 +13,7 @@ import {
     DroidDifficultyAttributes as RebalanceDroidDifficultyAttributes,
     OsuDifficultyAttributes as RebalanceOsuDifficultyAttributes,
 } from "@rian8337/osu-rebalance-difficulty-calculator";
+import generateStrainChart from "@rian8337/osu-strain-graph-generator";
 import { Router } from "express";
 import { ReadStream } from "fs";
 import { PPCalculationMethod } from "../structures/PPCalculationMethod";
@@ -25,6 +26,9 @@ import {
     calculateLocalBeatmapDifficulty,
     calculateLocalBeatmapPerformance,
 } from "../utils/calculator/LocalBeatmapDifficultyCalculator";
+import { RawDifficultyAttributes } from "../structures/attributes/RawDifficultyAttributes";
+import { PerformanceAttributes } from "../structures/attributes/PerformanceAttributes";
+import { StrainGraphColor } from "../enums/StrainGraphColor";
 
 const router = Router();
 
@@ -164,98 +168,120 @@ router.post<
         },
     });
 
+    let attributes: CompleteCalculationAttributes<
+        RawDifficultyAttributes,
+        PerformanceAttributes
+    >;
+    let strainChart: Buffer | null = null;
+
     switch (gamemode) {
         case Modes.droid: {
             switch (calculationMethod) {
                 case PPCalculationMethod.live: {
-                    const result = calculateLocalBeatmapPerformance(
-                        calculateLocalBeatmapDifficulty(
-                            beatmap,
-                            calculationParams,
-                            gamemode,
-                            calculationMethod,
-                        ),
+                    const diffCalc = calculateLocalBeatmapDifficulty(
+                        beatmap,
+                        calculationParams,
+                        gamemode,
+                        calculationMethod,
+                    );
+
+                    const perfCalc = calculateLocalBeatmapPerformance(
+                        diffCalc,
                         calculationParams,
                     );
 
-                    const attributes: CompleteCalculationAttributes<
-                        DroidDifficultyAttributes,
-                        DroidPerformanceAttributes
-                    > = {
+                    strainChart = await generateStrainChart(
+                        beatmap,
+                        diffCalc.strainPeaks,
+                        diffCalc.difficultyStatistics.overallSpeedMultiplier,
+                        undefined,
+                        StrainGraphColor.droidLive,
+                    );
+
+                    attributes = {
                         params: calculationParams.toCloneable(),
                         difficulty: {
-                            ...result.difficultyAttributes,
-                            mods: result.difficultyAttributes.mods.reduce(
+                            ...perfCalc.difficultyAttributes,
+                            mods: perfCalc.difficultyAttributes.mods.reduce(
                                 (a, v) => a + v.acronym,
                                 "",
                             ),
                         },
                         performance: {
-                            total: result.total,
-                            aim: result.aim,
-                            tap: result.tap,
-                            accuracy: result.accuracy,
-                            flashlight: result.flashlight,
-                            visual: result.visual,
-                            deviation: result.deviation,
-                            tapDeviation: result.tapDeviation,
-                            tapPenalty: result.tapPenalty,
+                            total: perfCalc.total,
+                            aim: perfCalc.aim,
+                            tap: perfCalc.tap,
+                            accuracy: perfCalc.accuracy,
+                            flashlight: perfCalc.flashlight,
+                            visual: perfCalc.visual,
+                            deviation: perfCalc.deviation,
+                            tapDeviation: perfCalc.tapDeviation,
+                            tapPenalty: perfCalc.tapPenalty,
                             aimSliderCheesePenalty:
-                                result.aimSliderCheesePenalty,
+                                perfCalc.aimSliderCheesePenalty,
                             flashlightSliderCheesePenalty:
-                                result.flashlightSliderCheesePenalty,
+                                perfCalc.flashlightSliderCheesePenalty,
                             visualSliderCheesePenalty:
-                                result.visualSliderCheesePenalty,
+                                perfCalc.visualSliderCheesePenalty,
                         },
-                    };
-
-                    res.json(attributes);
+                    } as CompleteCalculationAttributes<
+                        DroidDifficultyAttributes,
+                        DroidPerformanceAttributes
+                    >;
 
                     break;
                 }
                 case PPCalculationMethod.rebalance: {
-                    const result = calculateLocalBeatmapPerformance(
-                        calculateLocalBeatmapDifficulty(
-                            beatmap,
-                            calculationParams,
-                            gamemode,
-                            calculationMethod,
-                        ),
+                    const diffCalc = calculateLocalBeatmapDifficulty(
+                        beatmap,
+                        calculationParams,
+                        gamemode,
+                        calculationMethod,
+                    );
+
+                    const perfCalc = calculateLocalBeatmapPerformance(
+                        diffCalc,
                         calculationParams,
                     );
 
-                    const attributes: CompleteCalculationAttributes<
-                        RebalanceDroidDifficultyAttributes,
-                        DroidPerformanceAttributes
-                    > = {
+                    strainChart = await generateStrainChart(
+                        beatmap,
+                        diffCalc.strainPeaks,
+                        diffCalc.difficultyStatistics.overallSpeedMultiplier,
+                        undefined,
+                        StrainGraphColor.droidRebalance,
+                    );
+
+                    attributes = {
                         params: calculationParams.toCloneable(),
                         difficulty: {
-                            ...result.difficultyAttributes,
-                            mods: result.difficultyAttributes.mods.reduce(
+                            ...perfCalc.difficultyAttributes,
+                            mods: perfCalc.difficultyAttributes.mods.reduce(
                                 (a, v) => a + v.acronym,
                                 "",
                             ),
                         },
                         performance: {
-                            total: result.total,
-                            aim: result.aim,
-                            tap: result.tap,
-                            accuracy: result.accuracy,
-                            flashlight: result.flashlight,
-                            visual: result.visual,
-                            deviation: result.deviation,
-                            tapDeviation: result.tapDeviation,
-                            tapPenalty: result.tapPenalty,
+                            total: perfCalc.total,
+                            aim: perfCalc.aim,
+                            tap: perfCalc.tap,
+                            accuracy: perfCalc.accuracy,
+                            flashlight: perfCalc.flashlight,
+                            visual: perfCalc.visual,
+                            deviation: perfCalc.deviation,
+                            tapDeviation: perfCalc.tapDeviation,
+                            tapPenalty: perfCalc.tapPenalty,
                             aimSliderCheesePenalty:
-                                result.aimSliderCheesePenalty,
+                                perfCalc.aimSliderCheesePenalty,
                             flashlightSliderCheesePenalty:
-                                result.flashlightSliderCheesePenalty,
+                                perfCalc.flashlightSliderCheesePenalty,
                             visualSliderCheesePenalty:
-                                result.visualSliderCheesePenalty,
+                                perfCalc.visualSliderCheesePenalty,
                         },
-                    };
-
-                    res.json(attributes);
+                    } as CompleteCalculationAttributes<
+                        RebalanceDroidDifficultyAttributes,
+                        DroidPerformanceAttributes
+                    >;
 
                     break;
                 }
@@ -266,74 +292,90 @@ router.post<
         case Modes.osu: {
             switch (calculationMethod) {
                 case PPCalculationMethod.live: {
-                    const result = calculateLocalBeatmapPerformance(
-                        calculateLocalBeatmapDifficulty(
-                            beatmap,
-                            calculationParams,
-                            gamemode,
-                            calculationMethod,
-                        ),
+                    const diffCalc = calculateLocalBeatmapDifficulty(
+                        beatmap,
+                        calculationParams,
+                        gamemode,
+                        calculationMethod,
+                    );
+
+                    const perfCalc = calculateLocalBeatmapPerformance(
+                        diffCalc,
                         calculationParams,
                     );
 
-                    const attributes: CompleteCalculationAttributes<
-                        OsuDifficultyAttributes,
-                        OsuPerformanceAttributes
-                    > = {
+                    strainChart = await generateStrainChart(
+                        beatmap,
+                        diffCalc.strainPeaks,
+                        diffCalc.difficultyStatistics.overallSpeedMultiplier,
+                        undefined,
+                        StrainGraphColor.osuLive,
+                    );
+
+                    attributes = {
                         params: calculationParams.toCloneable(),
                         difficulty: {
-                            ...result.difficultyAttributes,
-                            mods: result.difficultyAttributes.mods.reduce(
+                            ...perfCalc.difficultyAttributes,
+                            mods: perfCalc.difficultyAttributes.mods.reduce(
                                 (a, v) => a + v.acronym,
                                 "",
                             ),
                         },
                         performance: {
-                            total: result.total,
-                            aim: result.aim,
-                            speed: result.speed,
-                            accuracy: result.accuracy,
-                            flashlight: result.flashlight,
+                            total: perfCalc.total,
+                            aim: perfCalc.aim,
+                            speed: perfCalc.speed,
+                            accuracy: perfCalc.accuracy,
+                            flashlight: perfCalc.flashlight,
                         },
-                    };
-
-                    res.json(attributes);
+                    } as CompleteCalculationAttributes<
+                        OsuDifficultyAttributes,
+                        OsuPerformanceAttributes
+                    >;
 
                     break;
                 }
                 case PPCalculationMethod.rebalance: {
-                    const result = calculateLocalBeatmapPerformance(
-                        calculateLocalBeatmapDifficulty(
-                            beatmap,
-                            calculationParams,
-                            gamemode,
-                            calculationMethod,
-                        ),
+                    const diffCalc = calculateLocalBeatmapDifficulty(
+                        beatmap,
+                        calculationParams,
+                        gamemode,
+                        calculationMethod,
+                    );
+
+                    const perfCalc = calculateLocalBeatmapPerformance(
+                        diffCalc,
                         calculationParams,
                     );
 
-                    const attributes: CompleteCalculationAttributes<
-                        RebalanceOsuDifficultyAttributes,
-                        OsuPerformanceAttributes
-                    > = {
+                    strainChart = await generateStrainChart(
+                        beatmap,
+                        diffCalc.strainPeaks,
+                        diffCalc.difficultyStatistics.overallSpeedMultiplier,
+                        undefined,
+                        StrainGraphColor.osuRebalance,
+                    );
+
+                    attributes = {
                         params: calculationParams.toCloneable(),
                         difficulty: {
-                            ...result.difficultyAttributes,
-                            mods: result.difficultyAttributes.mods.reduce(
+                            ...perfCalc.difficultyAttributes,
+                            mods: perfCalc.difficultyAttributes.mods.reduce(
                                 (a, v) => a + v.acronym,
                                 "",
                             ),
                         },
                         performance: {
-                            total: result.total,
-                            aim: result.aim,
-                            speed: result.speed,
-                            accuracy: result.accuracy,
-                            flashlight: result.flashlight,
+                            total: perfCalc.total,
+                            aim: perfCalc.aim,
+                            speed: perfCalc.speed,
+                            accuracy: perfCalc.accuracy,
+                            flashlight: perfCalc.flashlight,
                         },
-                    };
-
-                    res.json(attributes);
+                    } as CompleteCalculationAttributes<
+                        RebalanceOsuDifficultyAttributes,
+                        OsuPerformanceAttributes
+                    >;
 
                     break;
                 }
@@ -342,6 +384,11 @@ router.post<
             break;
         }
     }
+
+    res.json({
+        attributes: attributes,
+        strainChart: strainChart.toJSON().data,
+    });
 });
 
 export default router;

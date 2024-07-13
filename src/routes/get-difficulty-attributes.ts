@@ -36,6 +36,7 @@ router.get<
         forcecs?: string;
         forcear?: string;
         forceod?: string;
+        generatestrainchart?: string;
     }
 >("/", validateGETInternalKey, async (req, res) => {
     if (!req.query.beatmapid && !req.query.beatmaphash) {
@@ -104,7 +105,10 @@ router.get<
         return res.status(404).json({ error: "Beatmap not found" });
     }
 
+    const generateStrainChart = req.query.generatestrainchart !== undefined;
+
     let difficultyAttributes: CacheableDifficultyAttributes<RawDifficultyAttributes> | null;
+    let strainChart: Buffer | null = null;
     let difficultyCacheManager: DifficultyAttributesCacheManager<
         RawDifficultyAttributes,
         ProcessorDatabaseDifficultyAttributes
@@ -167,16 +171,18 @@ router.get<
         ),
     );
 
-    if (!difficultyAttributes) {
+    if (!difficultyAttributes || generateStrainChart) {
         const calculationResult = await (
             calculationMethod === PPCalculationMethod.live
                 ? difficultyCalculator.calculateBeatmapPerformance(
                       beatmap,
                       calculationParams,
+                      generateStrainChart,
                   )
                 : difficultyCalculator.calculateBeatmapRebalancePerformance(
                       beatmap,
                       calculationParams,
+                      generateStrainChart,
                   )
         ).catch((e: unknown) => {
             console.log(
@@ -198,9 +204,13 @@ router.get<
                 calculationResult.difficultyAttributes.mods,
             ),
         };
+        strainChart = calculationResult.strainChart;
     }
 
-    res.json(difficultyAttributes);
+    res.json({
+        attributes: difficultyAttributes,
+        strainChart: strainChart?.toJSON().data ?? null,
+    });
 });
 
 export default router;

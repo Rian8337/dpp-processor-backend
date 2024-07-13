@@ -27,6 +27,7 @@ router.get<
         playerid: string;
         beatmaphash: string;
         calculationmethod: string;
+        generatestrainchart?: string;
     }
 >("/", validateGETInternalKey, async (req, res) => {
     const calculationMethod = parseInt(req.query.calculationmethod);
@@ -40,10 +41,12 @@ router.get<
         return res.status(400).json({ error: "Invalid gamemode" });
     }
 
+    const generateStrainChart = req.query.generatestrainchart !== undefined;
     let bestAttribs: CompleteCalculationAttributes<
         DroidDifficultyAttributes | RebalanceDroidDifficultyAttributes,
         DroidPerformanceAttributes | RebalanceDroidPerformanceAttributes
     > | null = null;
+    let strainChart: Buffer | null = null;
     const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
 
     const calculateReplay = async (analyzer: ReplayAnalyzer) => {
@@ -59,9 +62,13 @@ router.get<
 
         const calcResult = await (
             calculationMethod === PPCalculationMethod.live
-                ? difficultyCalculator.calculateReplayPerformance(analyzer)
+                ? difficultyCalculator.calculateReplayPerformance(
+                      analyzer,
+                      generateStrainChart,
+                  )
                 : difficultyCalculator.calculateReplayRebalancePerformance(
                       analyzer,
+                      generateStrainChart,
                   )
         ).catch((e: unknown) => {
             console.log(
@@ -150,6 +157,8 @@ router.get<
             };
         }
 
+        strainChart = calcResult.strainChart;
+
         if (analyzer.scoreID === 0) {
             bestAttribs.localReplayMD5 = computeMD5(analyzer.originalODR);
         }
@@ -199,7 +208,10 @@ router.get<
         return res.status(500).json({ error: "Unable to get best score" });
     }
 
-    res.json(bestAttribs);
+    res.json({
+        attributes: bestAttribs,
+        strainChart: (strainChart as Buffer | null)?.toJSON().data ?? null,
+    });
 });
 
 export default router;

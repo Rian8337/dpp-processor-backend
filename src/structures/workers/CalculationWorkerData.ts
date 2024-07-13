@@ -37,4 +37,9 @@ export interface CalculationWorkerData {
      * Calculation parameters.
      */
     readonly parameters?: CloneablePerformanceCalculationParameters;
+
+    /**
+     * Whether to generate strain chart.
+     */
+    readonly generateStrainChart?: boolean;
 }

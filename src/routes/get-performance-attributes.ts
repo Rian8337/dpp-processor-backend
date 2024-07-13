@@ -18,6 +18,8 @@ import { OsuPerformanceAttributes } from "../structures/attributes/OsuPerformanc
 import { CompleteCalculationAttributes } from "../structures/attributes/CompleteCalculationAttributes";
 import { RebalanceDroidPerformanceAttributes } from "../structures/attributes/RebalanceDroidPerformanceAttributes";
 import { validateGETInternalKey } from "../utils/util";
+import { RawDifficultyAttributes } from "../structures/attributes/RawDifficultyAttributes";
+import { PerformanceAttributes } from "../structures/attributes/PerformanceAttributes";
 
 const router = Router();
 
@@ -47,6 +49,7 @@ router.get<
         tappenalty?: string;
         flashlightslidercheesepenalty?: string;
         visualslidercheesepenalty?: string;
+        generatestrainchart?: string;
     }
 >("/", validateGETInternalKey, async (req, res) => {
     if (!req.query.beatmapid && !req.query.beatmaphash) {
@@ -55,6 +58,7 @@ router.get<
             .json({ error: "Neither beatmap ID or hash is specified" });
     }
 
+    const generateStrainChart = req.query.generatestrainchart !== undefined;
     const mods = ModUtil.pcStringToMods(req.query.mods ?? "");
     const oldStatistics = req.query.oldstatistics !== undefined;
 
@@ -147,6 +151,12 @@ router.get<
         },
     });
 
+    let attributes: CompleteCalculationAttributes<
+        RawDifficultyAttributes,
+        PerformanceAttributes
+    >;
+    let strainChart: Buffer | null = null;
+
     switch (gamemode) {
         case Modes.droid: {
             const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
@@ -157,6 +167,7 @@ router.get<
                         .calculateBeatmapPerformance(
                             apiBeatmap,
                             calculationParams,
+                            generateStrainChart,
                         )
                         .catch((e: unknown) => {
                             console.log(
@@ -181,10 +192,7 @@ router.get<
 
                     const { result } = calculationResult;
 
-                    const attributes: CompleteCalculationAttributes<
-                        DroidDifficultyAttributes,
-                        DroidPerformanceAttributes
-                    > = {
+                    attributes = {
                         params: calculationParams.toCloneable(),
                         difficulty: {
                             ...calculationResult.difficultyAttributes,
@@ -211,9 +219,12 @@ router.get<
                                 result.visualSliderCheesePenalty,
                         },
                         replay: calculationResult.replay,
-                    };
+                    } as CompleteCalculationAttributes<
+                        DroidDifficultyAttributes,
+                        DroidPerformanceAttributes
+                    >;
 
-                    res.json(attributes);
+                    strainChart = calculationResult.strainChart;
 
                     break;
                 }
@@ -222,6 +233,7 @@ router.get<
                         .calculateBeatmapRebalancePerformance(
                             apiBeatmap,
                             calculationParams,
+                            generateStrainChart,
                         )
                         .catch((e: unknown) => {
                             console.log(
@@ -246,10 +258,7 @@ router.get<
 
                     const { result } = calculationResult;
 
-                    const attributes: CompleteCalculationAttributes<
-                        RebalanceDroidDifficultyAttributes,
-                        RebalanceDroidPerformanceAttributes
-                    > = {
+                    attributes = {
                         params: calculationParams.toCloneable(),
                         difficulty: {
                             ...calculationResult.difficultyAttributes,
@@ -285,9 +294,12 @@ router.get<
                             ),
                         },
                         replay: calculationResult.replay,
-                    };
+                    } as CompleteCalculationAttributes<
+                        RebalanceDroidDifficultyAttributes,
+                        RebalanceDroidPerformanceAttributes
+                    >;
 
-                    res.json(attributes);
+                    strainChart = calculationResult.strainChart;
 
                     break;
                 }
@@ -304,6 +316,7 @@ router.get<
                         .calculateBeatmapPerformance(
                             apiBeatmap,
                             calculationParams,
+                            generateStrainChart,
                         )
                         .catch((e: unknown) => {
                             console.log(
@@ -328,10 +341,7 @@ router.get<
 
                     const { result } = calculationResult;
 
-                    const attributes: CompleteCalculationAttributes<
-                        OsuDifficultyAttributes,
-                        OsuPerformanceAttributes
-                    > = {
+                    attributes = {
                         params: calculationResult.params.toCloneable(),
                         difficulty: {
                             ...calculationResult.difficultyAttributes,
@@ -347,9 +357,12 @@ router.get<
                             accuracy: result.accuracy,
                             flashlight: result.flashlight,
                         },
-                    };
+                    } as CompleteCalculationAttributes<
+                        OsuDifficultyAttributes,
+                        OsuPerformanceAttributes
+                    >;
 
-                    res.json(attributes);
+                    strainChart = calculationResult.strainChart;
 
                     break;
                 }
@@ -358,6 +371,7 @@ router.get<
                         .calculateBeatmapRebalancePerformance(
                             apiBeatmap,
                             calculationParams,
+                            generateStrainChart,
                         )
                         .catch((e: unknown) => {
                             console.log(
@@ -382,10 +396,7 @@ router.get<
 
                     const { result } = calculationResult;
 
-                    const attributes: CompleteCalculationAttributes<
-                        RebalanceOsuDifficultyAttributes,
-                        OsuPerformanceAttributes
-                    > = {
+                    attributes = {
                         params: calculationResult.params.toCloneable(),
                         difficulty: {
                             ...calculationResult.difficultyAttributes,
@@ -401,9 +412,12 @@ router.get<
                             accuracy: result.accuracy,
                             flashlight: result.flashlight,
                         },
-                    };
+                    } as CompleteCalculationAttributes<
+                        RebalanceOsuDifficultyAttributes,
+                        OsuPerformanceAttributes
+                    >;
 
-                    res.json(attributes);
+                    strainChart = calculationResult.strainChart;
 
                     break;
                 }
@@ -412,6 +426,11 @@ router.get<
             break;
         }
     }
+
+    res.json({
+        attributes: attributes,
+        strainChart: strainChart?.toJSON().data ?? null,
+    });
 });
 
 export default router;

@@ -18,6 +18,8 @@ import { PPCalculationMethod } from "../structures/PPCalculationMethod";
 import { RebalanceDroidPerformanceAttributes } from "../structures/attributes/RebalanceDroidPerformanceAttributes";
 import { getOnlineReplay } from "../utils/replayManager";
 import { validateGETInternalKey } from "../utils/util";
+import { RawDifficultyAttributes } from "../structures/attributes/RawDifficultyAttributes";
+import { PerformanceAttributes } from "../structures/attributes/PerformanceAttributes";
 
 const router = Router();
 
@@ -31,6 +33,7 @@ router.get<
         gamemode: string;
         calculationmethod: string;
         scoreid: string;
+        generatestrainchart?: string;
     }
 >("/", validateGETInternalKey, async (req, res) => {
     const { gamemode } = req.query;
@@ -51,6 +54,7 @@ router.get<
         return res.status(400).json({ error: "Invalid calculation method" });
     }
 
+    const generateStrainChart = req.query.generatestrainchart !== undefined;
     const analyzer = new ReplayAnalyzer({
         scoreID: parseInt(req.query.scoreid),
     });
@@ -66,6 +70,12 @@ router.get<
         return res.status(404).json({ error: "Replay not found" });
     }
 
+    let attributes: CompleteCalculationAttributes<
+        RawDifficultyAttributes,
+        PerformanceAttributes
+    >;
+    let strainChart: Buffer | null = null;
+
     switch (gamemode) {
         case Modes.droid: {
             const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
@@ -73,7 +83,10 @@ router.get<
             switch (calculationMethod) {
                 case PPCalculationMethod.live: {
                     const calculationResult = await difficultyCalculator
-                        .calculateReplayPerformance(analyzer)
+                        .calculateReplayPerformance(
+                            analyzer,
+                            generateStrainChart,
+                        )
                         .catch((e: unknown) => {
                             console.log(
                                 "Calculation failed for URL:",
@@ -97,10 +110,7 @@ router.get<
 
                     const { result } = calculationResult;
 
-                    const attributes: CompleteCalculationAttributes<
-                        DroidDifficultyAttributes,
-                        DroidPerformanceAttributes
-                    > = {
+                    attributes = {
                         params: calculationResult.params.toCloneable(),
                         difficulty: {
                             ...calculationResult.difficultyAttributes,
@@ -127,15 +137,21 @@ router.get<
                                 result.visualSliderCheesePenalty,
                         },
                         replay: calculationResult.replay,
-                    };
+                    } as CompleteCalculationAttributes<
+                        DroidDifficultyAttributes,
+                        DroidPerformanceAttributes
+                    >;
 
-                    res.json(attributes);
+                    strainChart = calculationResult.strainChart;
 
                     break;
                 }
                 case PPCalculationMethod.rebalance: {
                     const calculationResult = await difficultyCalculator
-                        .calculateReplayRebalancePerformance(analyzer)
+                        .calculateReplayRebalancePerformance(
+                            analyzer,
+                            generateStrainChart,
+                        )
                         .catch((e: unknown) => {
                             console.log(
                                 "Calculation failed for URL:",
@@ -159,10 +175,7 @@ router.get<
 
                     const { result } = calculationResult;
 
-                    const attributes: CompleteCalculationAttributes<
-                        RebalanceDroidDifficultyAttributes,
-                        RebalanceDroidPerformanceAttributes
-                    > = {
+                    attributes = {
                         params: calculationResult.params.toCloneable(),
                         difficulty: {
                             ...calculationResult.difficultyAttributes,
@@ -199,9 +212,12 @@ router.get<
                             ),
                         },
                         replay: calculationResult.replay,
-                    };
+                    } as CompleteCalculationAttributes<
+                        RebalanceDroidDifficultyAttributes,
+                        RebalanceDroidPerformanceAttributes
+                    >;
 
-                    res.json(attributes);
+                    strainChart = calculationResult.strainChart;
 
                     break;
                 }
@@ -215,7 +231,10 @@ router.get<
             switch (calculationMethod) {
                 case PPCalculationMethod.live: {
                     const calculationResult = await difficultyCalculator
-                        .calculateReplayPerformance(analyzer)
+                        .calculateReplayPerformance(
+                            analyzer,
+                            generateStrainChart,
+                        )
                         .catch((e: unknown) => {
                             console.log(
                                 "Calculation failed for URL:",
@@ -239,10 +258,7 @@ router.get<
 
                     const { result } = calculationResult;
 
-                    const attributes: CompleteCalculationAttributes<
-                        OsuDifficultyAttributes,
-                        OsuPerformanceAttributes
-                    > = {
+                    attributes = {
                         params: calculationResult.params.toCloneable(),
                         difficulty: {
                             ...calculationResult.difficultyAttributes,
@@ -258,15 +274,21 @@ router.get<
                             accuracy: result.accuracy,
                             flashlight: result.flashlight,
                         },
-                    };
+                    } as CompleteCalculationAttributes<
+                        OsuDifficultyAttributes,
+                        OsuPerformanceAttributes
+                    >;
 
-                    res.json(attributes);
+                    strainChart = calculationResult.strainChart;
 
                     break;
                 }
                 case PPCalculationMethod.rebalance: {
                     const calculationResult = await difficultyCalculator
-                        .calculateReplayRebalancePerformance(analyzer)
+                        .calculateReplayRebalancePerformance(
+                            analyzer,
+                            generateStrainChart,
+                        )
                         .catch((e: unknown) => {
                             console.log(
                                 "Calculation failed for URL:",
@@ -290,10 +312,7 @@ router.get<
 
                     const { result } = calculationResult;
 
-                    const attributes: CompleteCalculationAttributes<
-                        RebalanceOsuDifficultyAttributes,
-                        OsuPerformanceAttributes
-                    > = {
+                    attributes = {
                         params: calculationResult.params.toCloneable(),
                         difficulty: {
                             ...calculationResult.difficultyAttributes,
@@ -309,9 +328,12 @@ router.get<
                             accuracy: result.accuracy,
                             flashlight: result.flashlight,
                         },
-                    };
+                    } as CompleteCalculationAttributes<
+                        RebalanceOsuDifficultyAttributes,
+                        OsuPerformanceAttributes
+                    >;
 
-                    res.json(attributes);
+                    strainChart = calculationResult.strainChart;
 
                     break;
                 }
@@ -320,6 +342,11 @@ router.get<
             break;
         }
     }
+
+    res.json({
+        attributes: attributes,
+        strainChart: strainChart?.toJSON().data ?? null,
+    });
 });
 
 export default router;

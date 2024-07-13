@@ -50,7 +50,7 @@ export function validateGETInternalKey(
  * Validates whether a given internal key is valid in a POST request.
  */
 export function validatePOSTInternalKey(
-    req: Request<unknown, unknown, { key: string }>,
+    req: Request<unknown, unknown, Partial<{ key: string }>>,
     res: Response,
     next: NextFunction,
 ): void {

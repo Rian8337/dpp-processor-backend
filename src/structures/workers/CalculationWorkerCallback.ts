@@ -7,8 +7,11 @@ import { RawDifficultyAttributes } from "../attributes/RawDifficultyAttributes";
  */
 export type CalculationWorkerCallback = (
     err: Error | null,
-    result: CompleteCalculationAttributes<
-        RawDifficultyAttributes,
-        PerformanceAttributes
-    >
+    result: {
+        readonly attributes: CompleteCalculationAttributes<
+            RawDifficultyAttributes,
+            PerformanceAttributes
+        >;
+        readonly strainChart?: Uint8Array;
+    },
 ) => unknown;

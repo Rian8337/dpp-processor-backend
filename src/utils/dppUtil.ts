@@ -39,7 +39,7 @@ import { basename, join } from "path";
 import { watch } from "chokidar";
 import { ProcessorDatabaseBeatmap } from "../database/processor/schema/ProcessorDatabaseBeatmap";
 import {
-    copyScoreAsBestScore,
+    insertBestScore,
     getOfficialBestScore,
     getOfficialScore,
     getPlayerFromUsername,
@@ -240,7 +240,7 @@ export async function submitReplay(
         await DatabaseManager.elainaDb.collections.userBind.getFromUid(uid);
 
     const inGameDppSystem = dppSystemBindInfo
-        ? (await DatabaseManager.aliceDb.collections.inGamePP.getFromUid(
+        ? ((await DatabaseManager.aliceDb.collections.inGamePP.getFromUid(
               uid,
           )) ?? {
               ...DatabaseManager.aliceDb.collections.inGamePP.defaultDocument,
@@ -249,7 +249,7 @@ export async function submitReplay(
               prevpptotal: dppSystemBindInfo.pptotal,
               previous_bind: dppSystemBindInfo.previous_bind,
               username: dppSystemBindInfo.username,
-          }
+          })
         : null;
 
     for (const replay of replays) {
@@ -722,13 +722,13 @@ async function submitReplayToOfficialPP(
         return;
     }
 
-    const score = await getOfficialScore(uid, replay.data.hash, true, "id");
+    const score = await getOfficialScore(uid, replay.data.hash, true);
 
     if (!score) {
         return;
     }
 
-    const bestScore = await getOfficialBestScore(uid, replay.data.hash);
+    let bestScore = await getOfficialBestScore(uid, replay.data.hash);
 
     // For overwriting scores, we need to update the pp value in the official score table.
     if (replay.scoreID > 0) {
@@ -744,7 +744,13 @@ async function submitReplayToOfficialPP(
         await saveReplayToOfficialPP(replay);
     } else if (!bestScore) {
         // Best score is not found - insert the current score as the best score.
-        await copyScoreAsBestScore(score.id);
+        // Note that pp may be null in the official score table.
+        bestScore = {
+            ...score,
+            pp: scoreAttribs.result.total,
+        };
+
+        await insertBestScore(bestScore);
         await saveReplayToOfficialPP(replay);
     }
 }

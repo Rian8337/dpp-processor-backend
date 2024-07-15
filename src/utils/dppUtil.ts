@@ -375,26 +375,7 @@ export async function submitReplay(
             continue;
         }
 
-        const saveReplayStatus = await saveReplayToDppSystem(uid, replay);
-        if (!saveReplayStatus) {
-            statuses.push({
-                success: false,
-                reason: "Replay saving failed",
-                pp: 0,
-            });
-
-            continue;
-        }
-
         const ppEntry = scoreToPPEntry(beatmap, uid, data, droidAttribs);
-
-        let replayNeedsPersistence = false;
-
-        if (checkScoreInsertion(dppSystemBindInfo.pp, ppEntry)) {
-            ppEntry.pp = MathUtils.round(droidAttribs.result.total, 2);
-
-            replayNeedsPersistence = insertScore(dppSystemBindInfo.pp, ppEntry);
-        }
 
         if (inGameDppSystem) {
             if (
@@ -417,6 +398,26 @@ export async function submitReplay(
                     ++inGameDppSystem.playc;
                 }
             }
+        }
+
+        const saveReplayStatus = await saveReplayToDppSystem(uid, replay);
+
+        if (!saveReplayStatus) {
+            statuses.push({
+                success: false,
+                reason: "Replay saving failed",
+                pp: 0,
+            });
+
+            continue;
+        }
+
+        let replayNeedsPersistence = false;
+
+        if (checkScoreInsertion(dppSystemBindInfo.pp, ppEntry)) {
+            ppEntry.pp = MathUtils.round(droidAttribs.result.total, 2);
+
+            replayNeedsPersistence = insertScore(dppSystemBindInfo.pp, ppEntry);
         }
 
         if (replayNeedsPersistence) {

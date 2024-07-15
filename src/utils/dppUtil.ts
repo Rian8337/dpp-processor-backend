@@ -376,27 +376,22 @@ export async function submitReplay(
         }
 
         const ppEntry = scoreToPPEntry(beatmap, uid, data, droidAttribs);
+        const isNewScore =
+            replay.scoreID > 0 && !(await wasBeatmapSubmitted(uid, data.hash));
 
-        if (inGameDppSystem) {
-            if (
-                beatmap.ranked_status === RankedStatus.ranked ||
-                beatmap.ranked_status === RankedStatus.approved
-            ) {
-                insertScore(inGameDppSystem.pp, ppEntry, 100);
-            }
+        if (isNewScore) {
+            ++playCountIncrement;
+        }
 
-            if (
-                replay.scoreID > 0 &&
-                !(await wasBeatmapSubmitted(uid, data.hash))
-            ) {
-                ++playCountIncrement;
+        if (
+            inGameDppSystem &&
+            (beatmap.ranked_status === RankedStatus.ranked ||
+                beatmap.ranked_status === RankedStatus.approved)
+        ) {
+            insertScore(inGameDppSystem.pp, ppEntry, 100);
 
-                if (
-                    beatmap.ranked_status === RankedStatus.ranked ||
-                    beatmap.ranked_status === RankedStatus.approved
-                ) {
-                    ++inGameDppSystem.playc;
-                }
+            if (isNewScore) {
+                ++inGameDppSystem.playc;
             }
         }
 

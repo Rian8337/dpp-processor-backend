@@ -9,6 +9,7 @@ import deleteReplays from "./routes/delete-replays";
 import getDifficultyAttributes from "./routes/get-difficulty-attributes";
 import getPerformanceAttributes from "./routes/get-performance-attributes";
 import getPlayerBestScorePerformance from "./routes/get-player-best-score-performance";
+import getOfficialOnlineScoreAttributes from "./routes/get-official-online-score-attributes";
 import getOnlineScoreAttributes from "./routes/get-online-score-attributes";
 import persistLocalReplay from "./routes/persist-local-replay";
 import persistOnlineReplay from "./routes/persist-online-replay";
@@ -26,6 +27,10 @@ const baseRouter = Router()
     .use("/get-difficulty-attributes", getDifficultyAttributes)
     .use("/get-performance-attributes", getPerformanceAttributes)
     .use("/get-player-best-score-performance", getPlayerBestScorePerformance)
+    .use(
+        "/get-official-online-score-attributes",
+        getOfficialOnlineScoreAttributes,
+    )
     .use("/get-online-score-attributes", getOnlineScoreAttributes)
     .use("/persist-local-replay", persistLocalReplay)
     .use("/persist-online-replay", persistOnlineReplay)

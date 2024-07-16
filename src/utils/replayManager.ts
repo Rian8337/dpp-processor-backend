@@ -386,9 +386,9 @@ export async function wasBeatmapSubmitted(
 
     const dirStat = await stat(
         join(localReplayDirectory, uid.toString(), hash),
-    );
+    ).catch(() => null);
 
-    return dirStat.isDirectory();
+    return dirStat?.isDirectory() ?? false;
 }
 
 /**

@@ -77,21 +77,7 @@ export async function getBeatmap(
             }
         }
 
-        // Insert the cache to the database.
-        await processorPool.query<ProcessorDatabaseBeatmap>(
-            `INSERT INTO ${ProcessorDatabaseTables.beatmap} (id, hash, title, hit_length, total_length, max_combo, object_count, ranked_status, last_checked) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);`,
-            [
-                cache.id,
-                cache.hash,
-                cache.title,
-                cache.hit_length,
-                cache.total_length,
-                cache.max_combo,
-                cache.object_count,
-                cache.ranked_status,
-                cache.last_checked,
-            ],
-        );
+        await insertNewCache(cache);
     }
 
     // For unranked beatmaps, check the status if 30 minutes have passed since the last check.
@@ -124,6 +110,7 @@ export async function getBeatmap(
             };
 
             await invalidateBeatmapCache(oldHash, cache);
+            await insertNewCache(cache);
         } else {
             // Update the last checked date.
             cache.last_checked = new Date();
@@ -259,20 +246,25 @@ async function invalidateBeatmapCache(
         `DELETE FROM ${ProcessorDatabaseTables.beatmap} WHERE id = $1;`,
         [newCache.id],
     );
+}
 
-    // Insert the new cache.
+async function insertNewCache(cache: ProcessorDatabaseBeatmap) {
+    databaseBeatmapIdCache.set(cache.id, cache);
+    databaseBeatmapHashCache.set(cache.hash, cache);
+
+    // Insert the cache to the database.
     await processorPool.query<ProcessorDatabaseBeatmap>(
         `INSERT INTO ${ProcessorDatabaseTables.beatmap} (id, hash, title, hit_length, total_length, max_combo, object_count, ranked_status, last_checked) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);`,
         [
-            newCache.id,
-            newCache.hash,
-            newCache.title,
-            newCache.hit_length,
-            newCache.total_length,
-            newCache.max_combo,
-            newCache.object_count,
-            newCache.ranked_status,
-            newCache.last_checked,
+            cache.id,
+            cache.hash,
+            cache.title,
+            cache.hit_length,
+            cache.total_length,
+            cache.max_combo,
+            cache.object_count,
+            cache.ranked_status,
+            cache.last_checked,
         ],
     );
 }

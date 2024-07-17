@@ -1,6 +1,9 @@
 import { Accuracy, MathUtils, ModUtil, Modes } from "@rian8337/osu-base";
 import { Router } from "express";
-import { getBeatmap } from "../utils/cache/beatmapStorage";
+import {
+    getBeatmap,
+    updateBeatmapMaxCombo,
+} from "../utils/cache/beatmapStorage";
 import { PPCalculationMethod } from "../structures/PPCalculationMethod";
 import { RawDifficultyAttributes } from "../structures/attributes/RawDifficultyAttributes";
 import { BeatmapDroidDifficultyCalculator } from "../utils/calculator/BeatmapDroidDifficultyCalculator";
@@ -120,7 +123,7 @@ router.get<
     const calculationParams = new PerformanceCalculationParameters({
         mods: mods,
         customSpeedMultiplier: customSpeedMultiplier,
-        combo: beatmap.max_combo,
+        combo: beatmap.max_combo ?? undefined,
         accuracy: new Accuracy({ nobjects: beatmap.object_count }),
         forceCS: forceCS,
         forceAR: forceAR,
@@ -205,6 +208,11 @@ router.get<
             ),
         };
         strainChart = calculationResult.strainChart;
+    }
+
+    if (beatmap.max_combo === null) {
+        // Update beatmap max combo based on calculation result.
+        await updateBeatmapMaxCombo(beatmap.id, difficultyAttributes.maxCombo);
     }
 
     res.json({

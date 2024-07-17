@@ -121,10 +121,14 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
     }
 
     // Check for potentially invalid properties.
-    // Some beatmaps return `null` max combo from osu! API, i.e. /b/1462961.
-    if (Number.isNaN(calculationParams.combo)) {
-        calculationParams.combo = beatmap.maxCombo;
-    }
+    // Graveyarded beatmaps will return a `null` max combo from osu! API.
+    calculationParams.combo ??= beatmap.maxCombo;
+
+    // Ensure that the combo is within the maximum combo.
+    calculationParams.combo = Math.min(
+        calculationParams.combo,
+        beatmap.maxCombo,
+    );
 
     const calculationOptions: PerformanceCalculationOptions = {};
     calculationParams.applyToOptions(calculationOptions);

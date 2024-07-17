@@ -189,6 +189,39 @@ export async function getBeatmapFile(id: number): Promise<string | null> {
     return beatmapFile;
 }
 
+/**
+ * Updates the maximum combo of a beatmap.
+ *
+ * This is used in place of the osu! API for setting the maximum combo
+ * of a beatmap in case the API returns `null`..
+ *
+ * @param id The ID of the beatmap.
+ * @param maxCombo The maximum combo of the beatmap.
+ * @returns
+ */
+export async function updateBeatmapMaxCombo(
+    id: number,
+    maxCombo: number,
+): Promise<boolean> {
+    const cache = databaseBeatmapIdCache.get(id);
+
+    if (cache) {
+        cache.max_combo = maxCombo;
+    }
+
+    return processorPool
+        .query(
+            `UPDATE ${ProcessorDatabaseTables.beatmap} SET max_combo = $1 WHERE id = $2;`,
+            [maxCombo, id],
+        )
+        .then(() => true)
+        .catch((e: unknown) => {
+            console.error("Error when updating beatmap maximum combo:", e);
+
+            return false;
+        });
+}
+
 function getBeatmapFromDatabase(
     beatmapIdOrHash: number | string,
 ): Promise<ProcessorDatabaseBeatmap | null> {

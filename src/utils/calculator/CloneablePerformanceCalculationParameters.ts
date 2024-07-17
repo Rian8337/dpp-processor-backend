@@ -8,12 +8,12 @@ import { Optional } from "../../structures/Optional";
  * for specific purposes (i.e., passing data between worker threads).
  */
 export interface CloneablePerformanceCalculationParameters<
-    TFromCalculation extends boolean = boolean
+    TFromCalculation extends boolean = boolean,
 > extends CloneableDifficultyCalculationParameters<TFromCalculation> {
     /**
      * The combo achieved.
      */
-    combo: number;
+    combo?: number;
 
     /**
      * The accuracy achieved.

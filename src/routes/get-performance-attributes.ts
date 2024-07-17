@@ -1,7 +1,10 @@
 import { ModUtil, MathUtils, Modes, Accuracy } from "@rian8337/osu-base";
 import { Router } from "express";
 import { PPCalculationMethod } from "../structures/PPCalculationMethod";
-import { getBeatmap } from "../utils/cache/beatmapStorage";
+import {
+    getBeatmap,
+    updateBeatmapMaxCombo,
+} from "../utils/cache/beatmapStorage";
 import { BeatmapOsuDifficultyCalculator } from "../utils/calculator/BeatmapOsuDifficultyCalculator";
 import { BeatmapDroidDifficultyCalculator } from "../utils/calculator/BeatmapDroidDifficultyCalculator";
 import { PerformanceCalculationParameters } from "../utils/calculator/PerformanceCalculationParameters";
@@ -134,13 +137,14 @@ router.get<
             nobjects: apiBeatmap.object_count,
         }),
         combo:
-            typeof req.query.maxcombo === "string"
+            typeof req.query.maxcombo === "string" &&
+            apiBeatmap.max_combo !== null
                 ? MathUtils.clamp(
                       parseInt(req.query.maxcombo),
                       0,
                       apiBeatmap.max_combo,
                   )
-                : apiBeatmap.max_combo,
+                : (apiBeatmap.max_combo ?? undefined),
         tapPenalty: parseInt(req.query.tappenalty ?? "1"),
         sliderCheesePenalty: {
             aimPenalty: parseInt(req.query.aimslidercheesepenalty ?? "1"),
@@ -425,6 +429,22 @@ router.get<
 
             break;
         }
+    }
+
+    if (apiBeatmap.max_combo === null) {
+        // Update beatmap max combo based on calculation result.
+        await updateBeatmapMaxCombo(
+            apiBeatmap.id,
+            attributes.difficulty.maxCombo,
+        );
+
+        attributes.params.combo ??= attributes.difficulty.maxCombo;
+
+        // Ensure that the combo is within the maximum combo.
+        attributes.params.combo = Math.min(
+            attributes.params.combo,
+            attributes.difficulty.maxCombo,
+        );
     }
 
     res.json({

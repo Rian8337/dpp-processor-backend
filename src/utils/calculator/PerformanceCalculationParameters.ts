@@ -23,7 +23,7 @@ export interface PerformanceCalculationParametersInit
     /**
      * The combo achieved. Defaults to the beatmap's maximum combo.
      */
-    combo: number;
+    combo?: number;
 
     /**
      * The accuracy achieved. Defaults to SS.
@@ -63,7 +63,7 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
     /**
      * The combo achieved.
      */
-    combo: number;
+    combo?: number;
 
     /**
      * The accuracy achieved.

@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS beatmap (
     title                    text            NOT NULL,
     hit_length               int             NOT NULL,
     total_length             int             NOT NULL,
-    max_combo                int             NOT NULL,
+    max_combo                int,
     object_count             int             NOT NULL,
     ranked_status            smallint        NOT NULL,
     last_checked             timestamp       NOT NULL,

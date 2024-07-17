@@ -839,7 +839,9 @@ function scoreToPPEntry(
             calculationResult.params.accuracy.value() * 100,
             2,
         ),
-        combo: calculationResult.params.combo,
+        combo:
+            calculationResult.params.combo ??
+            calculationResult.difficultyAttributes.maxCombo,
         miss: calculationResult.params.accuracy.nmiss,
         speedMultiplier:
             replayData.speedMultiplier !== 1

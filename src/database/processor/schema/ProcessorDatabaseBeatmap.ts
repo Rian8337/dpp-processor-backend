@@ -31,8 +31,10 @@ export interface ProcessorDatabaseBeatmap {
 
     /**
      * The maximum combo of the beatmap.
+     *
+     * May be `null` in graveyarded beatmaps.
      */
-    max_combo: number;
+    max_combo: number | null;
 
     /**
      * The amount of objects in the beatmap.

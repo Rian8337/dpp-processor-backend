@@ -26,6 +26,7 @@ Promise.all([DatabaseManager.init(), processorPool.connect()])
             new BeatmapDroidDifficultyCalculator();
 
         let bindInfo: IUserBind | null = null;
+        let firstLaunch = true;
 
         let progress = await processorPool
             .query<ProcessorDatabaseReplayTransfer>(
@@ -83,10 +84,14 @@ Promise.all([DatabaseManager.init(), processorPool.connect()])
                 );
 
                 for (const hash of scoreHashes) {
-                    // If the hash is not empty, the calculation for this player was already ongoing.
+                    // On first launch, if the hash is not empty, the calculation for this player was already ongoing.
                     // Skip until the hash is found.
-                    if (progress.hash && progress.hash !== hash) {
-                        continue;
+                    if (firstLaunch) {
+                        if (progress.hash && progress.hash !== hash) {
+                            continue;
+                        }
+
+                        firstLaunch = false;
                     }
 
                     progress.hash = hash;

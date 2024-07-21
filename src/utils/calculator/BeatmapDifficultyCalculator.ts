@@ -194,7 +194,7 @@ export abstract class BeatmapDifficultyCalculator<
     /**
      * Calculates the difficulty and/or performance value of a beatmap.
      *
-     * @param beatmap The beatmap to calculate.
+     * @param beatmap The beatmap, beatmap ID, or beatmap MD5 hash to calculate.
      * @param calculationParams Calculation parameters. If unspecified, will calculate for No Mod SS.
      * @param generateStrainChart Whether to generate strain chart.
      * @returns The result of the calculation. Errors will be thrown whenever necessary.
@@ -208,7 +208,7 @@ export abstract class BeatmapDifficultyCalculator<
     /**
      * Calculates the difficulty and/or performance value of a beatmap.
      *
-     * @param beatmap The beatmap to calculate.
+     * @param beatmap The beatmap, beatmap ID, or beatmap MD5 hash to calculate.
      * @param calculationParams Calculation parameters. If unspecified, will calculate for No Mod SS.
      * @returns The result of the calculation. Errors will be thrown whenever necessary.
      */
@@ -221,7 +221,7 @@ export abstract class BeatmapDifficultyCalculator<
     /**
      * Calculates the difficulty and/or performance value of a beatmap.
      *
-     * @param beatmap The beatmap to calculate.
+     * @param beatmap The beatmap, beatmap ID, or beatmap MD5 hash to calculate.
      * @param calculationParams Calculation parameters. If unspecified, will calculate for No Mod SS.
      * @param generateStrainChart Whether to generate strain chart.
      * @returns The result of the calculation. Errors will be thrown whenever necessary.

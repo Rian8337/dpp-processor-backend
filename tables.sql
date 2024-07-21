@@ -156,3 +156,10 @@ CREATE TABLE IF NOT EXISTS rebalance_osu_difficulty_attributes (
 
 CREATE INDEX IF NOT EXISTS rebalance_osu_difficulty_attributes_main_idx ON rebalance_osu_difficulty_attributes(beatmap_id, mods, speed_multiplier, force_cs, force_ar, force_od, old_statistics);
 CREATE INDEX IF NOT EXISTS rebalance_osu_difficulty_attributes_beatmap_idx ON rebalance_osu_difficulty_attributes(beatmap_id);
+
+CREATE TABLE IF NOT EXISTS replay_transfer (
+    player_id              int             NOT NULL,
+    hash                   varchar(32)     NOT NULL,
+
+    PRIMARY KEY (player_id, hash)
+);

@@ -46,4 +46,9 @@ export interface IUserBind {
      * The weighted accuracy of the player.
      */
     weightedAccuracy: number;
+
+    /**
+     * Whether the replay transfer process has completed for this player.
+     */
+    dppTransferComplete?: boolean;
 }

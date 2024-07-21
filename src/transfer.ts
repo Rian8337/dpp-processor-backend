@@ -10,12 +10,33 @@ import {
 import { ProcessorDatabaseReplayTransfer } from "./database/processor/schema/ProcessorDatabaseReplayTransfer";
 import { BeatmapDroidDifficultyCalculator } from "./utils/calculator/BeatmapDroidDifficultyCalculator";
 import { config } from "dotenv";
-import {
-    getOfficialBestScore,
-    updateBestScorePPValue,
-} from "./database/official/officialDatabaseUtil";
+import { getOfficialBestScore } from "./database/official/officialDatabaseUtil";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import { ProcessorDatabaseTables } from "./database/processor/ProcessorDatabaseTables";
+import { officialPool } from "./database/official/OfficialDatabasePool";
+import { ResultSetHeader } from "mysql2";
+import {
+    constructOfficialDatabaseTableName,
+    OfficialDatabaseTables,
+} from "./database/official/OfficialDatabaseTables";
+import {
+    ModAuto,
+    ModAutopilot,
+    ModDoubleTime,
+    ModEasy,
+    ModFlashlight,
+    ModHalfTime,
+    ModHardRock,
+    ModHidden,
+    ModNightCore,
+    ModNoFail,
+    ModPerfect,
+    ModPrecise,
+    ModReallyEasy,
+    ModRelax,
+    ModScoreV2,
+    ModSuddenDeath,
+} from "@rian8337/osu-base";
 
 config();
 
@@ -109,6 +130,8 @@ Promise.all([DatabaseManager.init(), processorPool.connect()])
                         hash,
                         "id",
                         "pp",
+                        "date",
+                        "score",
                     );
 
                     if (!bestScore) {
@@ -165,7 +188,7 @@ Promise.all([DatabaseManager.init(), processorPool.connect()])
                         }
                     }
 
-                    if (bestPP === -1) {
+                    if (bestPP === -1 || !bestReplay.data) {
                         console.log(`Score ${hash} has no valid calculation.`);
                         continue;
                     }
@@ -177,10 +200,140 @@ Promise.all([DatabaseManager.init(), processorPool.connect()])
                         continue;
                     }
 
-                    await saveReplayToOfficialPP(bestReplay);
-                    await updateBestScorePPValue(bestScore.id, bestPP);
+                    const { data } = bestReplay;
 
-                    console.log(`Score ${hash} has been transferred.`);
+                    // Reconstruct mod string with respect to the game's order.
+                    let modstring = "";
+
+                    if (data.convertedMods.some((m) => m instanceof ModAuto)) {
+                        modstring += "a";
+                    }
+                    if (data.convertedMods.some((m) => m instanceof ModRelax)) {
+                        modstring += "x";
+                    }
+                    if (
+                        data.convertedMods.some(
+                            (m) => m instanceof ModAutopilot,
+                        )
+                    ) {
+                        modstring += "p";
+                    }
+                    if (data.convertedMods.some((m) => m instanceof ModEasy)) {
+                        modstring += "e";
+                    }
+                    if (
+                        data.convertedMods.some((m) => m instanceof ModNoFail)
+                    ) {
+                        modstring += "n";
+                    }
+                    if (
+                        data.convertedMods.some((m) => m instanceof ModHardRock)
+                    ) {
+                        modstring += "r";
+                    }
+                    if (
+                        data.convertedMods.some((m) => m instanceof ModHidden)
+                    ) {
+                        modstring += "h";
+                    }
+                    if (
+                        data.convertedMods.some(
+                            (m) => m instanceof ModFlashlight,
+                        )
+                    ) {
+                        modstring += "i";
+                    }
+                    if (
+                        data.convertedMods.some(
+                            (m) => m instanceof ModDoubleTime,
+                        )
+                    ) {
+                        modstring += "d";
+                    }
+                    if (
+                        data.convertedMods.some(
+                            (m) => m instanceof ModNightCore,
+                        )
+                    ) {
+                        modstring += "c";
+                    }
+                    if (
+                        data.convertedMods.some((m) => m instanceof ModHalfTime)
+                    ) {
+                        modstring += "t";
+                    }
+                    if (
+                        data.convertedMods.some((m) => m instanceof ModPrecise)
+                    ) {
+                        modstring += "s";
+                    }
+                    if (
+                        data.convertedMods.some(
+                            (m) => m instanceof ModReallyEasy,
+                        )
+                    ) {
+                        modstring += "l";
+                    }
+                    if (
+                        data.convertedMods.some((m) => m instanceof ModPerfect)
+                    ) {
+                        modstring += "f";
+                    }
+                    if (
+                        data.convertedMods.some(
+                            (m) => m instanceof ModSuddenDeath,
+                        )
+                    ) {
+                        modstring += "u";
+                    }
+                    if (
+                        data.convertedMods.some((m) => m instanceof ModScoreV2)
+                    ) {
+                        modstring += "v";
+                    }
+
+                    if (data.replayVersion > 3) {
+                        // Replays older than version 3 have a pipe separation for extra mods.
+                        modstring += "|";
+
+                        // Only speed multiplier is ranked for now, so let's ignore other extra mods.
+                        if (data.speedMultiplier !== 1) {
+                            modstring += `x${data.speedMultiplier.toString()}`;
+                        }
+                    }
+
+                    await saveReplayToOfficialPP(bestReplay);
+
+                    await officialPool
+                        .query<ResultSetHeader>(
+                            `UPDATE ${constructOfficialDatabaseTableName(
+                                OfficialDatabaseTables.bestScore,
+                            )} SET accuracy = ?, bad = ?, combo = ?, date = ?, good = ?, geki = ?, katu = ?, mark = ?, miss = ?, mode = ?, perfect = ?, pp = ?, score = ? WHERE id = ?;`,
+                            [
+                                Math.round(data.accuracy.value() * 100000),
+                                data.accuracy.n50,
+                                data.maxCombo,
+                                data.time.getTime() > 0
+                                    ? data.time
+                                    : bestScore.date,
+                                data.accuracy.n100,
+                                data.hit300k,
+                                data.hit100k,
+                                data.rank,
+                                data.accuracy.nmiss,
+                                modstring,
+                                data.accuracy.n300,
+                                bestPP,
+                                data.score > 0 ? data.score : bestScore.score,
+                                bestScore.id,
+                            ],
+                        )
+                        .then(() => {
+                            console.log(`Score ${hash} has been transferred.`);
+                        })
+                        .catch((e: unknown) => {
+                            console.error(e);
+                        });
                 }
 
                 // Reset progress.

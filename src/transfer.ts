@@ -355,6 +355,17 @@ Promise.all([DatabaseManager.init(), processorPool.connect()])
                 );
             }
 
+            // Reset progress.
+            progress = {
+                player_id: -1,
+                hash: "",
+            };
+
+            await processorPool.query(
+                `UPDATE ${ProcessorDatabaseTables.replayTransfer} SET player_id = $1, hash = $2;`,
+                [progress.player_id, progress.hash],
+            );
+
             await dbManager.updateOne(
                 {
                     discordid: bindInfo.discordid,

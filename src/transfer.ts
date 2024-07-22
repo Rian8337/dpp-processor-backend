@@ -98,7 +98,14 @@ Promise.all([DatabaseManager.init(), processorPool.connect()])
                     uid.toString(),
                 );
 
-                const scoreHashes = await readdir(localReplayDir);
+                const scoreHashes = await readdir(localReplayDir).catch(
+                    () => null,
+                );
+
+                if (scoreHashes === null) {
+                    console.log(`No scores found for UID ${uid.toString()}`);
+                    continue;
+                }
 
                 console.log(
                     `Processing ${scoreHashes.length.toString()} scores for UID ${uid.toString()}`,
@@ -142,9 +149,9 @@ Promise.all([DatabaseManager.init(), processorPool.connect()])
                     // Persist the best replay to the official pp system.
                     const replayFiles = await readdir(
                         join(localReplayDir, hash),
-                    );
+                    ).catch(() => null);
 
-                    if (replayFiles.length === 0) {
+                    if (replayFiles === null || replayFiles.length === 0) {
                         console.log(`Score ${hash} has no replay.`);
                         continue;
                     }

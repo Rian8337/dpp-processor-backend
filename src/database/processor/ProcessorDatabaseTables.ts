@@ -8,4 +8,5 @@ export enum ProcessorDatabaseTables {
     liveOsuDifficultyAttributes = "live_osu_difficulty_attributes",
     rebalanceOsuDifficultyAttributes = "rebalance_osu_difficulty_attributes",
     replayTransfer = "replay_transfer",
+    beatmapCachePopulation = "beatmap_cache_population",
 }

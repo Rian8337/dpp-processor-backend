@@ -163,3 +163,9 @@ CREATE TABLE IF NOT EXISTS replay_transfer (
 
     PRIMARY KEY (player_id, hash)
 );
+
+CREATE TABLE IF NOT EXISTS beatmap_cache_population (
+    id                     int             NOT NULL,
+
+    PRIMARY KEY (id)
+);

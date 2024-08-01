@@ -90,7 +90,6 @@ config();
             [
                 id,
                 apiBeatmap.hash,
-                apiBeatmap.hash,
                 apiBeatmap.fullTitle,
                 apiBeatmap.hitLength,
                 apiBeatmap.totalLength,

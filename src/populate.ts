@@ -60,7 +60,7 @@ config();
         // Request to osu! API.
         const apiBeatmap = await MapInfo.getInformation(id, false);
 
-        await Utils.sleep(0.1);
+        await Utils.sleep(0.05);
 
         if (!apiBeatmap) {
             // Beatmap not found.
@@ -82,7 +82,7 @@ config();
         // Download beatmap file and insert cache.
         await getBeatmapFile(id);
 
-        await Utils.sleep(0.2);
+        await Utils.sleep(0.1);
 
         // Insert the cache to the database.
         await processorPool.query(

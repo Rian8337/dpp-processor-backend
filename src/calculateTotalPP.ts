@@ -7,7 +7,7 @@ import {
     constructOfficialDatabaseTableName,
     OfficialDatabaseTables,
 } from "./database/official/OfficialDatabaseTables";
-import { RowDataPacket } from "mysql2";
+import { ResultSetHeader, RowDataPacket } from "mysql2";
 import { OfficialDatabaseBestScore } from "./database/official/schema/OfficialDatabaseBestScore";
 
 config();
@@ -66,12 +66,30 @@ config();
         );
 
         // Update total pp.
-        await officialPool.query(
-            `UPDATE ${constructOfficialDatabaseTableName(OfficialDatabaseTables.user)} SET pp = ? WHERE id = ?;`,
-            [totalPP, id],
-        );
+        const result = await officialPool
+            .query<ResultSetHeader>(
+                `UPDATE ${constructOfficialDatabaseTableName(OfficialDatabaseTables.user)} SET pp = ? WHERE id = ?;`,
+                [totalPP, id],
+            )
+            .then((res) => res[0].affectedRows === 1)
+            .catch((e: unknown) => {
+                console.error(e);
+
+                return null;
+            });
+
+        if (result === null) {
+            console.log("Failed to update user", id);
+            continue;
+        }
 
         console.log("User", id++, "has", totalPP, "pp");
+
+        if (!result) {
+            console.log("Calculation complete");
+
+            break;
+        }
     }
 })()
     .then(() => {

@@ -169,3 +169,9 @@ CREATE TABLE IF NOT EXISTS beatmap_cache_population (
 
     PRIMARY KEY (id)
 );
+
+CREATE TABLE IF NOT EXISTS total_pp_calculation (
+    id                    int             NOT NULL,
+
+    PRIMARY KEY (id)
+);

@@ -5,3 +5,4 @@ DROP TABLE IF EXISTS live_osu_difficulty_attributes;
 DROP TABLE IF EXISTS rebalance_osu_difficulty_attributes;
 DROP TABLE IF EXISTS replay_transfer;
 DROP TABLE IF EXISTS beatmap_cache_population;
+DROP TABLE IF EXISTS total_pp_calculation;

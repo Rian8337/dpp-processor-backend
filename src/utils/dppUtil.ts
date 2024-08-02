@@ -45,6 +45,7 @@ import {
     getPlayerFromUsername,
     updateBestScorePPValue,
     updateOfficialScorePPValue,
+    updateUserPP,
 } from "../database/official/officialDatabaseUtil";
 import { isDebug } from "./util";
 
@@ -533,7 +534,7 @@ export async function submitReplay(
  * @returns The final performance points.
  */
 export function calculateFinalPerformancePoints(
-    list: PPEntry[],
+    list: Pick<PPEntry, "pp">[],
     playCount: number,
 ): number {
     return (
@@ -737,6 +738,7 @@ async function submitReplayToOfficialPP(
     if (bestScore !== null && bestScore.pp < scoreAttribs.result.total) {
         // New top play - update the pp value.
         await updateBestScorePPValue(score.id, scoreAttribs.result.total);
+        await updateUserPP(uid);
         await saveReplayToOfficialPP(replay);
     } else if (!bestScore) {
         // Best score is not found - insert the current score as the best score.
@@ -747,6 +749,7 @@ async function submitReplayToOfficialPP(
         };
 
         await insertBestScore(bestScore);
+        await updateUserPP(uid);
         await saveReplayToOfficialPP(replay);
     }
 }

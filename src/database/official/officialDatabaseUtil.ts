@@ -9,6 +9,7 @@ import { ResultSetHeader, RowDataPacket } from "mysql2";
 import { OfficialDatabaseScore } from "./schema/OfficialDatabaseScore";
 import { isDebug } from "../../utils/util";
 import { OfficialDatabaseBestScore } from "./schema/OfficialDatabaseBestScore";
+import { calculateFinalPerformancePoints } from "../../utils/dppUtil";
 
 /**
  * Gets a player's information from their username.
@@ -178,7 +179,7 @@ export function updateBestScorePPValue(
 }
 
 /**
- * Copies a score as the best score.
+ * Inserts a score as the best score.
  *
  * @param scoreId The ID of the score.
  * @returns Whether the operation was successful.
@@ -192,6 +193,44 @@ export function insertBestScore(
         .query<ResultSetHeader>(
             `INSERT INTO ${constructOfficialDatabaseTableName(OfficialDatabaseTables.bestScore)} (${scoreKeys.join()}) VALUES (${scoreKeys.map(() => "?").join()});`,
             Object.values(score),
+        )
+        .then((res) => res[0].affectedRows === 1)
+        .catch((e: unknown) => {
+            console.error(e);
+
+            return false;
+        });
+}
+
+/**
+ * Updates the total pp value of a user.
+ *
+ * @param id The ID of the user.
+ * @returns Whether the operation was successful.
+ */
+export async function updateUserPP(id: number): Promise<boolean> {
+    const scores = await officialPool
+        .query<RowDataPacket[]>(
+            `SELECT pp FROM ${constructOfficialDatabaseTableName(OfficialDatabaseTables.bestScore)} WHERE uid = ? ORDER BY pp DESC LIMIT 100;`,
+            [id],
+        )
+        .then((res) => res[0] as Pick<OfficialDatabaseBestScore, "pp">[])
+        .catch((e: unknown) => {
+            console.error(e);
+
+            return null;
+        });
+
+    if (scores === null) {
+        return false;
+    }
+
+    const totalPP = calculateFinalPerformancePoints(scores, 0);
+
+    return officialPool
+        .query<ResultSetHeader>(
+            `UPDATE ${constructOfficialDatabaseTableName(OfficialDatabaseTables.user)} SET pp = ? WHERE id = ?;`,
+            [totalPP, id],
         )
         .then((res) => res[0].affectedRows === 1)
         .catch((e: unknown) => {

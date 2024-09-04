@@ -352,6 +352,25 @@ export function getOnlineReplay(
 }
 
 /**
+ * Gets the official best replay of a score in terms of dpp.
+ *
+ * @param scoreId The ID of the score.
+ * @returns The replay file, `null` if not found.
+ */
+export function getOfficialBestReplay(
+    scoreId: string | number,
+): Promise<Buffer | null> {
+    if (isDebug) {
+        // Debug should not have access to local replays.
+        return Promise.resolve(null);
+    }
+
+    return readFile(
+        join(officialReplayDirectory, `${scoreId.toString()}.odr`),
+    ).catch(() => null);
+}
+
+/**
  * Deletes all replays of a player from a beatmap.
  *
  * @param uid The uid of the player.

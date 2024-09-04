@@ -137,7 +137,7 @@ export async function getOfficialBestScore<
  */
 export function updateOfficialScorePPValue(
     scoreId: number,
-    pp: number,
+    pp: number | null,
 ): Promise<boolean> {
     return officialPool
         .query<ResultSetHeader>(

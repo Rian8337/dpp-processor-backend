@@ -8,7 +8,9 @@ config();
 export enum OfficialDatabaseTables {
     user = "user",
     score = "score",
+    bannedScore = "score_banned",
     bestScore = "score_best",
+    bannedBestScore = "score_best_banned",
 }
 
 /**

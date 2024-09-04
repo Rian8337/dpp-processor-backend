@@ -43,7 +43,6 @@ import {
     getOfficialBestScore,
     getOfficialScore,
     getPlayerFromUsername,
-    updateBestScorePPValue,
     updateOfficialScorePPValue,
     updateUserPP,
 } from "../database/official/officialDatabaseUtil";
@@ -725,8 +724,6 @@ async function submitReplayToOfficialPP(
         return;
     }
 
-    let bestScore = await getOfficialBestScore(uid, replay.data.hash);
-
     // For overwriting scores, we need to update the pp value in the official score table.
     if (replay.scoreID > 0) {
         await updateOfficialScorePPValue(
@@ -735,20 +732,10 @@ async function submitReplayToOfficialPP(
         );
     }
 
-    if (bestScore !== null && bestScore.pp < scoreAttribs.result.total) {
-        // New top play - update the pp value.
-        await updateBestScorePPValue(score.id, scoreAttribs.result.total);
-        await updateUserPP(uid);
-        await saveReplayToOfficialPP(replay);
-    } else if (!bestScore) {
-        // Best score is not found - insert the current score as the best score.
-        // Note that pp may be null in the official score table.
-        bestScore = {
-            ...score,
-            pp: scoreAttribs.result.total,
-        };
+    const bestScore = await getOfficialBestScore(uid, replay.data.hash);
 
-        await insertBestScore(bestScore);
+    if (bestScore === null || bestScore.pp < scoreAttribs.result.total) {
+        await insertBestScore(score.id);
         await updateUserPP(uid);
         await saveReplayToOfficialPP(replay);
     }

@@ -184,17 +184,28 @@ export function updateBestScorePPValue(
  * @param scoreId The ID of the score.
  * @returns Whether the operation was successful.
  */
-export function insertBestScore(
-    score: OfficialDatabaseBestScore,
-): Promise<boolean> {
-    const scoreKeys = Object.keys(score);
-
+export function insertBestScore(scoreId: number): Promise<boolean> {
     return officialPool
         .query<ResultSetHeader>(
-            `INSERT INTO ${constructOfficialDatabaseTableName(OfficialDatabaseTables.bestScore)} (${scoreKeys.join()}) VALUES (${scoreKeys.map(() => "?").join()});`,
-            Object.values(score),
+            `INSERT INTO ${constructOfficialDatabaseTableName(OfficialDatabaseTables.bestScore)}
+            SELECT * FROM ${constructOfficialDatabaseTableName(OfficialDatabaseTables.score)} WHERE id = ?
+            ON DUPLICATE KEY UPDATE
+            mode = new.mode,
+            score = new.score,
+            combo = new.combo,
+            mark = new.mark,
+            geki = new.geki,
+            perfect = new.perfect,
+            katu = new.katu,
+            good = new.good,
+            bad = new.bad,
+            miss = new.miss,
+            accuracy = new.accuracy,
+            date = new.date,
+            pp = new.pp;`,
+            [scoreId],
         )
-        .then((res) => res[0].affectedRows === 1)
+        .then((res) => res[0].affectedRows > 0)
         .catch((e: unknown) => {
             console.error(e);
 

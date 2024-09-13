@@ -27,7 +27,7 @@ router.get<
     unknown,
     unknown,
     unknown,
-    {
+    Partial<{
         key: string;
         beatmapid?: string;
         beatmaphash?: string;
@@ -40,12 +40,18 @@ router.get<
         forcear?: string;
         forceod?: string;
         generatestrainchart?: string;
-    }
+    }>
 >("/", validateGETInternalKey, async (req, res) => {
     if (!req.query.beatmapid && !req.query.beatmaphash) {
         return res
             .status(400)
             .json({ error: "Neither beatmap ID or hash is specified" });
+    }
+
+    if (!req.query.calculationmethod) {
+        return res
+            .status(400)
+            .json({ error: "Calculation method is not specified" });
     }
 
     const mods = ModUtil.pcStringToMods(req.query.mods ?? "");

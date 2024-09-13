@@ -14,8 +14,21 @@ router.put<
     "/",
     unknown,
     unknown,
-    { key: string; playerid: number; beatmaphash: string; replayhash: string }
+    Partial<{
+        key: string;
+        playerid: number;
+        beatmaphash: string;
+        replayhash: string;
+    }>
 >("/", validatePOSTInternalKey, async (req, res) => {
+    if (!req.body.playerid) {
+        return res.status(400).json({ error: "Player ID is not specified" });
+    }
+
+    if (!req.body.beatmaphash) {
+        return res.status(400).json({ error: "Beatmap hash is not specified" });
+    }
+
     const replayDirectory = join(
         localReplayDirectory,
         req.body.playerid.toString(),
@@ -37,7 +50,7 @@ router.put<
 
         await analyzer.analyze().catch(() => {
             console.error(
-                `Score of uid ${req.body.playerid.toString()} from beatmap ${req.body.beatmaphash} cannot be parsed`,
+                `Score of uid ${req.body.playerid!.toString()} from beatmap ${req.body.beatmaphash!} cannot be parsed`,
             );
         });
 

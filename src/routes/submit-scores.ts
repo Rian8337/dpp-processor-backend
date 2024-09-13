@@ -10,8 +10,16 @@ router.post<
     "/",
     unknown,
     unknown,
-    { key: string; uid: string; scoreids: string }
+    Partial<{ key: string; uid: string; scoreids: string }>
 >("/", validatePOSTInternalKey, async (req, res) => {
+    if (!req.body.uid) {
+        return res.status(400).json({ error: "Player ID is not specified" });
+    }
+
+    if (!req.body.scoreids) {
+        return res.status(400).json({ error: "Score IDs are not specified" });
+    }
+
     const scoreIds = req.body.scoreids.split(",").map((v) => parseInt(v));
     const replays: ReplayAnalyzer[] = [];
 

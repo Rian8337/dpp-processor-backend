@@ -34,7 +34,7 @@ router.get<
     unknown,
     unknown,
     unknown,
-    {
+    Partial<{
         key: string;
         playerid: string;
         beatmaphash: string;
@@ -43,13 +43,37 @@ router.get<
         gamemode: string;
         calculationmethod: string;
         generatestrainchart?: string;
-    }
+    }>
 >("/", validateGETInternalKey, async (req, res) => {
     const { playerid, beatmaphash, gamemode } = req.query;
+
+    if (!playerid) {
+        return res.status(400).json({ error: "Player ID is required" });
+    }
+
+    if (!beatmaphash) {
+        return res.status(400).json({ error: "Beatmap hash is required" });
+    }
+
+    if (!req.query.mods) {
+        return res.status(400).json({ error: "Mods are required" });
+    }
+
+    if (!req.query.customspeedmultiplier) {
+        return res
+            .status(400)
+            .json({ error: "Custom speed multiplier is required" });
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     if (gamemode !== Modes.droid && gamemode !== Modes.osu) {
         return res.status(400).json({ error: "Invalid gamemode" });
+    }
+
+    if (!req.query.calculationmethod) {
+        return res
+            .status(400)
+            .json({ error: "Calculation method is required" });
     }
 
     const calculationMethod = parseInt(req.query.calculationmethod);
@@ -59,7 +83,7 @@ router.get<
         // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
         calculationMethod !== PPCalculationMethod.rebalance
     ) {
-        return res.status(400).json({ error: "Invalid gamemode" });
+        return res.status(400).json({ error: "Invalid calculation method" });
     }
 
     const generateStrainChart = req.query.generatestrainchart !== undefined;

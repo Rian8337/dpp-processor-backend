@@ -10,7 +10,7 @@ router.get<
     unknown,
     unknown,
     unknown,
-    { key: string; uid: string; hash: string }
+    Partial<{ key: string; uid: string; hash: string }>
 >("/", validateGETInternalKey, async (req, res) => {
     if (!req.query.uid || !req.query.hash) {
         return res.sendStatus(400);

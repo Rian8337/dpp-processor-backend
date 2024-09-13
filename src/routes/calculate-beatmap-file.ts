@@ -54,7 +54,7 @@ router.post<
     "/",
     unknown,
     unknown,
-    {
+    Partial<{
         key: string;
         gamemode: string;
         calculationmethod: string;
@@ -73,8 +73,14 @@ router.post<
         tappenalty?: string;
         flashlightslidercheesepenalty?: string;
         visualslidercheesepenalty?: string;
-    }
+    }>
 >("/", validatePOSTInternalKey, async (req, res) => {
+    if (!req.body.calculationmethod) {
+        return res
+            .status(400)
+            .json({ error: "Calculation method is required" });
+    }
+
     // @ts-expect-error: Bad typings
     const fileStream = (req.files as Record<string, ReadStream | undefined>)
         .file;

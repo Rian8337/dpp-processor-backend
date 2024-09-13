@@ -22,14 +22,28 @@ router.get<
     unknown,
     unknown,
     unknown,
-    {
+    Partial<{
         key: string;
         playerid: string;
         beatmaphash: string;
         calculationmethod: string;
         generatestrainchart?: string;
-    }
+    }>
 >("/", validateGETInternalKey, async (req, res) => {
+    if (!req.query.playerid) {
+        return res.status(400).json({ error: "Player ID is not specified" });
+    }
+
+    if (!req.query.beatmaphash) {
+        return res.status(400).json({ error: "Beatmap hash is not specified" });
+    }
+
+    if (!req.query.calculationmethod) {
+        return res
+            .status(400)
+            .json({ error: "Calculation method is not specified" });
+    }
+
     const calculationMethod = parseInt(req.query.calculationmethod);
 
     if (
@@ -56,7 +70,7 @@ router.get<
 
         await analyzer.analyze().catch(() => {
             console.error(
-                `Score of uid ${req.query.playerid} from beatmap ${req.query.beatmaphash} cannot be parsed`,
+                `Score of uid ${req.query.playerid!} from beatmap ${req.query.beatmaphash!} cannot be parsed`,
             );
         });
 

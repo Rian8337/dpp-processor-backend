@@ -28,19 +28,25 @@ router.get<
     unknown,
     unknown,
     unknown,
-    {
+    Partial<{
         key: string;
         gamemode: string;
         calculationmethod: string;
         scoreid: string;
         generatestrainchart?: string;
-    }
+    }>
 >("/", validateGETInternalKey, async (req, res) => {
     const { gamemode } = req.query;
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     if (gamemode !== Modes.droid && gamemode !== Modes.osu) {
         return res.status(400).json({ error: "Invalid gamemode" });
+    }
+
+    if (!req.query.calculationmethod) {
+        return res
+            .status(400)
+            .json({ error: "Calculation method is not specified" });
     }
 
     const calculationMethod = parseInt(req.query.calculationmethod);
@@ -54,6 +60,10 @@ router.get<
         return res.status(400).json({ error: "Invalid calculation method" });
     }
 
+    if (!req.query.scoreid) {
+        return res.status(400).json({ error: "Score ID is not specified" });
+    }
+
     const generateStrainChart = req.query.generatestrainchart !== undefined;
     const analyzer = new ReplayAnalyzer({
         scoreID: parseInt(req.query.scoreid),
@@ -62,7 +72,7 @@ router.get<
     // Retrieve replay locally.
     analyzer.originalODR = await getOnlineReplay(req.query.scoreid);
     await analyzer.analyze().catch(() => {
-        console.error(`Score of ID ${req.query.scoreid} cannot be parsed`);
+        console.error(`Score of ID ${req.query.scoreid!} cannot be parsed`);
     });
 
     const { data } = analyzer;

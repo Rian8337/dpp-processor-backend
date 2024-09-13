@@ -12,15 +12,23 @@ router.put<
     "/",
     unknown,
     unknown,
-    { key: string; uid: number; scoreid: number }
+    Partial<{ key: string; uid: number; scoreid: number }>
 >("/", validatePOSTInternalKey, async (req, res) => {
+    if (!req.body.uid) {
+        return res.status(400).json({ error: "Player ID is not specified" });
+    }
+
+    if (!req.body.scoreid) {
+        return res.status(400).json({ error: "Score ID is not specified" });
+    }
+
     const analyzer = new ReplayAnalyzer({
         scoreID: req.body.scoreid,
     });
     analyzer.originalODR = await getOnlineReplay(req.body.scoreid);
     await analyzer.analyze().catch(() => {
         console.error(
-            `Score of ID ${req.body.scoreid.toString()} cannot be parsed`,
+            `Score of ID ${req.body.scoreid!.toString()} cannot be parsed`,
         );
     });
 

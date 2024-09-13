@@ -31,7 +31,7 @@ export function sortAlphabet(str: string): string {
  * Validates whether a given internal key is valid in a GET request.
  */
 export function validateGETInternalKey(
-    req: Request<unknown, unknown, unknown, { key: string }>,
+    req: Request<unknown, unknown, unknown, { key?: string }>,
     res: Response,
     next: NextFunction,
 ): void {

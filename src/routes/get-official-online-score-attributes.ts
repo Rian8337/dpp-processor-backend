@@ -14,11 +14,15 @@ router.get<
     unknown,
     unknown,
     unknown,
-    {
+    Partial<{
         key: string;
         scoreid: string;
-    }
+    }>
 >("/", validateGETInternalKey, async (req, res) => {
+    if (!req.query.scoreid) {
+        return res.status(400).json({ error: "Score ID is not specified" });
+    }
+
     const analyzer = new ReplayAnalyzer({
         scoreID: parseInt(req.query.scoreid),
     });
@@ -27,7 +31,7 @@ router.get<
     analyzer.originalODR = await getOnlineReplay(req.query.scoreid);
 
     await analyzer.analyze().catch(() => {
-        console.error(`Score of ID ${req.query.scoreid} cannot be parsed`);
+        console.error(`Score of ID ${req.query.scoreid!} cannot be parsed`);
     });
 
     const { data } = analyzer;

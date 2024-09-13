@@ -468,6 +468,8 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                             ).cacheableAttributes;
                     }
 
+                    calculationParams.applyFromAttributes(difficultyAttributes);
+
                     const perfCalc = new OsuPerformanceCalculator(
                         difficultyAttributes,
                     ).calculate(calculationOptions);
@@ -524,6 +526,8 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                 calculationMethod,
                             ).cacheableAttributes;
                     }
+
+                    calculationParams.applyFromAttributes(difficultyAttributes);
 
                     const perfCalc = new RebalanceOsuPerformanceCalculator(
                         difficultyAttributes,

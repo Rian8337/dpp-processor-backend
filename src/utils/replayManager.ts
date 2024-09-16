@@ -63,11 +63,11 @@ export async function saveReplayToDppSystem(
     const filePath = generateDppSystemReplayFilePath(
         playerId,
         data.hash,
-        data.convertedMods,
-        data.speedMultiplier,
-        data.forceCS,
-        data.forceAR,
-        data.forceOD,
+        data.isReplayV3() ? data.convertedMods : undefined,
+        data.isReplayV4() ? data.speedMultiplier : undefined,
+        data.isReplayV5() ? data.forceCS : undefined,
+        data.isReplayV5() ? data.forceAR : undefined,
+        data.isReplayV5() ? data.forceOD : undefined,
     );
 
     // Ensure directory exists before performing read/write operations.
@@ -101,7 +101,7 @@ export async function saveReplayToDppSystem(
         if (newAccuracy.equals(oldAccuracy)) {
             // Same accuracy and miss count found - compare combo if available,
             // otherwise overwrite replay without changing increment ID.
-            if (data.replayVersion >= 3) {
+            if (data.isReplayV3() && analyzer.data.isReplayV3()) {
                 // Combo data is available.
                 if (data.maxCombo > analyzer.data.maxCombo) {
                     // New replay with better combo - increment replay ID.
@@ -203,7 +203,7 @@ export async function saveReplayToOfficialPP(
 export function generateDppSystemReplayFilePath(
     playerId: number,
     mapMD5: string,
-    mods: (Mod & IModApplicableToDroid)[],
+    mods: (Mod & IModApplicableToDroid)[] = [],
     customSpeedMultiplier = 1,
     forceCS?: number,
     forceAR?: number,
@@ -254,11 +254,11 @@ export async function persistReplayToDppSystem(
         generateDppSystemReplayFilePath(
             playerId,
             data.hash,
-            data.convertedMods,
-            data.speedMultiplier,
-            data.forceCS,
-            data.forceAR,
-            data.forceOD,
+            data.isReplayV3() ? data.convertedMods : undefined,
+            data.isReplayV4() ? data.speedMultiplier : undefined,
+            data.isReplayV5() ? data.forceCS : undefined,
+            data.isReplayV5() ? data.forceAR : undefined,
+            data.isReplayV5() ? data.forceOD : undefined,
         ) + "_persisted.odr";
 
     return ensureReplayDirectoryExists(filePath)

@@ -87,7 +87,7 @@ export async function submitReplay(
             OsuPerformanceAttributes
         >,
     ) => {
-        if (!inGameDppSystem) {
+        if (!inGameDppSystem || !replayData.isReplayV3()) {
             return;
         }
 
@@ -166,21 +166,23 @@ export async function submitReplay(
             };
         }
 
-        if (replayData.speedMultiplier !== 1) {
+        if (replayData.isReplayV4() && replayData.speedMultiplier !== 1) {
             recentPlay.speedMultiplier = replayData.speedMultiplier;
         }
 
-        if (replayData.forceCS !== undefined) {
-            recentPlay.forceCS = replayData.forceCS;
-        }
-        if (replayData.forceAR !== undefined) {
-            recentPlay.forceAR = replayData.forceAR;
-        }
-        if (replayData.forceOD !== undefined) {
-            recentPlay.forceOD = replayData.forceOD;
-        }
-        if (replayData.forceHP !== undefined) {
-            recentPlay.forceHP = replayData.forceHP;
+        if (replayData.isReplayV5()) {
+            if (replayData.forceCS !== undefined) {
+                recentPlay.forceCS = replayData.forceCS;
+            }
+            if (replayData.forceAR !== undefined) {
+                recentPlay.forceAR = replayData.forceAR;
+            }
+            if (replayData.forceOD !== undefined) {
+                recentPlay.forceOD = replayData.forceOD;
+            }
+            if (replayData.forceHP !== undefined) {
+                recentPlay.forceHP = replayData.forceHP;
+            }
         }
 
         // Re-set date to update to current date
@@ -190,7 +192,7 @@ export async function submitReplay(
 
     if (uid === undefined) {
         for (const replay of replays) {
-            if (!replay.data?.playerName) {
+            if (!replay.data?.isReplayV3()) {
                 statuses.push({
                     success: false,
                     reason: "Replay does not have any player name",
@@ -272,7 +274,7 @@ export async function submitReplay(
                 pp: 0,
             });
 
-            if (submitAsRecent) {
+            if (submitAsRecent && data.isReplayV3()) {
                 insertRecentScore(data, replay.scoreID);
             }
 
@@ -834,13 +836,13 @@ function scoreToPPEntry(
             calculationResult.difficultyAttributes.maxCombo,
         miss: calculationResult.params.accuracy.nmiss,
         speedMultiplier:
-            replayData.speedMultiplier !== 1
+            replayData.isReplayV4() && replayData.speedMultiplier !== 1
                 ? replayData.speedMultiplier
                 : undefined,
-        forceCS: replayData.forceCS,
-        forceAR: replayData.forceAR,
-        forceOD: replayData.forceOD,
-        forceHP: replayData.forceHP,
+        forceCS: replayData.isReplayV5() ? replayData.forceCS : undefined,
+        forceAR: replayData.isReplayV4() ? replayData.forceAR : undefined,
+        forceOD: replayData.isReplayV5() ? replayData.forceOD : undefined,
+        forceHP: replayData.isReplayV5() ? replayData.forceHP : undefined,
     };
 }
 

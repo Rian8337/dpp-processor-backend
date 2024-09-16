@@ -52,7 +52,7 @@ export class DifficultyCalculationParameters {
      * @param data The data.
      */
     static from(
-        data: CloneableDifficultyCalculationParameters
+        data: CloneableDifficultyCalculationParameters,
     ): DifficultyCalculationParameters {
         return new this({
             ...data,
@@ -117,13 +117,22 @@ export class DifficultyCalculationParameters {
             return;
         }
 
-        this.mods = data.convertedMods.slice();
-        this.customSpeedMultiplier = data.speedMultiplier;
-        this.forceCS = data.forceCS;
-        this.forceAR = data.forceAR;
-        this.forceOD = data.forceOD;
-        this.forceHP = data.forceHP;
-        this.oldStatistics = data.replayVersion <= 3;
+        if (data.isReplayV3()) {
+            this.mods = data.convertedMods.slice();
+        }
+
+        if (data.isReplayV4()) {
+            this.customSpeedMultiplier = data.speedMultiplier;
+        }
+
+        if (data.isReplayV5()) {
+            this.forceCS = data.forceCS;
+            this.forceAR = data.forceAR;
+            this.forceOD = data.forceOD;
+            this.forceHP = data.forceHP;
+        }
+
+        this.oldStatistics = !data.isReplayV4();
     }
 
     /**

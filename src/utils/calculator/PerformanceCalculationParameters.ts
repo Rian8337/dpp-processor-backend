@@ -126,7 +126,10 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
 
         if (data) {
             this.accuracy = new Accuracy(data.accuracy);
-            this.combo = data.maxCombo;
+
+            if (data.isReplayV3()) {
+                this.combo = data.maxCombo;
+            }
         }
 
         this.tapPenalty = replay.tapPenalty;

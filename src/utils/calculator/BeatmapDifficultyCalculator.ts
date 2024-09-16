@@ -67,7 +67,7 @@ export abstract class BeatmapDifficultyCalculator<
 
         const params = new PerformanceCalculationParameters({
             accuracy: new Accuracy(data.accuracy),
-            combo: data.maxCombo,
+            combo: data.isReplayV3() ? data.maxCombo : undefined,
         });
 
         params.applyReplay(replay);
@@ -80,11 +80,13 @@ export abstract class BeatmapDifficultyCalculator<
      *
      * @param replay The replay.
      * @param generateStrainChart Whether to generate strain chart.
+     * @param overrideParameters The parameters to override the replay with.
      * @returns The result of the calculation. Errors will be thrown whenever necessary.
      */
     async calculateReplayPerformance(
         replay: ReplayAnalyzer,
         generateStrainChart: true,
+        overrideParameters?: PerformanceCalculationParameters,
     ): Promise<PerformanceCalculationResult<DA, PA, true>>;
 
     /**
@@ -92,11 +94,13 @@ export abstract class BeatmapDifficultyCalculator<
      *
      * @param replay The replay.
      * @param generateStrainChart Whether to generate strain chart.
+     * @param overrideParameters The parameters to override the replay with.
      * @returns The result of the calculation. Errors will be thrown whenever necessary.
      */
     async calculateReplayPerformance(
         replay: ReplayAnalyzer,
         generateStrainChart: false,
+        overrideParameters?: PerformanceCalculationParameters,
     ): Promise<PerformanceCalculationResult<DA, PA, false>>;
 
     /**
@@ -104,16 +108,19 @@ export abstract class BeatmapDifficultyCalculator<
      *
      * @param replay The replay.
      * @param generateStrainChart Whether to generate strain chart.
+     * @param overrideParameters The parameters to override the replay with.
      * @returns The result of the calculation. Errors will be thrown whenever necessary.
      */
     async calculateReplayPerformance(
         replay: ReplayAnalyzer,
         generateStrainChart?: boolean,
+        overrideParameters?: PerformanceCalculationParameters,
     ): Promise<PerformanceCalculationResult<DA, PA>>;
 
     async calculateReplayPerformance(
         replay: ReplayAnalyzer,
         generateStrainChart?: boolean,
+        overrideParameters?: PerformanceCalculationParameters,
     ): Promise<PerformanceCalculationResult<DA, PA>> {
         if (!replay.data) {
             throw new Error("No replay data found");
@@ -124,10 +131,14 @@ export abstract class BeatmapDifficultyCalculator<
             throw new Error("Beatmap not found");
         }
 
+        const calcParams =
+            overrideParameters ??
+            BeatmapDifficultyCalculator.getCalculationParameters(replay);
+
         return this.calculatePerformance(
             apiBeatmap,
             PPCalculationMethod.live,
-            BeatmapDifficultyCalculator.getCalculationParameters(replay),
+            calcParams,
             replay,
             generateStrainChart,
         );
@@ -138,11 +149,13 @@ export abstract class BeatmapDifficultyCalculator<
      *
      * @param replay The replay.
      * @param generateStrainChart Whether to generate strain chart.
+     * @param overrideParameters The parameters to override the replay with.
      * @returns The result of the calculation. Errors will be thrown whenever necessary.
      */
     async calculateReplayRebalancePerformance(
         replay: ReplayAnalyzer,
         generateStrainChart: true,
+        overrideParameters?: PerformanceCalculationParameters,
     ): Promise<RebalancePerformanceCalculationResult<RDA, RPA, true>>;
 
     /**
@@ -150,11 +163,13 @@ export abstract class BeatmapDifficultyCalculator<
      *
      * @param replay The replay.
      * @param generateStrainChart Whether to generate strain chart.
+     * @param overrideParameters The parameters to override the replay with.
      * @returns The result of the calculation. Errors will be thrown whenever necessary.
      */
     async calculateReplayRebalancePerformance(
         replay: ReplayAnalyzer,
         generateStrainChart: false,
+        overrideParameters?: PerformanceCalculationParameters,
     ): Promise<RebalancePerformanceCalculationResult<RDA, RPA, false>>;
 
     /**
@@ -162,16 +177,19 @@ export abstract class BeatmapDifficultyCalculator<
      *
      * @param replay The replay.
      * @param generateStrainChart Whether to generate strain chart.
+     * @param overrideParameters The parameters to override the replay with.
      * @returns The result of the calculation. Errors will be thrown whenever necessary.
      */
     async calculateReplayRebalancePerformance(
         replay: ReplayAnalyzer,
         generateStrainChart?: boolean,
+        overrideParameters?: PerformanceCalculationParameters,
     ): Promise<RebalancePerformanceCalculationResult<RDA, RPA>>;
 
     async calculateReplayRebalancePerformance(
         replay: ReplayAnalyzer,
         generateStrainChart?: boolean,
+        overrideParameters?: PerformanceCalculationParameters,
     ): Promise<RebalancePerformanceCalculationResult<RDA, RPA>> {
         if (!replay.data) {
             throw new Error("No replay data found");
@@ -182,10 +200,14 @@ export abstract class BeatmapDifficultyCalculator<
             throw new Error("Beatmap not found");
         }
 
+        const calcParams =
+            overrideParameters ??
+            BeatmapDifficultyCalculator.getCalculationParameters(replay);
+
         return this.calculatePerformance(
             apiBeatmap,
             PPCalculationMethod.rebalance,
-            BeatmapDifficultyCalculator.getCalculationParameters(replay),
+            calcParams,
             replay,
             generateStrainChart,
         );

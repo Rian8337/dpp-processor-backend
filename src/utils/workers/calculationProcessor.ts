@@ -107,6 +107,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
           });
 
     const analyzer = new ReplayAnalyzer({ scoreID: 0, map: beatmap });
+
     if (data.replayFile) {
         analyzer.originalODR = Buffer.from(await data.replayFile.arrayBuffer());
         await analyzer.analyze().catch(() => null);
@@ -117,7 +118,9 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
             );
         }
 
-        calculationParams.applyReplay(analyzer);
+        if (!parameters) {
+            calculationParams.applyReplay(analyzer);
+        }
     }
 
     // Check for potentially invalid properties.

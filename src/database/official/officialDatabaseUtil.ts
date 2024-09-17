@@ -191,19 +191,19 @@ export function insertBestScore(scoreId: number): Promise<boolean> {
             `INSERT INTO ${constructOfficialDatabaseTableName(OfficialDatabaseTables.bestScore)}
             SELECT * FROM ${constructOfficialDatabaseTableName(OfficialDatabaseTables.score)} WHERE id = ?
             ON DUPLICATE KEY UPDATE
-            mode = new.mode,
-            score = new.score,
-            combo = new.combo,
-            mark = new.mark,
-            geki = new.geki,
-            perfect = new.perfect,
-            katu = new.katu,
-            good = new.good,
-            bad = new.bad,
-            miss = new.miss,
-            accuracy = new.accuracy,
-            date = new.date,
-            pp = new.pp;`,
+            mode = VALUES(mode),
+            score = VALUES(score),
+            combo = VALUES(combo),
+            mark = VALUES(mark),
+            geki = VALUES(geki),
+            perfect = VALUES(perfect),
+            katu = VALUES(katu),
+            good = VALUES(good),
+            bad = VALUES(bad),
+            miss = VALUES(miss),
+            accuracy = VALUES(accuracy),
+            date = VALUES(date),
+            pp = VALUES(pp);`,
             [scoreId],
         )
         .then((res) => res[0].affectedRows > 0)

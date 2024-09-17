@@ -1,6 +1,7 @@
 import {
     ReplayAnalyzer,
     ReplayData,
+    ReplayV3Data,
 } from "@rian8337/osu-droid-replay-analyzer";
 import { Player, Score } from "@rian8337/osu-droid-utilities";
 import {
@@ -11,7 +12,28 @@ import {
 import { getBeatmap } from "./cache/beatmapStorage";
 import { DatabaseManager } from "../database/managers/DatabaseManager";
 import { BeatmapDroidDifficultyCalculator } from "./calculator/BeatmapDroidDifficultyCalculator";
-import { MathUtils, RankedStatus } from "@rian8337/osu-base";
+import {
+    MathUtils,
+    ModAuto,
+    ModAutopilot,
+    ModDoubleTime,
+    ModEasy,
+    ModFlashlight,
+    ModHalfTime,
+    ModHardRock,
+    ModHidden,
+    ModNightCore,
+    ModNoFail,
+    ModPerfect,
+    ModPrecise,
+    ModReallyEasy,
+    ModRelax,
+    ModScoreV2,
+    ModSmallCircle,
+    ModSpeedUp,
+    ModSuddenDeath,
+    RankedStatus,
+} from "@rian8337/osu-base";
 import { PerformanceCalculationResult } from "./calculator/PerformanceCalculationResult";
 import { DPPSubmissionValidity } from "../enums/DPPSubmissionValidity";
 import {
@@ -716,15 +738,19 @@ async function submitReplayToOfficialPP(
         DroidPerformanceAttributes
     >,
 ): Promise<void> {
-    if (!replay.data) {
+    const { data } = replay;
+
+    if (!data) {
         return;
     }
 
-    const score = await getOfficialScore(uid, replay.data.hash, true);
+    const score = await getOfficialScore(uid, data.hash, true);
 
     if (!score) {
         return;
     }
+
+    let bestScore = await getOfficialBestScore(uid, data.hash);
 
     // For overwriting scores, we need to update the pp value in the official score table.
     if (replay.scoreID > 0) {
@@ -734,13 +760,113 @@ async function submitReplayToOfficialPP(
         );
     }
 
-    const bestScore = await getOfficialBestScore(uid, replay.data.hash);
-
     if (bestScore === null || bestScore.pp < scoreAttribs.result.total) {
-        await insertBestScore(score.id);
+        // New top play - update the score.
+        bestScore = {
+            ...score,
+            accuracy: scoreAttribs.params.accuracy.value() * 100000,
+            bad: scoreAttribs.params.accuracy.n50,
+            combo:
+                scoreAttribs.params.combo ??
+                (data.isReplayV3() ? data.maxCombo : score.combo),
+            geki: data.isReplayV3() ? data.hit300k : score.geki,
+            good: data.isReplayV3() ? data.accuracy.n100 : score.good,
+            date: data.isReplayV3() ? data.time : score.date,
+            katu: data.isReplayV3() ? data.hit100k : score.katu,
+            mark: data.isReplayV3() ? data.rank : score.mark,
+            miss: scoreAttribs.params.accuracy.nmiss,
+            mode: data.isReplayV3() ? constructModString(data) : score.mode,
+            perfect: scoreAttribs.params.accuracy.n300,
+            pp: scoreAttribs.result.total,
+            score: data.isReplayV3() ? data.score : score.score,
+        };
+
+        await insertBestScore(bestScore);
         await updateUserPP(uid);
         await saveReplayToOfficialPP(replay);
     }
+}
+
+const replayModsConstants = {
+    MOD_AUTO: new ModAuto().droidString,
+    MOD_AUTOPILOT: new ModAutopilot().droidString,
+    MOD_NOFAIL: new ModNoFail().droidString,
+    MOD_EASY: new ModEasy().droidString,
+    MOD_HIDDEN: new ModHidden().droidString,
+    MOD_HARDROCK: new ModHardRock().droidString,
+    MOD_DOUBLETIME: new ModDoubleTime().droidString,
+    MOD_HALFTIME: new ModHalfTime().droidString,
+    MOD_NIGHTCORE: new ModNightCore().droidString,
+    MOD_PRECISE: new ModPrecise().droidString,
+    MOD_SMALLCIRCLE: new ModSmallCircle().droidString,
+    MOD_SPEEDUP: new ModSpeedUp().droidString,
+    MOD_REALLYEASY: new ModReallyEasy().droidString,
+    MOD_RELAX: new ModRelax().droidString,
+    MOD_PERFECT: new ModPerfect().droidString,
+    MOD_SUDDENDEATH: new ModSuddenDeath().droidString,
+    MOD_SCOREV2: new ModScoreV2().droidString,
+    MOD_FLASHLIGHT: new ModFlashlight().droidString,
+} as const;
+
+/**
+ * Constructs a mod string from a replay data.
+ *
+ * @param data The replay data.
+ * @returns The constructed mod string.
+ */
+export function constructModString(data: ReplayV3Data): string {
+    let modString = "";
+
+    for (const mod of data.rawMods) {
+        for (const property in replayModsConstants) {
+            if (!mod.includes(property)) {
+                continue;
+            }
+
+            modString +=
+                replayModsConstants[
+                    property as keyof typeof replayModsConstants
+                ];
+            break;
+        }
+    }
+
+    if (data.isReplayV4()) {
+        modString += "|";
+        let extraModString = "";
+
+        if (data.speedMultiplier !== 1) {
+            extraModString += `x${data.speedMultiplier.toFixed(2)}|`;
+        }
+
+        if (data.forceAR !== undefined) {
+            extraModString += `AR${data.forceAR.toFixed(1)}|`;
+        }
+
+        if (data.isReplayV5()) {
+            if (data.forceOD !== undefined) {
+                extraModString += `OD${data.forceOD.toFixed(1)}|`;
+            }
+
+            if (data.forceCS !== undefined) {
+                extraModString += `CS${data.forceCS.toFixed(1)}|`;
+            }
+
+            if (data.forceHP !== undefined) {
+                extraModString += `HP${data.forceHP.toFixed(1)}|`;
+            }
+        }
+
+        if (data.flashlightFollowDelay !== 0.12) {
+            extraModString += `FLD${data.flashlightFollowDelay.toFixed(2)}|`;
+        }
+
+        if (extraModString) {
+            modString += extraModString.slice(0, -1);
+        }
+    }
+
+    return modString;
 }
 
 /**

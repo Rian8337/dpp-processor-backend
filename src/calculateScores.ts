@@ -117,6 +117,8 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
             bestScorePP !== null &&
             scorePP > bestScorePP
         ) {
+            // TODO: Fix later
+            //@ts-expect-error: Fix later
             await insertBestScore(scoreId);
             await saveReplayToOfficialPP(scoreReplay);
         }

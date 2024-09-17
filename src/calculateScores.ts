@@ -14,6 +14,13 @@ import {
     updateBestScorePPValue,
     updateOfficialScorePPValue,
 } from "./database/official/officialDatabaseUtil";
+import { officialPool } from "./database/official/OfficialDatabasePool";
+import { RowDataPacket } from "mysql2";
+import {
+    constructOfficialDatabaseTableName,
+    OfficialDatabaseTables,
+} from "./database/official/OfficialDatabaseTables";
+import { OfficialDatabaseBestScore } from "./database/official/schema/OfficialDatabaseBestScore";
 
 config();
 
@@ -117,9 +124,26 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
             bestScorePP !== null &&
             scorePP > bestScorePP
         ) {
-            // TODO: Fix later
-            //@ts-expect-error: Fix later
-            await insertBestScore(scoreId);
+            const score = await officialPool
+                .query<RowDataPacket[]>(
+                    `SELECT * FROM ${constructOfficialDatabaseTableName(OfficialDatabaseTables.score)} WHERE id = ?;`,
+                    [scoreId],
+                )
+                .then(
+                    (res) =>
+                        (res[0] as OfficialDatabaseBestScore[]).at(0) ?? null,
+                )
+                .catch((e: unknown) => {
+                    console.error("Failed to fetch best score", e);
+
+                    return null;
+                });
+
+            if (!score) {
+                continue;
+            }
+
+            await insertBestScore(score);
             await saveReplayToOfficialPP(scoreReplay);
         }
 

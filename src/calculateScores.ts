@@ -164,7 +164,7 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
                 .then((res) => res.result.total)
                 .catch((e: unknown) => {
                     console.error(
-                        "Failed to calculate score",
+                        `Failed to calculate score with ID ${scoreId.toString()}:`,
                         (e as Error).message,
                     );
 
@@ -206,7 +206,7 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
                 .then((res) => res.result.total)
                 .catch((e: unknown) => {
                     console.error(
-                        "Failed to calculate score",
+                        `Failed to calculate score with ID ${scoreId.toString()}:`,
                         (e as Error).message,
                     );
 

@@ -11,6 +11,7 @@ import {
 } from "./utils/replayManager";
 import {
     insertBestScore,
+    parseOfficialScoreMods,
     updateBestScorePPValue,
     updateOfficialScorePPValue,
 } from "./database/official/officialDatabaseUtil";
@@ -21,8 +22,82 @@ import {
     OfficialDatabaseTables,
 } from "./database/official/OfficialDatabaseTables";
 import { OfficialDatabaseBestScore } from "./database/official/schema/OfficialDatabaseBestScore";
+import { PerformanceCalculationParameters } from "./utils/calculator/PerformanceCalculationParameters";
+import { Accuracy } from "@rian8337/osu-base";
+import { OfficialDatabaseScore } from "./database/official/schema/OfficialDatabaseScore";
 
 config();
+
+function obtainOfficialScore(
+    scoreId: number,
+): Promise<OfficialDatabaseScore | null> {
+    return officialPool
+        .query<RowDataPacket[]>(
+            `SELECT * FROM ${constructOfficialDatabaseTableName(OfficialDatabaseTables.score)} WHERE id = ?;`,
+            [scoreId],
+        )
+        .then((res) => (res[0] as OfficialDatabaseScore[]).at(0) ?? null)
+        .catch((e: unknown) => {
+            console.error("Failed to fetch best score", e);
+
+            return null;
+        });
+}
+
+function obtainOfficialBestScore(
+    scoreId: number,
+): Promise<OfficialDatabaseBestScore | null> {
+    return officialPool
+        .query<RowDataPacket[]>(
+            `SELECT * FROM ${constructOfficialDatabaseTableName(OfficialDatabaseTables.bestScore)} WHERE id = ?;`,
+            [scoreId],
+        )
+        .then((res) => (res[0] as OfficialDatabaseBestScore[]).at(0) ?? null)
+        .catch((e: unknown) => {
+            console.error("Failed to fetch best score", e);
+
+            return null;
+        });
+}
+
+async function obtainOverrideParameters(
+    scoreId: number,
+    replay: ReplayAnalyzer,
+    useBestTable: boolean,
+): Promise<PerformanceCalculationParameters | undefined> {
+    const { data } = replay;
+
+    if (!data || data.isReplayV3()) {
+        return undefined;
+    }
+
+    const score = await (
+        useBestTable ? obtainOfficialBestScore : obtainOfficialScore
+    )(scoreId);
+
+    if (!score) {
+        return undefined;
+    }
+
+    const parsedMods = parseOfficialScoreMods(score.mode);
+
+    return new PerformanceCalculationParameters({
+        accuracy: new Accuracy({
+            n300: score.perfect,
+            n100: score.good,
+            n50: score.bad,
+            nmiss: score.miss,
+        }),
+        combo: score.combo,
+        mods: parsedMods.mods,
+        customSpeedMultiplier: parsedMods.speedMultiplier,
+        forceAR: parsedMods.forceAR,
+        forceCS: parsedMods.forceCS,
+        forceHP: parsedMods.forceHP,
+        forceOD: parsedMods.forceOD,
+        oldStatistics: parsedMods.oldStatistics,
+    });
+}
 
 const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
 
@@ -39,7 +114,7 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
         });
 
     if (!id) {
-        id = 1;
+        id = 207695;
 
         await processorPool.query(
             `INSERT INTO ${ProcessorDatabaseTables.scoreCalculation} (id) VALUES (1);`,
@@ -76,8 +151,18 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
                 );
             });
 
+            const overrideParameters = await obtainOverrideParameters(
+                scoreId,
+                bestScoreReplay,
+                true,
+            );
+
             bestScorePP = await difficultyCalculator
-                .calculateReplayPerformance(bestScoreReplay)
+                .calculateReplayPerformance(
+                    bestScoreReplay,
+                    false,
+                    overrideParameters,
+                )
                 .then((res) => res.result.total)
                 .catch((e: unknown) => {
                     console.error("Failed to calculate score", e);
@@ -105,8 +190,18 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
                 );
             });
 
+            const overrideParameters = await obtainOverrideParameters(
+                scoreId,
+                scoreReplay,
+                false,
+            );
+
             scorePP = await difficultyCalculator
-                .calculateReplayPerformance(scoreReplay)
+                .calculateReplayPerformance(
+                    scoreReplay,
+                    false,
+                    overrideParameters,
+                )
                 .then((res) => res.result.total)
                 .catch((e: unknown) => {
                     console.error("Failed to calculate score", e);
@@ -124,20 +219,7 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
             bestScorePP !== null &&
             scorePP > bestScorePP
         ) {
-            const score = await officialPool
-                .query<RowDataPacket[]>(
-                    `SELECT * FROM ${constructOfficialDatabaseTableName(OfficialDatabaseTables.score)} WHERE id = ?;`,
-                    [scoreId],
-                )
-                .then(
-                    (res) =>
-                        (res[0] as OfficialDatabaseBestScore[]).at(0) ?? null,
-                )
-                .catch((e: unknown) => {
-                    console.error("Failed to fetch best score", e);
-
-                    return null;
-                });
+            const score = await obtainOfficialBestScore(scoreId);
 
             if (!score) {
                 continue;

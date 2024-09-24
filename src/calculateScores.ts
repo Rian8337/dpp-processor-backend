@@ -125,8 +125,6 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
     while (true) {
         const scoreId = id++;
 
-        console.log("Calculating score with ID", scoreId);
-
         // Update current progress.
         await processorPool.query(
             `UPDATE ${ProcessorDatabaseTables.scoreCalculation} SET id = $1;`,

@@ -6,7 +6,7 @@ export interface OfficialDatabaseScore {
     readonly uid: number;
     readonly filename: string;
     readonly hash: string;
-    readonly mode: string;
+    readonly mode: string | null;
     readonly score: number;
     readonly combo: number;
     readonly mark: string;

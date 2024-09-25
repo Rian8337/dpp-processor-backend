@@ -11,6 +11,7 @@ import { isDebug } from "../../utils/util";
 import { OfficialDatabaseBestScore } from "./schema/OfficialDatabaseBestScore";
 import { calculateFinalPerformancePoints } from "../../utils/dppUtil";
 import { ModUtil } from "@rian8337/osu-base";
+import { OfficialDatabaseScoreMods } from "../../structures/OfficialDatabaseScoreMods";
 
 /**
  * Gets a player's information from their username.
@@ -261,7 +262,18 @@ export async function updateUserPP(id: number): Promise<boolean> {
  * @param modstring The raw string of mods received from score table.
  * @returns The parsed mods.
  */
-export function parseOfficialScoreMods(modstring: string) {
+export function parseOfficialScoreMods(
+    modstring: string | null,
+): OfficialDatabaseScoreMods {
+    // Some old scores have its mods set to null in the score table.
+    if (modstring === null) {
+        return {
+            mods: [],
+            speedMultiplier: 1,
+            oldStatistics: true,
+        };
+    }
+
     // Taken directly from osu! core module.
     const modstrings = modstring.split("|");
     let actualMods = "";

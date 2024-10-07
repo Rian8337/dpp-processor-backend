@@ -379,13 +379,17 @@ export function getOfficialBestReplay(
 export async function deleteReplays(
     uid: number | string,
     hash: string,
-): Promise<void> {
+): Promise<boolean> {
     if (isDebug) {
         // Debug should not have access to local replays.
-        return;
+        return false;
     }
 
-    return rm(join(localReplayDirectory, uid.toString(), hash));
+    return rm(join(localReplayDirectory, uid.toString(), hash), {
+        recursive: true,
+    })
+        .then(() => true)
+        .catch(() => false);
 }
 
 /**

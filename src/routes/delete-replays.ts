@@ -16,7 +16,12 @@ router.get<
         return res.sendStatus(400);
     }
 
-    await deleteReplays(req.query.uid, req.query.hash);
+    const replaysDeleted = await deleteReplays(req.query.uid, req.query.hash);
+
+    if (!replaysDeleted) {
+        return res.sendStatus(404);
+    }
+
     await deleteScore(parseInt(req.query.uid), req.query.hash);
 
     res.sendStatus(200);

@@ -9,7 +9,6 @@ import {
 } from "./database/official/OfficialDatabaseTables";
 import { ResultSetHeader, RowDataPacket } from "mysql2";
 import { OfficialDatabaseBestScore } from "./database/official/schema/OfficialDatabaseBestScore";
-import { OfficialDatabaseUser } from "./database/official/schema/OfficialDatabaseUser";
 
 config();
 
@@ -41,28 +40,6 @@ config();
             `UPDATE ${ProcessorDatabaseTables.totalPPCalculation} SET id = $1;`,
             [id],
         );
-
-        // Check if user exists.
-        const user = await officialPool
-            .query<RowDataPacket[]>(
-                `SELECT id FROM ${constructOfficialDatabaseTableName(OfficialDatabaseTables.user)} WHERE id = ?;`,
-                [id],
-            )
-            .then(
-                (res) =>
-                    (res[0] as Pick<OfficialDatabaseUser, "id">[]).at(0) ??
-                    null,
-            )
-            .catch((e: unknown) => {
-                console.error(e);
-
-                return null;
-            });
-
-        if (!user) {
-            console.log("User", id++, "does not exist");
-            continue;
-        }
 
         // Get user top scores.
         const topScores = await officialPool
@@ -107,12 +84,6 @@ config();
         }
 
         console.log("User", id++, "has", totalPP, "pp");
-
-        if (!result) {
-            console.log("Calculation complete");
-
-            break;
-        }
     }
 })()
     .then(() => {

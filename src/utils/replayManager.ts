@@ -28,21 +28,28 @@ export const unprocessedReplayDirectory = join(
     "unprocessed",
 );
 
-/**
- * The directory of online replays.
- */
-export const onlineReplayDirectory = join(
+const officialReplayBaseDirectory = join(
     mainDirectory,
     "DroidData",
     "osudroid",
     "zip",
+);
+
+/**
+ * The directory of online replays.
+ */
+export const onlineReplayDirectory = join(
+    officialReplayBaseDirectory,
     "upload",
 );
 
 /**
  * The directory of official replays.
  */
-export const officialReplayDirectory = join(localReplayDirectory, "official");
+export const officialReplayDirectory = join(
+    officialReplayBaseDirectory,
+    "bestpp",
+);
 
 /**
  * Saves a replay to the disk.

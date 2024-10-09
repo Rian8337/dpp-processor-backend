@@ -206,6 +206,7 @@ export function insertBestScore(
             bad = VALUES(bad),
             miss = VALUES(miss),
             accuracy = VALUES(accuracy),
+            new_accuracy = VALUES(new_accuracy),
             date = VALUES(date),
             pp = VALUES(pp);`,
             Object.values(score),

@@ -776,6 +776,7 @@ async function submitReplayToOfficialPP(
             mark: data.isReplayV3() ? data.rank : score.mark,
             miss: scoreAttribs.params.accuracy.nmiss,
             mode: data.isReplayV3() ? constructModString(data) : score.mode,
+            new_accuracy: scoreAttribs.params.accuracy.value(),
             perfect: scoreAttribs.params.accuracy.n300,
             pp: scoreAttribs.result.total,
             score: data.isReplayV3() ? data.score : score.score,

@@ -21,7 +21,7 @@ import { CompleteCalculationAttributes } from "../structures/attributes/Complete
 import { DroidPerformanceAttributes } from "../structures/attributes/DroidPerformanceAttributes";
 import { OsuPerformanceAttributes } from "../structures/attributes/OsuPerformanceAttributes";
 import { PerformanceCalculationParameters } from "../utils/calculator/PerformanceCalculationParameters";
-import { validatePOSTInternalKey } from "../utils/util";
+import { readFileStream, validatePOSTInternalKey } from "../utils/util";
 import {
     calculateLocalBeatmapDifficulty,
     calculateLocalBeatmapPerformance,
@@ -31,24 +31,6 @@ import { PerformanceAttributes } from "../structures/attributes/PerformanceAttri
 import { StrainGraphColor } from "../enums/StrainGraphColor";
 
 const router = Router();
-
-/**
- * Reads a file stream and returns it as a buffer.
- *
- * @param stream The stream to read.
- * @returns The buffer represented by the read stream.
- */
-function readFileStream(stream: ReadStream): Promise<Buffer> {
-    const chunks: Buffer[] = [];
-
-    return new Promise((resolve, reject) => {
-        stream.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
-        stream.on("error", reject);
-        stream.on("end", () => {
-            resolve(Buffer.concat(chunks));
-        });
-    });
-}
 
 router.post<
     "/",

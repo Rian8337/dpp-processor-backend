@@ -1,5 +1,6 @@
 import { createHash } from "crypto";
 import { Request, Response, NextFunction } from "express";
+import { ReadStream } from "fs";
 import { url } from "inspector";
 
 /**
@@ -63,4 +64,42 @@ export function validatePOSTInternalKey(
     }
 
     next();
+}
+
+/**
+ * Validates whether a given internal key is valid in a POST request for the official server.
+ */
+export function validateOfficialPOSTInternalKey(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    req: Request<unknown, any, Partial<{ key: string }>>,
+    res: Response,
+    next: NextFunction,
+): void {
+    if (req.body.key !== process.env.DROID_OFFICIAL_SERVER_INTERNAL_KEY) {
+        res.status(401).json({
+            message: "Please enter the correct API key.",
+        });
+
+        return;
+    }
+
+    next();
+}
+
+/**
+ * Reads a file stream and returns it as a buffer.
+ *
+ * @param stream The stream to read.
+ * @returns The buffer represented by the read stream.
+ */
+export function readFileStream(stream: ReadStream): Promise<Buffer> {
+    const chunks: Buffer[] = [];
+
+    return new Promise((resolve, reject) => {
+        stream.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+        stream.on("error", reject);
+        stream.on("end", () => {
+            resolve(Buffer.concat(chunks));
+        });
+    });
 }

@@ -11,6 +11,7 @@ import getPerformanceAttributes from "./routes/get-performance-attributes";
 import getPlayerBestScorePerformance from "./routes/get-player-best-score-performance";
 import getOfficialOnlineScoreAttributes from "./routes/get-official-online-score-attributes";
 import getOnlineScoreAttributes from "./routes/get-online-score-attributes";
+import officialCalculateReplay from "./routes/official-calculate-replay";
 import persistLocalReplay from "./routes/persist-local-replay";
 import persistOnlineReplay from "./routes/persist-online-replay";
 import submitScores from "./routes/submit-scores";
@@ -32,6 +33,7 @@ const baseRouter = Router()
         getOfficialOnlineScoreAttributes,
     )
     .use("/get-online-score-attributes", getOnlineScoreAttributes)
+    .use("/official-calculate-replay", officialCalculateReplay)
     .use("/persist-local-replay", persistLocalReplay)
     .use("/persist-online-replay", persistOnlineReplay)
     .use("/submit-scores", submitScores);

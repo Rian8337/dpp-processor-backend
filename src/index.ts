@@ -17,7 +17,6 @@ import persistOnlineReplay from "./routes/persist-online-replay";
 import submitScores from "./routes/submit-scores";
 import { initiateReplayProcessing } from "./utils/dppUtil";
 import { processorPool } from "./database/processor/ProcessorDatabasePool";
-import { mkdir } from "fs/promises";
 
 config();
 
@@ -48,11 +47,7 @@ const app = express()
     .use(express.urlencoded({ extended: true }))
     .use("/api/dpp/processor", baseRouter);
 
-Promise.all([
-    DatabaseManager.init(),
-    processorPool.connect(),
-    mkdir("beatmaps", { recursive: true }),
-])
+Promise.all([DatabaseManager.init(), processorPool.connect()])
     .then(async () => {
         const port = parseInt(process.env.PORT ?? "3006");
 

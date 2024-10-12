@@ -4,13 +4,15 @@ import { ProcessorDatabaseBeatmap } from "../../schema/ProcessorDatabaseBeatmap"
 import { ProcessorDatabaseTables } from "../../ProcessorDatabaseTables";
 import { MapInfo } from "@rian8337/osu-base";
 import { mkdirSync } from "fs";
-import { join } from "path";
-import { getBeatmapFile } from "../../../../utils/cache/beatmapStorage";
+import {
+    beatmapFileDirectory,
+    getBeatmapFile,
+} from "../../../../utils/cache/beatmapStorage";
 
 config();
 
 // Create beatmap file directory if it doesn't exist
-mkdirSync(join(process.cwd(), "beatmaps"), { recursive: true });
+mkdirSync(beatmapFileDirectory, { recursive: true });
 
 processorPool
     .connect()

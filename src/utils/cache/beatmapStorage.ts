@@ -6,6 +6,19 @@ import { ProcessorDatabaseBeatmap } from "../../database/processor/schema/Proces
 import { processorPool } from "../../database/processor/ProcessorDatabasePool";
 import { ProcessorDatabaseTables } from "../../database/processor/ProcessorDatabaseTables";
 import { invalidateDifficultyAttributesCache } from "./difficultyAttributesStorage";
+import { homedir } from "os";
+
+/**
+ * The directory of beatmap files.
+ */
+export const beatmapFileDirectory = join(
+    homedir(),
+    "..",
+    "..",
+    "data",
+    "osudroid",
+    "beatmaps",
+);
 
 /**
  * The database beatmap cache, mapped by beatmap ID.
@@ -147,7 +160,7 @@ export async function getBeatmap(
 export async function getBeatmapFile(id: number): Promise<string | null> {
     // Check existing file first.
     let beatmapFile = await readFile(
-        join("beatmaps", `${id.toString()}.osu`),
+        join(beatmapFileDirectory, `${id.toString()}.osu`),
         "utf-8",
     ).catch(() => null);
 
@@ -171,7 +184,10 @@ export async function getBeatmapFile(id: number): Promise<string | null> {
     }
 
     // Cache the beatmap file.
-    await writeFile(join("beatmaps", `${id.toString()}.osu`), beatmapFile);
+    await writeFile(
+        join(beatmapFileDirectory, `${id.toString()}.osu`),
+        beatmapFile,
+    );
 
     return beatmapFile;
 }
@@ -237,9 +253,9 @@ async function invalidateBeatmapCache(
     databaseBeatmapHashCache.delete(oldHash);
 
     // Delete the beatmap file.
-    await unlink(join("beatmaps", `${newCache.id.toString()}.osu`)).catch(
-        () => null,
-    );
+    await unlink(
+        join(beatmapFileDirectory, `${newCache.id.toString()}.osu`),
+    ).catch(() => null);
 
     // Delete the cache from the database. This will force all difficulty attributes to be dropped as well.
     await processorPool.query<ProcessorDatabaseBeatmap>(

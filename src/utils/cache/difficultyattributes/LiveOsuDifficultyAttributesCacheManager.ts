@@ -20,19 +20,22 @@ export class LiveOsuDifficultyAttributesCacheManager extends DifficultyAttribute
         ProcessorDatabaseTables.liveOsuDifficultyAttributes;
 
     protected override convertDatabaseMods(
-        attributes: ProcessorDatabaseLiveOsuDifficultyAttributes
+        attributes: ProcessorDatabaseLiveOsuDifficultyAttributes,
     ): Mod[] {
         return ModUtil.pcModbitsToMods(attributes.mods);
     }
 
     protected override convertDatabaseAttributesInternal(
-        attributes: ProcessorDatabaseLiveOsuDifficultyAttributes
+        attributes: ProcessorDatabaseLiveOsuDifficultyAttributes,
     ): Omit<OsuDifficultyAttributes, keyof RawDifficultyAttributes> {
-        return { speedDifficulty: attributes.speed_difficulty };
+        return {
+            speedDifficulty: attributes.speed_difficulty,
+            approachRate: attributes.approach_rate,
+        };
     }
 
     protected override convertDifficultyAttributesInternal(
-        attributes: OsuDifficultyAttributes
+        attributes: OsuDifficultyAttributes,
     ): Omit<
         ProcessorDatabaseLiveOsuDifficultyAttributes,
         keyof ProcessorDatabaseDifficultyAttributes
@@ -42,8 +45,9 @@ export class LiveOsuDifficultyAttributesCacheManager extends DifficultyAttribute
             mods: attributes.mods.reduce(
                 (acc, mod) =>
                     mod.isApplicableToOsu() ? acc | mod.bitwise : acc,
-                0
+                0,
             ),
+            approach_rate: attributes.approachRate,
         };
     }
 }

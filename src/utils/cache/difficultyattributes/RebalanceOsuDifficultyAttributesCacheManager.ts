@@ -20,19 +20,24 @@ export class RebalanceOsuDifficultyAttributesCacheManager extends DifficultyAttr
         ProcessorDatabaseTables.rebalanceOsuDifficultyAttributes;
 
     protected override convertDatabaseMods(
-        attributes: ProcessorDatabaseRebalanceOsuDifficultyAttributes
+        attributes: ProcessorDatabaseRebalanceOsuDifficultyAttributes,
     ): Mod[] {
         return ModUtil.pcModbitsToMods(attributes.mods);
     }
 
     protected override convertDatabaseAttributesInternal(
-        attributes: ProcessorDatabaseRebalanceOsuDifficultyAttributes
+        attributes: ProcessorDatabaseRebalanceOsuDifficultyAttributes,
     ): Omit<OsuDifficultyAttributes, keyof RawDifficultyAttributes> {
-        return { speedDifficulty: attributes.speed_difficulty };
+        return {
+            speedDifficulty: attributes.speed_difficulty,
+            approachRate: attributes.approach_rate,
+            aimDifficultStrainCount: attributes.aim_difficult_strain_count,
+            speedDifficultStrainCount: attributes.speed_difficult_strain_count,
+        };
     }
 
     protected override convertDifficultyAttributesInternal(
-        attributes: OsuDifficultyAttributes
+        attributes: OsuDifficultyAttributes,
     ): Omit<
         ProcessorDatabaseRebalanceOsuDifficultyAttributes,
         keyof ProcessorDatabaseDifficultyAttributes
@@ -42,8 +47,11 @@ export class RebalanceOsuDifficultyAttributesCacheManager extends DifficultyAttr
             mods: attributes.mods.reduce(
                 (acc, mod) =>
                     mod.isApplicableToOsu() ? acc | mod.bitwise : acc,
-                0
+                0,
             ),
+            approach_rate: attributes.approachRate,
+            aim_difficult_strain_count: attributes.aimDifficultStrainCount,
+            speed_difficult_strain_count: attributes.speedDifficultStrainCount,
         };
     }
 }

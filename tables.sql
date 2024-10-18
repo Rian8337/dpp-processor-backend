@@ -34,7 +34,6 @@ CREATE TABLE IF NOT EXISTS live_droid_difficulty_attributes (
     speed_note_count                        float           NOT NULL,
     slider_factor                           float           NOT NULL,
     clock_rate                              float           NOT NULL,
-    approach_rate                           float           NOT NULL,
     overall_difficulty                      float           NOT NULL,
     hit_circle_count                        int             NOT NULL,
     slider_count                            int             NOT NULL,
@@ -76,7 +75,6 @@ CREATE TABLE IF NOT EXISTS rebalance_droid_difficulty_attributes (
     speed_note_count                        float           NOT NULL,
     slider_factor                           float           NOT NULL,
     clock_rate                              float           NOT NULL,
-    approach_rate                           float           NOT NULL,
     overall_difficulty                      float           NOT NULL,
     hit_circle_count                        int             NOT NULL,
     slider_count                            int             NOT NULL,
@@ -120,6 +118,8 @@ CREATE TABLE IF NOT EXISTS live_osu_difficulty_attributes (
     hit_circle_count                        int             NOT NULL,
     slider_count                            int             NOT NULL,
     spinner_count                           int             NOT NULL,
+    aim_difficult_strain_count              float           NOT NULL,
+    speed_difficult_strain_count            float           NOT NULL,
 
     PRIMARY KEY (beatmap_id, mods, speed_multiplier, force_cs, force_ar, force_od, old_statistics),
     CONSTRAINT fk_live_osu_difficulty_attributes_beatmap_id FOREIGN KEY (beatmap_id) REFERENCES beatmap(id) ON DELETE CASCADE
@@ -149,6 +149,8 @@ CREATE TABLE IF NOT EXISTS rebalance_osu_difficulty_attributes (
     hit_circle_count                        int             NOT NULL,
     slider_count                            int             NOT NULL,
     spinner_count                           int             NOT NULL,
+    aim_difficult_strain_count              float           NOT NULL,
+    speed_difficult_strain_count            float           NOT NULL,
 
     PRIMARY KEY (beatmap_id, mods, speed_multiplier, force_cs, force_ar, force_od, old_statistics),
     CONSTRAINT fk_rebalance_osu_difficulty_attributes_beatmap_id FOREIGN KEY (beatmap_id) REFERENCES beatmap(id) ON DELETE CASCADE

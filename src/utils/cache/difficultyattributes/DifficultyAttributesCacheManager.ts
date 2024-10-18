@@ -263,7 +263,6 @@ export abstract class DifficultyAttributesCacheManager<
             ...this.convertDatabaseAttributesInternal(attributes),
             mods: this.convertDatabaseMods(attributes),
             aimDifficulty: attributes.aim_difficulty,
-            approachRate: attributes.approach_rate,
             clockRate: attributes.clock_rate,
             flashlightDifficulty: attributes.flashlight_difficulty,
             hitCircleCount: attributes.hit_circle_count,
@@ -289,7 +288,6 @@ export abstract class DifficultyAttributesCacheManager<
         return {
             ...this.convertDifficultyAttributesInternal(attributes),
             aim_difficulty: attributes.aimDifficulty,
-            approach_rate: attributes.approachRate,
             clock_rate: attributes.clockRate,
             flashlight_difficulty: attributes.flashlightDifficulty,
             hit_circle_count: attributes.hitCircleCount,

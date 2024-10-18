@@ -167,8 +167,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                         strainChart = await generateChart(
                             beatmap,
                             difficultyCalculator.strainPeaks,
-                            difficultyCalculator.difficultyStatistics
-                                .overallSpeedMultiplier,
+                            difficultyCalculator.attributes.clockRate,
                             undefined,
                             StrainGraphColor.droidLive,
                         );
@@ -302,8 +301,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                         strainChart = await generateChart(
                             beatmap,
                             difficultyCalculator.strainPeaks,
-                            difficultyCalculator.difficultyStatistics
-                                .overallSpeedMultiplier,
+                            difficultyCalculator.attributes.clockRate,
                             undefined,
                             StrainGraphColor.droidRebalance,
                         );
@@ -455,8 +453,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                         strainChart = await generateChart(
                             beatmap,
                             difficultyCalculator.strainPeaks,
-                            difficultyCalculator.difficultyStatistics
-                                .overallSpeedMultiplier,
+                            difficultyCalculator.attributes.clockRate,
                             undefined,
                             StrainGraphColor.osuLive,
                         );
@@ -514,8 +511,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                         strainChart = await generateChart(
                             beatmap,
                             difficultyCalculator.strainPeaks,
-                            difficultyCalculator.difficultyStatistics
-                                .overallSpeedMultiplier,
+                            difficultyCalculator.attributes.clockRate,
                             undefined,
                             StrainGraphColor.osuRebalance,
                         );

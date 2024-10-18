@@ -80,13 +80,6 @@ export interface ProcessorDatabaseDifficultyAttributes {
     readonly clock_rate: number;
 
     /**
-     * The perceived approach rate inclusive of rate-adjusting mods (DT/HT/etc).
-     *
-     * Rate-adjusting mods don't directly affect the approach rate difficulty value, but have a perceived effect as a result of adjusting audio timing.
-     */
-    readonly approach_rate: number;
-
-    /**
      * The perceived overall difficulty inclusive of rate-adjusting mods (DT/HT/etc), based on osu!standard judgement.
      *
      * Rate-adjusting mods don't directly affect the overall difficulty value, but have a perceived effect as a result of adjusting audio timing.

@@ -181,7 +181,7 @@ router.post<
                     strainChart = await generateStrainChart(
                         beatmap,
                         diffCalc.strainPeaks,
-                        diffCalc.difficultyStatistics.overallSpeedMultiplier,
+                        diffCalc.attributes.clockRate,
                         undefined,
                         StrainGraphColor.droidLive,
                     );
@@ -235,7 +235,7 @@ router.post<
                     strainChart = await generateStrainChart(
                         beatmap,
                         diffCalc.strainPeaks,
-                        diffCalc.difficultyStatistics.overallSpeedMultiplier,
+                        diffCalc.attributes.clockRate,
                         undefined,
                         StrainGraphColor.droidRebalance,
                     );
@@ -295,7 +295,7 @@ router.post<
                     strainChart = await generateStrainChart(
                         beatmap,
                         diffCalc.strainPeaks,
-                        diffCalc.difficultyStatistics.overallSpeedMultiplier,
+                        diffCalc.attributes.clockRate,
                         undefined,
                         StrainGraphColor.osuLive,
                     );
@@ -339,7 +339,7 @@ router.post<
                     strainChart = await generateStrainChart(
                         beatmap,
                         diffCalc.strainPeaks,
-                        diffCalc.difficultyStatistics.overallSpeedMultiplier,
+                        diffCalc.attributes.clockRate,
                         undefined,
                         StrainGraphColor.osuRebalance,
                     );

@@ -9,7 +9,6 @@ import { ResultSetHeader, RowDataPacket } from "mysql2";
 import { OfficialDatabaseScore } from "./schema/OfficialDatabaseScore";
 import { isDebug } from "../../utils/util";
 import { OfficialDatabaseBestScore } from "./schema/OfficialDatabaseBestScore";
-import { calculateFinalPerformancePoints } from "../../utils/dppUtil";
 import { ModUtil } from "@rian8337/osu-base";
 import { OfficialDatabaseScoreMods } from "../../structures/OfficialDatabaseScoreMods";
 
@@ -220,18 +219,18 @@ export function insertBestScore(
 }
 
 /**
- * Updates the total pp value of a user.
+ * Updates the pp profile of a user.
  *
  * @param id The ID of the user.
  * @returns Whether the operation was successful.
  */
-export async function updateUserPP(id: number): Promise<boolean> {
+export async function updateUserPPProfile(id: number): Promise<boolean> {
     const scores = await officialPool
         .query<RowDataPacket[]>(
-            `SELECT pp FROM ${constructOfficialDatabaseTableName(OfficialDatabaseTables.bestScore)} WHERE uid = ? ORDER BY pp DESC LIMIT 100;`,
+            `SELECT pp, accuracy FROM ${constructOfficialDatabaseTableName(OfficialDatabaseTables.bestScore)} WHERE uid = ? ORDER BY pp DESC LIMIT 100;`,
             [id],
         )
-        .then((res) => res[0] as Pick<OfficialDatabaseBestScore, "pp">[])
+        .then((res) => res[0] as Pick<OfficialDatabaseBestScore, "pp" | "accuracy">[])
         .catch((e: unknown) => {
             console.error(e);
 
@@ -242,12 +241,29 @@ export async function updateUserPP(id: number): Promise<boolean> {
         return false;
     }
 
-    const totalPP = calculateFinalPerformancePoints(scores, 0);
+    let totalPP = 0;
+    let accuracy = 0;
+    let accuracyWeight = 0;
+
+    for (let i = 0; i < scores.length; ++i) {
+        const score = scores[i];
+        const weightMultiplier = Math.pow(0.95, i);
+
+        totalPP += score.pp * weightMultiplier;
+        accuracy += score.accuracy * weightMultiplier;
+        accuracyWeight += weightMultiplier;
+    }
+
+    if (accuracyWeight > 0) {
+        accuracy /= accuracyWeight;
+    } else {
+        accuracy = 1;
+    }
 
     return officialPool
         .query<ResultSetHeader>(
-            `UPDATE ${constructOfficialDatabaseTableName(OfficialDatabaseTables.user)} SET pp = ? WHERE id = ?;`,
-            [totalPP, id],
+            `UPDATE ${constructOfficialDatabaseTableName(OfficialDatabaseTables.user)} SET pp = ?, new_accuracy = ? WHERE id = ?;`,
+            [totalPP, accuracy, id],
         )
         .then((res) => res[0].affectedRows === 1)
         .catch((e: unknown) => {

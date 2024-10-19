@@ -66,7 +66,7 @@ import {
     getOfficialScore,
     getPlayerFromUsername,
     updateOfficialScorePPValue,
-    updateUserPP,
+    updateUserPPProfile,
 } from "../database/official/officialDatabaseUtil";
 import { isDebug } from "./util";
 
@@ -783,7 +783,7 @@ async function submitReplayToOfficialPP(
         };
 
         await insertBestScore(bestScore);
-        await updateUserPP(uid);
+        await updateUserPPProfile(uid);
         await saveReplayToOfficialPP(replay);
     }
 }

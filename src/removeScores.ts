@@ -66,9 +66,7 @@ config();
             });
 
         if (!score) {
-            console.error("Score of ID", scoreId, "does not exist");
             connection.release();
-
             continue;
         }
 
@@ -85,7 +83,6 @@ config();
             });
 
         if (!otherScores || otherScores.length === 0) {
-            console.log("No similar scores of ID", scoreId);
             connection.release();
             continue;
         }

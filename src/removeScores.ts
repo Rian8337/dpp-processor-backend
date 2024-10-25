@@ -60,16 +60,13 @@ config();
             )
             .then((res) => (res[0][0] ?? null) as OfficialDatabaseScore | null)
             .catch((e: unknown) => {
-                console.error(
-                    `Failed to fetch score of ID ${scoreId.toString()}`,
-                    e,
-                );
+                console.error("Failed to fetch score of ID", scoreId, e);
 
                 return null;
             });
 
         if (!score) {
-            console.error(`Score of ID ${scoreId.toString()} does not exist`);
+            console.error("Score of ID", scoreId, "does not exist");
             connection.release();
 
             continue;
@@ -82,16 +79,13 @@ config();
             )
             .then((res) => res[0] as OfficialDatabaseScore[])
             .catch((e: unknown) => {
-                console.error(
-                    `Failed to fetch score of ID ${scoreId.toString()}`,
-                    e,
-                );
+                console.error("Failed to fetch score of ID", scoreId, e);
 
                 return null;
             });
 
         if (!otherScores || otherScores.length === 0) {
-            console.log(`No similar scores of ID ${scoreId.toString()}`);
+            console.log("No similar scores of ID", scoreId);
             connection.release();
             continue;
         }
@@ -120,16 +114,11 @@ config();
 
             await connection.commit();
 
-            console.log(
-                `Removed ${otherScores.length.toString()} scores of ID ${scoreId.toString()}`,
-            );
+            console.log("Removed", otherScores.length, "scores of ID", scoreId);
         } catch (e) {
             await connection.rollback();
 
-            console.error(
-                `Failed to remove scores of ID ${scoreId.toString()}`,
-                e,
-            );
+            console.error("Failed to remove scores of ID", scoreId, e);
         } finally {
             connection.release();
         }

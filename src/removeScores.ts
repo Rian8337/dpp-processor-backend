@@ -70,6 +70,7 @@ config();
 
         if (!score) {
             console.error(`Score of ID ${scoreId.toString()} does not exist`);
+            connection.release();
 
             continue;
         }
@@ -91,6 +92,7 @@ config();
 
         if (!otherScores || otherScores.length === 0) {
             console.log(`No similar scores of ID ${scoreId.toString()}`);
+            connection.release();
             continue;
         }
 
@@ -112,7 +114,7 @@ config();
             await connection.query(
                 `UPDATE ${userTable} SET
                 score = score - ${otherScores.reduce((a, v) => a + v.score, 0).toString()},
-                playcount = playcount - ${otherScores.length.toString()},
+                playcount = playcount - ${otherScores.length.toString()}
                 WHERE id = ${score.uid.toString()};`,
             );
 
@@ -128,6 +130,8 @@ config();
                 `Failed to remove scores of ID ${scoreId.toString()}`,
                 e,
             );
+        } finally {
+            connection.release();
         }
     }
 })().catch((e: unknown) => {

@@ -89,7 +89,7 @@ config();
                 return null;
             });
 
-        if (!otherScores) {
+        if (!otherScores || otherScores.length === 0) {
             console.log(`No similar scores of ID ${scoreId.toString()}`);
             continue;
         }

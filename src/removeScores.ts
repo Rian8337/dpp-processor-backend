@@ -77,7 +77,7 @@ config();
         // Check for scores similar to the current score.
         const otherScores = await connection
             .query<RowDataPacket[]>(
-                `SELECT * FROM ${scoreTable} WHERE uid = ${score.uid.toString()} AND hash = ${score.hash} AND id != ${scoreId.toString()};`,
+                `SELECT * FROM ${scoreTable} WHERE uid = ${score.uid.toString()} AND hash = "${score.hash}" AND id != ${scoreId.toString()};`,
             )
             .then((res) => res[0] as OfficialDatabaseScore[])
             .catch((e: unknown) => {

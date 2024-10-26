@@ -5,7 +5,7 @@ import { DifficultyAttributesCacheManager } from "../cache/difficultyattributes/
 import { PerformanceCalculationParameters } from "./PerformanceCalculationParameters";
 import { PerformanceCalculationResult } from "./PerformanceCalculationResult";
 import { RebalancePerformanceCalculationResult } from "./RebalancePerformanceCalculationResult";
-import { getBeatmap, getBeatmapFile } from "../cache/beatmapStorage";
+import { getBeatmap } from "../cache/beatmapStorage";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import { CalculationWorkerPool } from "../workers/CalculationWorkerPool";
 import { CalculationWorkerData } from "../../structures/workers/CalculationWorkerData";
@@ -13,6 +13,7 @@ import { PPCalculationMethod } from "../../structures/PPCalculationMethod";
 import { PerformanceAttributes } from "../../structures/attributes/PerformanceAttributes";
 import { ProcessorDatabaseDifficultyAttributes } from "../../database/processor/schema/ProcessorDatabaseDifficultyAttributes";
 import { ProcessorDatabaseBeatmap } from "../../database/processor/schema/ProcessorDatabaseBeatmap";
+import { getBeatmapFile } from "../../services/beatmapService";
 
 /**
  * A helper class for calculating difficulty and performance of beatmaps or replays.

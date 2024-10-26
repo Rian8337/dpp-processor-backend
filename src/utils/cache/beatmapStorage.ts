@@ -1,24 +1,10 @@
 import { MapInfo, RankedStatus } from "@rian8337/osu-base";
-import { readFile, unlink, writeFile } from "fs/promises";
-import { join } from "path";
-import { Collection } from "@discordjs/collection";
 import { ProcessorDatabaseBeatmap } from "../../database/processor/schema/ProcessorDatabaseBeatmap";
 import { processorPool } from "../../database/processor/ProcessorDatabasePool";
 import { ProcessorDatabaseTables } from "../../database/processor/ProcessorDatabaseTables";
 import { invalidateDifficultyAttributesCache } from "./difficultyAttributesStorage";
-import { homedir } from "os";
-
-/**
- * The directory of beatmap files.
- */
-export const beatmapFileDirectory = join(
-    homedir(),
-    "..",
-    "..",
-    "data",
-    "osudroid",
-    "beatmaps",
-);
+import * as beatmapService from "../../services/beatmapService";
+import { Collection } from "@discordjs/collection";
 
 /**
  * The database beatmap cache, mapped by beatmap ID.
@@ -52,28 +38,17 @@ export async function getBeatmap(
             ? databaseBeatmapIdCache.get(beatmapIdOrHash)
             : databaseBeatmapHashCache.get(beatmapIdOrHash)) ?? null;
 
-    // If not found, get the beatmap from the database.
-    cache ??= await getBeatmapFromDatabase(beatmapIdOrHash);
-
-    // If still not found, request from osu! API.
+    // If it is not in in-memory cache, fetch from beatmap processor.
     if (!cache) {
-        const apiBeatmap = await MapInfo.getInformation(beatmapIdOrHash, false);
+        const apiBeatmap = await beatmapService.getBeatmap(beatmapIdOrHash);
 
         if (!apiBeatmap) {
             return null;
         }
 
-        cache = {
-            id: apiBeatmap.beatmapId,
-            hash: apiBeatmap.hash,
-            title: apiBeatmap.fullTitle,
-            hit_length: apiBeatmap.hitLength,
-            total_length: apiBeatmap.totalLength,
-            max_combo: apiBeatmap.maxCombo,
-            object_count: apiBeatmap.objects,
-            ranked_status: apiBeatmap.approved,
-            last_checked: new Date(),
-        };
+        const beatmap = MapInfo.from(apiBeatmap);
+
+        cache = beatmapToCache(beatmap);
 
         // When retrieving with beatmap hash, the beatmap may be invalid when the new hash is retrieved.
         // In that case, invalidate the cache.
@@ -84,7 +59,7 @@ export async function getBeatmap(
                 // Check if the old beatmap cache is in the database.
                 const oldCache = await getBeatmapFromDatabase(cache.id);
 
-                if (oldCache && oldCache.hash !== apiBeatmap.hash) {
+                if (oldCache && oldCache.hash !== beatmap.hash) {
                     await invalidateBeatmapCache(beatmapIdOrHash, cache);
                 }
             }
@@ -99,28 +74,20 @@ export async function getBeatmap(
         cache.ranked_status !== RankedStatus.approved &&
         cache.last_checked < new Date(Date.now() - 1800000)
     ) {
-        const apiBeatmap = await MapInfo.getInformation(cache.id, false);
+        const apiBeatmap = await beatmapService.getBeatmap(beatmapIdOrHash);
 
         if (!apiBeatmap) {
             // Cannot check status - invalidate for now, but do not delete existing cache.
             return null;
         }
 
-        if (cache.hash !== apiBeatmap.hash) {
+        const beatmap = MapInfo.from(apiBeatmap);
+
+        if (cache.hash !== beatmap.hash) {
             // Beatmap has been updated - invalidate cache completely.
             const oldHash = cache.hash;
 
-            cache = {
-                id: apiBeatmap.beatmapId,
-                hash: apiBeatmap.hash,
-                title: apiBeatmap.fullTitle,
-                hit_length: apiBeatmap.hitLength,
-                total_length: apiBeatmap.totalLength,
-                max_combo: apiBeatmap.maxCombo,
-                object_count: apiBeatmap.objects,
-                ranked_status: apiBeatmap.approved,
-                last_checked: new Date(),
-            };
+            cache = beatmapToCache(beatmap);
 
             await invalidateBeatmapCache(oldHash, cache);
             await insertNewCache(cache);
@@ -128,8 +95,8 @@ export async function getBeatmap(
             // Update the last checked date.
             cache.last_checked = new Date();
 
-            if (apiBeatmap.approved !== cache.ranked_status) {
-                cache.ranked_status = apiBeatmap.approved;
+            if (beatmap.approved !== cache.ranked_status) {
+                cache.ranked_status = beatmap.approved;
 
                 await processorPool.query<ProcessorDatabaseBeatmap>(
                     `UPDATE ${ProcessorDatabaseTables.beatmap} SET last_checked = $1, ranked_status = $2 WHERE id = $3;`,
@@ -152,55 +119,14 @@ export async function getBeatmap(
 }
 
 /**
- * Gets the beatmap file of a beatmap.
- *
- * @param id The ID of the beatmap.
- * @returns The beatmap file, `null` if the beatmap file cannot be downloaded.
- */
-export async function getBeatmapFile(id: number): Promise<string | null> {
-    // Check existing file first.
-    let beatmapFile = await readFile(
-        join(beatmapFileDirectory, `${id.toString()}.osu`),
-        "utf-8",
-    ).catch(() => null);
-
-    if (beatmapFile) {
-        return beatmapFile;
-    }
-
-    // If there is not, request from osu! API.
-    beatmapFile = await fetch(`https://osu.ppy.sh/osu/${id.toString()}`)
-        .then((res) => {
-            if (!res.ok) {
-                return null;
-            }
-
-            return res.text();
-        })
-        .catch(() => null);
-
-    if (!beatmapFile) {
-        return null;
-    }
-
-    // Cache the beatmap file.
-    await writeFile(
-        join(beatmapFileDirectory, `${id.toString()}.osu`),
-        beatmapFile,
-    );
-
-    return beatmapFile;
-}
-
-/**
  * Updates the maximum combo of a beatmap.
  *
  * This is used in place of the osu! API for setting the maximum combo
- * of a beatmap in case the API returns `null`..
+ * of a beatmap in case the API returns `null`.
  *
  * @param id The ID of the beatmap.
  * @param maxCombo The maximum combo of the beatmap.
- * @returns
+ * @returns Whether the update was successful.
  */
 export async function updateBeatmapMaxCombo(
     id: number,
@@ -252,11 +178,6 @@ async function invalidateBeatmapCache(
     databaseBeatmapIdCache.delete(newCache.id);
     databaseBeatmapHashCache.delete(oldHash);
 
-    // Delete the beatmap file.
-    await unlink(
-        join(beatmapFileDirectory, `${newCache.id.toString()}.osu`),
-    ).catch(() => null);
-
     // Delete the cache from the database. This will force all difficulty attributes to be dropped as well.
     await processorPool.query<ProcessorDatabaseBeatmap>(
         `DELETE FROM ${ProcessorDatabaseTables.beatmap} WHERE id = $1;`,
@@ -283,4 +204,18 @@ async function insertNewCache(cache: ProcessorDatabaseBeatmap) {
             cache.last_checked,
         ],
     );
+}
+
+function beatmapToCache(beatmap: MapInfo): ProcessorDatabaseBeatmap {
+    return {
+        id: beatmap.beatmapId,
+        hash: beatmap.hash,
+        title: beatmap.fullTitle,
+        hit_length: beatmap.hitLength,
+        total_length: beatmap.totalLength,
+        max_combo: beatmap.maxCombo,
+        object_count: beatmap.objects,
+        ranked_status: beatmap.approved,
+        last_checked: new Date(),
+    };
 }

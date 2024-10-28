@@ -38,7 +38,10 @@ export async function getBeatmap(
             ? databaseBeatmapIdCache.get(beatmapIdOrHash)
             : databaseBeatmapHashCache.get(beatmapIdOrHash)) ?? null;
 
-    // If it is not in in-memory cache, fetch from beatmap processor.
+    // If not found, get the beatmap from the database.
+    cache ??= await getBeatmapFromDatabase(beatmapIdOrHash);
+
+    // If still not found, fetch from beatmap processor.
     if (!cache) {
         const apiBeatmap = await beatmapService.getBeatmap(beatmapIdOrHash);
 

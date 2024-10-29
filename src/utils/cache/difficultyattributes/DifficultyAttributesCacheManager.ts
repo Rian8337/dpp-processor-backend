@@ -298,6 +298,7 @@ export abstract class DifficultyAttributesCacheManager<
             slider_count: attributes.sliderCount,
             spinner_count: attributes.spinnerCount,
             star_rating: attributes.starRating,
+            aim_difficult_strain_count: attributes.aimDifficultStrainCount,
         } as Omit<
             TDatabaseAttributes,
             keyof DatabaseDifficultyAttributesPrimaryKey

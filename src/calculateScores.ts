@@ -25,6 +25,7 @@ import { OfficialDatabaseBestScore } from "./database/official/schema/OfficialDa
 import { PerformanceCalculationParameters } from "./utils/calculator/PerformanceCalculationParameters";
 import { Accuracy } from "@rian8337/osu-base";
 import { OfficialDatabaseScore } from "./database/official/schema/OfficialDatabaseScore";
+import { constructModString } from "./utils/dppUtil";
 
 config();
 
@@ -155,13 +156,12 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
                 true,
             );
 
-            bestScorePP = await difficultyCalculator
+            const calcResult = await difficultyCalculator
                 .calculateReplayPerformance(
                     bestScoreReplay,
                     false,
                     overrideParameters,
                 )
-                .then((res) => res.result.total)
                 .catch((e: unknown) => {
                     console.error(
                         `Failed to calculate score with ID ${scoreId.toString()}:`,
@@ -171,9 +171,40 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
                     return null;
                 });
 
-            if (bestScorePP !== null) {
-                // Update the score with the pp.
-                await updateBestScorePPValue(scoreId, bestScorePP);
+            if (calcResult != null) {
+                bestScorePP = calcResult.result.total;
+                const bestScore = await obtainOfficialBestScore(scoreId);
+                const { data } = bestScoreReplay;
+
+                if (bestScore && data) {
+                    // Update best score data.
+                    const newBestScore: OfficialDatabaseBestScore = {
+                        ...bestScore,
+                        accuracy: data.accuracy.value() * 100000,
+                        bad: data.accuracy.n50,
+                        combo: data.isReplayV3()
+                            ? data.maxCombo
+                            : bestScore.combo,
+                        geki: data.isReplayV3() ? data.hit300k : bestScore.geki,
+                        good: data.accuracy.n100,
+                        date: data.isReplayV3() ? data.time : bestScore.date,
+                        katu: data.isReplayV3() ? data.hit100k : bestScore.katu,
+                        mark: data.isReplayV3() ? data.rank : bestScore.mark,
+                        miss: data.accuracy.nmiss,
+                        mode: data.isReplayV3()
+                            ? constructModString(data)
+                            : bestScore.mode,
+                        new_accuracy: data.accuracy.value(),
+                        perfect: data.accuracy.n300,
+                        pp: bestScorePP,
+                        score: data.isReplayV3() ? data.score : bestScore.score,
+                    };
+
+                    await insertBestScore(newBestScore);
+                } else {
+                    // Update the score with the pp.
+                    await updateBestScorePPValue(scoreId, bestScorePP);
+                }
             }
         }
 
@@ -223,13 +254,18 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
             bestScorePP !== null &&
             scorePP > bestScorePP
         ) {
-            const score = await obtainOfficialBestScore(scoreId);
+            const score = await obtainOfficialScore(scoreId);
 
             if (!score) {
                 continue;
             }
 
-            await insertBestScore(score);
+            const bestScore: OfficialDatabaseBestScore = {
+                ...score,
+                pp: scorePP,
+            };
+
+            await insertBestScore(bestScore);
             await saveReplayToOfficialPP(scoreReplay);
         }
 

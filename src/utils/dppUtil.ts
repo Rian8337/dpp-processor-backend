@@ -770,7 +770,7 @@ async function submitReplayToOfficialPP(
                 scoreAttribs.params.combo ??
                 (data.isReplayV3() ? data.maxCombo : score.combo),
             geki: data.isReplayV3() ? data.hit300k : score.geki,
-            good: data.isReplayV3() ? data.accuracy.n100 : score.good,
+            good: scoreAttribs.params.accuracy.n100,
             date: data.isReplayV3() ? data.time : score.date,
             katu: data.isReplayV3() ? data.hit100k : score.katu,
             mark: data.isReplayV3() ? data.rank : score.mark,

@@ -31,6 +31,7 @@ export class LiveOsuDifficultyAttributesCacheManager extends DifficultyAttribute
         return {
             speedDifficulty: attributes.speed_difficulty,
             approachRate: attributes.approach_rate,
+            speedDifficultStrainCount: attributes.speed_difficult_strain_count,
         };
     }
 
@@ -48,6 +49,7 @@ export class LiveOsuDifficultyAttributesCacheManager extends DifficultyAttribute
                 0,
             ),
             approach_rate: attributes.approachRate,
+            speed_difficult_strain_count: attributes.speedDifficultStrainCount,
         };
     }
 }

@@ -23,11 +23,6 @@ export interface ProcessorDatabaseRebalanceOsuDifficultyAttributes
     readonly approach_rate: number;
 
     /**
-     * The amount of strains that are considered difficult with respect to the aim skill.
-     */
-    readonly aim_difficult_strain_count: number;
-
-    /**
      * The amount of strains that are considered difficult with respect to the speed skill.
      */
     readonly speed_difficult_strain_count: number;

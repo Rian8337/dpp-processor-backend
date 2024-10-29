@@ -100,6 +100,11 @@ export interface ProcessorDatabaseDifficultyAttributes {
      * The number of spinners in the beatmap.
      */
     readonly spinner_count: number;
+
+    /**
+     * The amount of strains that are considered difficult with respect to the aim skill.
+     */
+    readonly aim_difficult_strain_count: number;
 }
 
 /**

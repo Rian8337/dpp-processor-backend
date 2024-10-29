@@ -31,7 +31,6 @@ export class RebalanceOsuDifficultyAttributesCacheManager extends DifficultyAttr
         return {
             speedDifficulty: attributes.speed_difficulty,
             approachRate: attributes.approach_rate,
-            aimDifficultStrainCount: attributes.aim_difficult_strain_count,
             speedDifficultStrainCount: attributes.speed_difficult_strain_count,
         };
     }
@@ -50,7 +49,6 @@ export class RebalanceOsuDifficultyAttributesCacheManager extends DifficultyAttr
                 0,
             ),
             approach_rate: attributes.approachRate,
-            aim_difficult_strain_count: attributes.aimDifficultStrainCount,
             speed_difficult_strain_count: attributes.speedDifficultStrainCount,
         };
     }

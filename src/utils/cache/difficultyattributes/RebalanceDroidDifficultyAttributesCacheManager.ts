@@ -34,7 +34,6 @@ export class RebalanceDroidDifficultyAttributesCacheManager extends DifficultyAt
     ): Omit<ExtendedDroidDifficultyAttributes, keyof RawDifficultyAttributes> {
         return {
             mode: "rebalance",
-            aimDifficultStrainCount: attributes.aim_difficult_strain_count,
             aimNoteCount: attributes.aim_note_count,
             averageSpeedDeltaTime: attributes.average_speed_delta_time,
             difficultSliders: ((): DifficultSlider[] => {
@@ -98,7 +97,6 @@ export class RebalanceDroidDifficultyAttributesCacheManager extends DifficultyAt
         keyof ProcessorDatabaseDifficultyAttributes
     > {
         return {
-            aim_difficult_strain_count: attributes.aimDifficultStrainCount,
             aim_note_count: attributes.aimNoteCount,
             average_speed_delta_time: attributes.averageSpeedDeltaTime,
             difficult_sliders: attributes.difficultSliders

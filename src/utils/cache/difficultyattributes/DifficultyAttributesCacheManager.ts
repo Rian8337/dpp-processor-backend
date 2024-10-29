@@ -273,6 +273,7 @@ export abstract class DifficultyAttributesCacheManager<
             sliderCount: attributes.slider_count,
             spinnerCount: attributes.spinner_count,
             starRating: attributes.star_rating,
+            aimDifficultStrainCount: attributes.aim_difficult_strain_count,
         } as TAttributes;
     }
 

@@ -205,7 +205,6 @@ export function insertBestScore(
             bad = VALUES(bad),
             miss = VALUES(miss),
             accuracy = VALUES(accuracy),
-            new_accuracy = VALUES(new_accuracy),
             date = VALUES(date),
             pp = VALUES(pp);`,
             Object.values(score),
@@ -230,7 +229,10 @@ export async function updateUserPPProfile(id: number): Promise<boolean> {
             `SELECT pp, accuracy FROM ${constructOfficialDatabaseTableName(OfficialDatabaseTables.bestScore)} WHERE uid = ? ORDER BY pp DESC LIMIT 100;`,
             [id],
         )
-        .then((res) => res[0] as Pick<OfficialDatabaseBestScore, "pp" | "accuracy">[])
+        .then(
+            (res) =>
+                res[0] as Pick<OfficialDatabaseBestScore, "pp" | "accuracy">[],
+        )
         .catch((e: unknown) => {
             console.error(e);
 
@@ -262,7 +264,7 @@ export async function updateUserPPProfile(id: number): Promise<boolean> {
 
     return officialPool
         .query<ResultSetHeader>(
-            `UPDATE ${constructOfficialDatabaseTableName(OfficialDatabaseTables.user)} SET pp = ?, new_accuracy = ? WHERE id = ?;`,
+            `UPDATE ${constructOfficialDatabaseTableName(OfficialDatabaseTables.user)} SET pp = ?, accuracy = ? WHERE id = ?;`,
             [totalPP, accuracy, id],
         )
         .then((res) => res[0].affectedRows === 1)

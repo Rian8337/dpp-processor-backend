@@ -180,7 +180,7 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
                     // Update best score data.
                     const newBestScore: OfficialDatabaseBestScore = {
                         ...bestScore,
-                        accuracy: data.accuracy.value() * 100000,
+                        accuracy: data.accuracy.value(),
                         bad: data.accuracy.n50,
                         combo: data.isReplayV3()
                             ? data.maxCombo
@@ -194,7 +194,6 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
                         mode: data.isReplayV3()
                             ? constructModString(data)
                             : bestScore.mode,
-                        new_accuracy: data.accuracy.value(),
                         perfect: data.accuracy.n300,
                         pp: bestScorePP,
                         score: data.isReplayV3() ? data.score : bestScore.score,

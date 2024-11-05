@@ -133,7 +133,7 @@ export abstract class DifficultyAttributesCacheManager<
         await processorPool.query<TDatabaseAttributes>(
             `INSERT INTO ${this.databaseTable} (${keys.join(
                 ",",
-            )}) VALUES (${keys.map((_, i) => `$${(i + 1).toString()}`).join()})`,
+            )}) VALUES (${keys.map((_, i) => `$${(i + 1).toString()}`).join()}) ON CONFLICT IGNORE`,
             Object.values(databaseAttributes),
         );
 

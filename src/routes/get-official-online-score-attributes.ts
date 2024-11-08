@@ -44,14 +44,13 @@ router.get<
         return res.status(404).json({ error: "Score not found" });
     }
 
-    const scoreId = score instanceof Score ? score.scoreID : score.id;
-    const analyzer = new ReplayAnalyzer({ scoreID: scoreId });
+    const analyzer = new ReplayAnalyzer({ scoreID: score.id });
 
     // Retrieve replay locally.
-    analyzer.originalODR = await getOnlineReplay(scoreId);
+    analyzer.originalODR = await getOnlineReplay(score.id);
 
     await analyzer.analyze().catch(() => {
-        console.error(`Score of ID ${scoreId.toString()} cannot be parsed`);
+        console.error(`Score of ID ${score.id.toString()} cannot be parsed`);
     });
 
     const { data } = analyzer;

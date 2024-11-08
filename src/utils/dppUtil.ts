@@ -228,7 +228,7 @@ export async function submitReplay(
                 continue;
             }
 
-            uid = player instanceof Player ? player.uid : player.id;
+            uid = player.id;
             break;
         }
 

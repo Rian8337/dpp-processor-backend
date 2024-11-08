@@ -44,10 +44,16 @@ config();
         // Get user top scores.
         const topScores = await officialPool
             .query<RowDataPacket[]>(
-                `SELECT pp FROM ${constructOfficialDatabaseTableName(OfficialDatabaseTables.bestScore)} WHERE uid = ? ORDER BY pp DESC LIMIT 100;`,
+                `SELECT pp, accuracy FROM ${constructOfficialDatabaseTableName(OfficialDatabaseTables.bestScore)} WHERE uid = ? ORDER BY pp DESC LIMIT 100;`,
                 [id],
             )
-            .then((res) => res[0] as Pick<OfficialDatabaseBestScore, "pp">[])
+            .then(
+                (res) =>
+                    res[0] as Pick<
+                        OfficialDatabaseBestScore,
+                        "pp" | "accuracy"
+                    >[],
+            )
             .catch((e: unknown) => {
                 console.error(e);
 
@@ -59,17 +65,31 @@ config();
             continue;
         }
 
-        // Calculate total pp.
-        const totalPP = topScores.reduce(
-            (a, v, i) => a + v.pp * Math.pow(0.95, i),
-            0,
-        );
+        // Calculate total pp and accuracy.
+        let totalPP = 0;
+        let accuracy = 0;
+        let accuracyWeight = 0;
 
-        // Update total pp.
+        for (let i = 0; i < topScores.length; ++i) {
+            const score = topScores[i];
+            const weightMultiplier = Math.pow(0.95, i);
+
+            totalPP += score.pp * weightMultiplier;
+            accuracy += score.accuracy * weightMultiplier;
+            accuracyWeight += weightMultiplier;
+        }
+
+        if (accuracyWeight > 0) {
+            accuracy /= accuracyWeight;
+        } else {
+            accuracy = 1;
+        }
+
+        // Update total pp and accuracy.
         const result = await officialPool
             .query<ResultSetHeader>(
-                `UPDATE ${constructOfficialDatabaseTableName(OfficialDatabaseTables.user)} SET pp = ? WHERE id = ?;`,
-                [totalPP, id],
+                `UPDATE ${constructOfficialDatabaseTableName(OfficialDatabaseTables.user)} SET pp = ?, accuracy = ? WHERE id = ?;`,
+                [totalPP, accuracy, id],
             )
             .then((res) => res[0].affectedRows === 1)
             .catch((e: unknown) => {
@@ -83,7 +103,15 @@ config();
             continue;
         }
 
-        console.log("User", id++, "has", totalPP, "pp");
+        console.log(
+            "User",
+            id++,
+            "has",
+            totalPP,
+            "pp and",
+            accuracy,
+            "accuracy",
+        );
     }
 })()
     .then(() => {

@@ -11,7 +11,6 @@ import { DroidDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
 import { DroidDifficultyAttributes as RebalanceDroidDifficultyAttributes } from "@rian8337/osu-rebalance-difficulty-calculator";
 import { RebalanceDroidPerformanceAttributes } from "../structures/attributes/RebalanceDroidPerformanceAttributes";
 import { getOnlineReplay, localReplayDirectory } from "../utils/replayManager";
-import { Score } from "@rian8337/osu-droid-utilities";
 import { computeMD5, validateGETInternalKey } from "../utils/util";
 import { getOfficialScore } from "../database/official/officialDatabaseUtil";
 
@@ -190,9 +189,7 @@ router.get<
         return res.status(404).json({ error: "No scores found from player" });
     }
 
-    const analyzer = new ReplayAnalyzer({
-        scoreID: score instanceof Score ? score.scoreID : score.id,
-    });
+    const analyzer = new ReplayAnalyzer({ scoreID: score.id });
 
     // Retrieve replay locally.
     analyzer.originalODR = await getOnlineReplay(analyzer.scoreID);

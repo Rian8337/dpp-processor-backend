@@ -6,7 +6,6 @@ import {
 import { Player, Score } from "@rian8337/osu-droid-utilities";
 import {
     DroidDifficultyAttributes,
-    ExtendedDroidDifficultyAttributes,
     OsuDifficultyAttributes,
 } from "@rian8337/osu-difficulty-calculator";
 import { getBeatmap } from "./cache/beatmapStorage";
@@ -47,7 +46,6 @@ import {
     deleteUnprocessedReplay,
     persistReplayToDppSystem,
     saveReplayToDppSystem,
-    saveReplayToOfficialPP,
     unprocessedReplayDirectory,
     wasBeatmapSubmitted,
 } from "./replayManager";
@@ -60,14 +58,7 @@ import { readFile, readdir } from "fs/promises";
 import { basename, join } from "path";
 import { watch } from "chokidar";
 import { ProcessorDatabaseBeatmap } from "../database/processor/schema/ProcessorDatabaseBeatmap";
-import {
-    insertBestScore,
-    getOfficialBestScore,
-    getOfficialScore,
-    getPlayerFromUsername,
-    updateOfficialScorePPValue,
-    updateUserPPProfile,
-} from "../database/official/officialDatabaseUtil";
+import { getPlayerFromUsername } from "../database/official/officialDatabaseUtil";
 import { isDebug } from "./util";
 
 const droidDifficultyCalculator = new BeatmapDroidDifficultyCalculator();
@@ -321,14 +312,6 @@ export async function submitReplay(
             }
 
             continue;
-        }
-
-        // Handle submission for official pp first, then switch to dpp system.
-        if (
-            beatmap.ranked_status === RankedStatus.ranked ||
-            beatmap.ranked_status === RankedStatus.approved
-        ) {
-            await submitReplayToOfficialPP(replay, uid, droidAttribs);
         }
 
         if (!dppSystemBindInfo) {
@@ -728,63 +711,6 @@ export async function initiateReplayProcessing(): Promise<void> {
     }
 
     console.log("Unprocessed replay file(s) processing complete");
-}
-
-async function submitReplayToOfficialPP(
-    replay: ReplayAnalyzer,
-    uid: number,
-    scoreAttribs: PerformanceCalculationResult<
-        ExtendedDroidDifficultyAttributes,
-        DroidPerformanceAttributes
-    >,
-): Promise<void> {
-    const { data } = replay;
-
-    if (!data) {
-        return;
-    }
-
-    const score = await getOfficialScore(uid, data.hash, true);
-
-    if (!score) {
-        return;
-    }
-
-    let bestScore = await getOfficialBestScore(uid, data.hash);
-
-    // For overwriting scores, we need to update the pp value in the official score table.
-    if (replay.scoreID > 0) {
-        await updateOfficialScorePPValue(
-            replay.scoreID,
-            scoreAttribs.result.total,
-        );
-    }
-
-    if (bestScore === null || bestScore.pp < scoreAttribs.result.total) {
-        // New top play - update the score.
-        bestScore = {
-            ...score,
-            accuracy: scoreAttribs.params.accuracy.value(),
-            bad: scoreAttribs.params.accuracy.n50,
-            combo:
-                scoreAttribs.params.combo ??
-                (data.isReplayV3() ? data.maxCombo : score.combo),
-            geki: data.isReplayV3() ? data.hit300k : score.geki,
-            good: scoreAttribs.params.accuracy.n100,
-            date: data.isReplayV3() ? data.time : score.date,
-            katu: data.isReplayV3() ? data.hit100k : score.katu,
-            mark: data.isReplayV3() ? data.rank : score.mark,
-            miss: scoreAttribs.params.accuracy.nmiss,
-            mode: data.isReplayV3() ? constructModString(data) : score.mode,
-            perfect: scoreAttribs.params.accuracy.n300,
-            pp: scoreAttribs.result.total,
-            score: data.isReplayV3() ? data.score : score.score,
-        };
-
-        await insertBestScore(bestScore);
-        await updateUserPPProfile(uid);
-        await saveReplayToOfficialPP(replay);
-    }
 }
 
 const replayModsConstants = {

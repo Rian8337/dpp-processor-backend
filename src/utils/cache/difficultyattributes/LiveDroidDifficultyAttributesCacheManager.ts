@@ -1,33 +1,25 @@
-import { Mod, ModUtil, Modes } from "@rian8337/osu-base";
 import {
     DifficultSlider,
     ExtendedDroidDifficultyAttributes,
     HighStrainSection,
 } from "@rian8337/osu-difficulty-calculator";
-import { DifficultyAttributesCacheManager } from "./DifficultyAttributesCacheManager";
 import { PPCalculationMethod } from "../../../structures/PPCalculationMethod";
 import { ProcessorDatabaseLiveDroidDifficultyAttributes } from "../../../database/processor/schema/ProcessorDatabaseLiveDroidDifficultyAttributes";
 import { ProcessorDatabaseTables } from "../../../database/processor/ProcessorDatabaseTables";
 import { ProcessorDatabaseDifficultyAttributes } from "../../../database/processor/schema/ProcessorDatabaseDifficultyAttributes";
 import { RawDifficultyAttributes } from "../../../structures/attributes/RawDifficultyAttributes";
+import { DroidDifficultyAttributesCacheManager } from "./DroidDifficultyAttributesCacheManager";
 
 /**
  * A cache manager for osu!droid live calculation difficulty attributes.
  */
-export class LiveDroidDifficultyAttributesCacheManager extends DifficultyAttributesCacheManager<
+export class LiveDroidDifficultyAttributesCacheManager extends DroidDifficultyAttributesCacheManager<
     ExtendedDroidDifficultyAttributes,
     ProcessorDatabaseLiveDroidDifficultyAttributes
 > {
     protected override readonly attributeType = PPCalculationMethod.live;
-    protected override readonly mode = Modes.droid;
     protected override readonly databaseTable =
         ProcessorDatabaseTables.liveDroidDifficultyAttributes;
-
-    protected override convertDatabaseMods(
-        attributes: ProcessorDatabaseLiveDroidDifficultyAttributes,
-    ): Mod[] {
-        return ModUtil.droidStringToMods(attributes.mods);
-    }
 
     protected override convertDatabaseAttributesInternal(
         attributes: ProcessorDatabaseLiveDroidDifficultyAttributes,

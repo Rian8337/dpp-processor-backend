@@ -171,7 +171,7 @@ export async function saveReplayToOfficialPP(
     const filePath = join(officialReplayDirectory, `${scoreID.toString()}.odr`);
 
     return ensureReplayDirectoryExists(filePath)
-        .then(() => writeFile(filePath, originalODR, { mode: 0o777 }))
+        .then(() => writeFile(filePath, originalODR, { mode: 777 }))
         .then(() => true)
         .catch(() => false);
 }

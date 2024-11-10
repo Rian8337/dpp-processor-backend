@@ -224,9 +224,13 @@ DatabaseManager.init()
                 console.error("Failed to fetch account transfers", e);
             });
 
+        // Modify this for starting point
+        const processId = 0;
+
         let id = await processorPool
             .query<ProcessorDatabaseScoreCalculation>(
-                `SELECT score_id FROM ${ProcessorDatabaseTables.scoreCalculation};`,
+                `SELECT score_id FROM ${ProcessorDatabaseTables.scoreCalculation} WHERE process_id = $1;`,
+                [processId],
             )
             .then((res) => res.rows.at(0)?.score_id ?? null)
             .catch((e: unknown) => {
@@ -234,9 +238,6 @@ DatabaseManager.init()
 
                 process.exit(1);
             });
-
-        // Modify this for starting point
-        const processId = 0;
 
         if (!id) {
             // Modify this for starting point

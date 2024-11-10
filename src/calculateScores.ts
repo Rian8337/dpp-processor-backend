@@ -226,21 +226,25 @@ DatabaseManager.init()
 
         let id = await processorPool
             .query<ProcessorDatabaseScoreCalculation>(
-                `SELECT id FROM ${ProcessorDatabaseTables.scoreCalculation};`,
+                `SELECT score_id FROM ${ProcessorDatabaseTables.scoreCalculation};`,
             )
-            .then((res) => res.rows.at(0)?.id ?? null)
+            .then((res) => res.rows.at(0)?.score_id ?? null)
             .catch((e: unknown) => {
                 console.error("Failed to fetch calculation progress", e);
 
                 process.exit(1);
             });
 
+        // Modify this for starting point
+        const processId = 0;
+
         if (!id) {
+            // Modify this for starting point
             id = 207695;
 
             await processorPool.query(
-                `INSERT INTO ${ProcessorDatabaseTables.scoreCalculation} (id) VALUES ($1);`,
-                [id],
+                `INSERT INTO ${ProcessorDatabaseTables.scoreCalculation} (process_id, score_id) VALUES ($1, $2);`,
+                [processId, id],
             );
         }
 
@@ -252,13 +256,13 @@ DatabaseManager.init()
             OfficialDatabaseTables.bestScore,
         );
 
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
-        while (true) {
+        // Modify this for ending point
+        while (id < 13000000) {
             const scoreId = id++;
 
             await processorPool.query(
-                `UPDATE ${ProcessorDatabaseTables.scoreCalculation} SET id = $1;`,
-                [id],
+                `UPDATE ${ProcessorDatabaseTables.scoreCalculation} SET score_id = $1 WHERE process_id = $2;`,
+                [scoreId, processId],
             );
 
             // Get the current score.
@@ -563,6 +567,8 @@ DatabaseManager.init()
                 highestPP,
             );
         }
+
+        console.log("Process done");
     })
     .catch((e: unknown) => {
         console.error("Failed to initialize database manager", e);

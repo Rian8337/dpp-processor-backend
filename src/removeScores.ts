@@ -17,18 +17,21 @@ config();
         .query<ProcessorDatabaseScoreCalculation>(
             `SELECT id FROM ${ProcessorDatabaseTables.scoreCalculation};`,
         )
-        .then((res) => res.rows.at(0)?.id ?? null)
+        .then((res) => res.rows.at(0)?.score_id ?? null)
         .catch((e: unknown) => {
             console.error("Failed to fetch calculation progress", e);
 
             process.exit(1);
         });
 
+    const processId = 0;
+
     if (!id) {
         id = 207695;
 
         await processorPool.query(
-            `INSERT INTO ${ProcessorDatabaseTables.scoreCalculation} (id) VALUES (1);`,
+            `INSERT INTO ${ProcessorDatabaseTables.scoreCalculation} (process_id, score_id) VALUES ($1, $2);`,
+            [processId, id],
         );
     }
 

@@ -160,7 +160,8 @@ CREATE INDEX IF NOT EXISTS rebalance_osu_difficulty_attributes_main_idx ON rebal
 CREATE INDEX IF NOT EXISTS rebalance_osu_difficulty_attributes_beatmap_idx ON rebalance_osu_difficulty_attributes(beatmap_id);
 
 CREATE TABLE IF NOT EXISTS score_calculation (
-    id                    int             NOT NULL,
+    process_id                  int             NOT NULL,
+    score_id                    int             NOT NULL,
 
     PRIMARY KEY (id)
 );

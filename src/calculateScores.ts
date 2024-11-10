@@ -483,10 +483,6 @@ DatabaseManager.init()
 
                     await dppReplay.analyze().catch(() => {
                         console.error(
-                            `dpp-stored replay of score ID ${scoreId.toString()} cannot be parsed`,
-                        );
-
-                        console.error(
                             "dpp-stored replay of score ID",
                             scoreId,
                             "with filename",

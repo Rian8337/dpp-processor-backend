@@ -194,6 +194,7 @@ export function insertBestScore(
         .query<ResultSetHeader>(
             `INSERT INTO ${constructOfficialDatabaseTableName(OfficialDatabaseTables.bestScore)} (${scoreKeys.join()}) VALUES (${scoreKeys.map(() => "?").join()})
             ON DUPLICATE KEY UPDATE
+            filename = VALUES(filename),
             mode = VALUES(mode),
             score = VALUES(score),
             combo = VALUES(combo),
@@ -209,7 +210,7 @@ export function insertBestScore(
             pp = VALUES(pp);`,
             Object.values(score),
         )
-        .then((res) => res[0].affectedRows === 1)
+        .then(() => true)
         .catch((e: unknown) => {
             console.error(e);
 

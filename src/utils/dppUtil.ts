@@ -3,7 +3,7 @@ import {
     ReplayData,
     ReplayV3Data,
 } from "@rian8337/osu-droid-replay-analyzer";
-import { Player, Score } from "@rian8337/osu-droid-utilities";
+import { Score } from "@rian8337/osu-droid-utilities";
 import {
     DroidDifficultyAttributes,
     OsuDifficultyAttributes,

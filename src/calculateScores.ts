@@ -1,30 +1,39 @@
-import { config } from "dotenv";
-import { processorPool } from "./database/processor/ProcessorDatabasePool";
-import { ProcessorDatabaseTables } from "./database/processor/ProcessorDatabaseTables";
-import { ProcessorDatabaseScoreCalculation } from "./database/processor/schema/ProcessorDatabaseScoreCalculation";
+import { readdir, readFile, unlink } from "fs/promises";
+import { DatabaseManager } from "./database/managers/DatabaseManager";
+import { join } from "path";
 import { BeatmapDroidDifficultyCalculator } from "./utils/calculator/BeatmapDroidDifficultyCalculator";
-import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import {
-    getOfficialBestReplay,
-    getOnlineReplay,
-    saveReplayToOfficialPP,
-} from "./utils/replayManager";
-import {
-    insertBestScore,
-    parseOfficialScoreMods,
-    updateBestScorePPValue,
-    updateOfficialScorePPValue,
-} from "./database/official/officialDatabaseUtil";
-import { officialPool } from "./database/official/OfficialDatabasePool";
+    ReplayAnalyzer,
+    ReplayData,
+} from "@rian8337/osu-droid-replay-analyzer";
+import { config } from "dotenv";
+import { Accuracy, RankedStatus, Utils } from "@rian8337/osu-base";
 import { RowDataPacket } from "mysql2";
+import { officialPool } from "./database/official/OfficialDatabasePool";
 import {
     constructOfficialDatabaseTableName,
     OfficialDatabaseTables,
 } from "./database/official/OfficialDatabaseTables";
+import {
+    insertBestScore,
+    parseOfficialScoreMods,
+} from "./database/official/officialDatabaseUtil";
 import { OfficialDatabaseBestScore } from "./database/official/schema/OfficialDatabaseBestScore";
-import { PerformanceCalculationParameters } from "./utils/calculator/PerformanceCalculationParameters";
-import { Accuracy } from "@rian8337/osu-base";
 import { OfficialDatabaseScore } from "./database/official/schema/OfficialDatabaseScore";
+import { PerformanceCalculationParameters } from "./utils/calculator/PerformanceCalculationParameters";
+import { getBeatmap } from "./utils/cache/beatmapStorage";
+import { processorPool } from "./database/processor/ProcessorDatabasePool";
+import { ProcessorDatabaseScoreCalculation } from "./database/processor/schema/ProcessorDatabaseScoreCalculation";
+import { ProcessorDatabaseTables } from "./database/processor/ProcessorDatabaseTables";
+import {
+    getOfficialBestReplay,
+    getOnlineReplay,
+    localReplayDirectory,
+    officialReplayDirectory,
+    saveReplayToOfficialPP,
+} from "./utils/replayManager";
+import { Score } from "@rian8337/osu-droid-utilities";
+import { sortAlphabet } from "./utils/util";
 import { constructModString } from "./utils/dppUtil";
 
 config();
@@ -61,23 +70,115 @@ function obtainOfficialBestScore(
         });
 }
 
-async function obtainOverrideParameters(
-    scoreId: number,
+function isReplayValid(
+    databaseScore: OfficialDatabaseScore,
+    replayData: ReplayData,
+): boolean {
+    // Wrap the score in a Score object.
+    const score = new Score({
+        ...databaseScore,
+        username: "",
+        mode: databaseScore.mode ?? "-",
+        date: databaseScore.date.getTime(),
+    });
+
+    // For replay v1 and v2, there is not that much information - just check the accuracy and hash.
+    if (
+        score.hash !== replayData.hash ||
+        !score.accuracy.equals(replayData.accuracy)
+    ) {
+        return false;
+    }
+
+    // Replay v3 has way more information - compare all relevant ones.
+    if (replayData.isReplayV3()) {
+        if (
+            score.score !== replayData.score ||
+            score.combo !== replayData.maxCombo ||
+            databaseScore.geki !== replayData.hit300k ||
+            databaseScore.katu !== replayData.hit100k ||
+            score.rank !== replayData.rank
+        ) {
+            return false;
+        }
+
+        // Mods are compared later as they are more costly.
+        const scoreMods = sortAlphabet(
+            score.mods.reduce((a, v) => a + v.droidString, ""),
+        );
+
+        const replayMods = sortAlphabet(
+            replayData.convertedMods.reduce((a, v) => a + v.droidString, ""),
+        );
+
+        if (scoreMods !== replayMods) {
+            return false;
+        }
+    }
+
+    // Replay v4 only has speed multiplier.
+    if (
+        replayData.isReplayV4() &&
+        score.speedMultiplier !== replayData.speedMultiplier
+    ) {
+        return false;
+    }
+
+    // Replay v5 has forced statistics.
+    if (
+        replayData.isReplayV5() &&
+        (score.forceCS !== replayData.forceCS ||
+            score.forceAR !== replayData.forceAR ||
+            score.forceOD !== replayData.forceOD ||
+            score.forceHP !== replayData.forceHP)
+    ) {
+        return false;
+    }
+
+    // Replay v6? Well... nothing new to check there, so let's end it here.
+    return true;
+}
+
+async function invalidateScore(scoreId: number) {
+    const connection = await officialPool.getConnection();
+
+    try {
+        await connection.beginTransaction();
+
+        await connection.query(
+            `UPDATE ${constructOfficialDatabaseTableName(
+                OfficialDatabaseTables.score,
+            )} SET pp = NULL WHERE id = ?;`,
+            [scoreId],
+        );
+
+        await connection.query(
+            `DELETE FROM ${constructOfficialDatabaseTableName(
+                OfficialDatabaseTables.bestScore,
+            )} WHERE id = ?;`,
+            [scoreId],
+        );
+
+        await connection.commit();
+    } catch {
+        await connection.rollback();
+    } finally {
+        connection.release();
+    }
+
+    await unlink(
+        join(officialReplayDirectory, `${scoreId.toString()}.odr`),
+    ).catch(() => null);
+}
+
+function obtainOverrideParameters(
+    score: OfficialDatabaseScore,
     replay: ReplayAnalyzer,
-    useBestTable: boolean,
-): Promise<PerformanceCalculationParameters | undefined> {
+): PerformanceCalculationParameters | null {
     const { data } = replay;
 
     if (!data || data.isReplayV3()) {
-        return undefined;
-    }
-
-    const score = await (
-        useBestTable ? obtainOfficialBestScore : obtainOfficialScore
-    )(scoreId);
-
-    if (!score) {
-        return undefined;
+        return null;
     }
 
     const parsedMods = parseOfficialScoreMods(score.mode);
@@ -102,176 +203,361 @@ async function obtainOverrideParameters(
 
 const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
 
-(async () => {
-    let id = await processorPool
-        .query<ProcessorDatabaseScoreCalculation>(
-            `SELECT id FROM ${ProcessorDatabaseTables.scoreCalculation};`,
-        )
-        .then((res) => res.rows.at(0)?.id ?? null)
-        .catch((e: unknown) => {
-            console.error("Failed to fetch calculation progress", e);
+DatabaseManager.init()
+    .then(async () => {
+        const accountTransferDb =
+            DatabaseManager.aliceDb.collections.accountTransfer;
 
-            process.exit(1);
-        });
+        let id = await processorPool
+            .query<ProcessorDatabaseScoreCalculation>(
+                `SELECT id FROM ${ProcessorDatabaseTables.scoreCalculation};`,
+            )
+            .then((res) => res.rows.at(0)?.id ?? null)
+            .catch((e: unknown) => {
+                console.error("Failed to fetch calculation progress", e);
 
-    if (!id) {
-        id = 207695;
-
-        await processorPool.query(
-            `INSERT INTO ${ProcessorDatabaseTables.scoreCalculation} (id) VALUES (1);`,
-        );
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
-    while (true) {
-        const scoreId = id++;
-
-        // Update current progress.
-        await processorPool.query(
-            `UPDATE ${ProcessorDatabaseTables.scoreCalculation} SET id = $1;`,
-            [id],
-        );
-
-        let scoreReplay: ReplayAnalyzer | null = null;
-        let scorePP: number | null = null;
-        let bestScorePP: number | null = null;
-
-        // Check if the replay file of the best score exists.
-        const bestReplayFile = await getOfficialBestReplay(scoreId);
-
-        if (bestReplayFile) {
-            // Get score pp from calculation backend.
-            const bestScoreReplay = new ReplayAnalyzer({ scoreID: scoreId });
-            bestScoreReplay.originalODR = bestReplayFile;
-
-            await bestScoreReplay.analyze().catch(() => {
-                console.error(
-                    `Score of ID ${scoreId.toString()} cannot be parsed`,
-                );
+                process.exit(1);
             });
 
-            const overrideParameters = await obtainOverrideParameters(
-                scoreId,
-                bestScoreReplay,
-                true,
+        if (!id) {
+            id = 207695;
+
+            await processorPool.query(
+                `INSERT INTO ${ProcessorDatabaseTables.scoreCalculation} (id) VALUES ($1);`,
+                [id],
             );
-
-            const calcResult = await difficultyCalculator
-                .calculateReplayPerformance(
-                    bestScoreReplay,
-                    false,
-                    overrideParameters,
-                )
-                .catch((e: unknown) => {
-                    console.error(
-                        `Failed to calculate score with ID ${scoreId.toString()}:`,
-                        (e as Error).message,
-                    );
-
-                    return null;
-                });
-
-            if (calcResult != null) {
-                bestScorePP = calcResult.result.total;
-                const bestScore = await obtainOfficialBestScore(scoreId);
-                const { data } = bestScoreReplay;
-
-                if (bestScore && data) {
-                    // Update best score data.
-                    const newBestScore: OfficialDatabaseBestScore = {
-                        ...bestScore,
-                        accuracy: data.accuracy.value(),
-                        bad: data.accuracy.n50,
-                        combo: data.isReplayV3()
-                            ? data.maxCombo
-                            : bestScore.combo,
-                        geki: data.isReplayV3() ? data.hit300k : bestScore.geki,
-                        good: data.accuracy.n100,
-                        date: data.isReplayV3() ? data.time : bestScore.date,
-                        katu: data.isReplayV3() ? data.hit100k : bestScore.katu,
-                        mark: data.isReplayV3() ? data.rank : bestScore.mark,
-                        miss: data.accuracy.nmiss,
-                        mode: data.isReplayV3()
-                            ? constructModString(data)
-                            : bestScore.mode,
-                        perfect: data.accuracy.n300,
-                        pp: bestScorePP,
-                        score: data.isReplayV3() ? data.score : bestScore.score,
-                    };
-
-                    await insertBestScore(newBestScore);
-                } else {
-                    // Update the score with the pp.
-                    await updateBestScorePPValue(scoreId, bestScorePP);
-                }
-            }
         }
 
-        // Check if the replay file of the score exists.
-        const replayFile = await getOnlineReplay(id);
+        const scoreTable = constructOfficialDatabaseTableName(
+            OfficialDatabaseTables.score,
+        );
 
-        if (replayFile) {
-            // Get score pp from calculation backend.
-            scoreReplay = new ReplayAnalyzer({ scoreID: scoreId });
-            scoreReplay.originalODR = replayFile;
+        const bestScoreTable = constructOfficialDatabaseTableName(
+            OfficialDatabaseTables.bestScore,
+        );
 
-            await scoreReplay.analyze().catch(() => {
-                console.error(
-                    `Score of ID ${scoreId.toString()} cannot be parsed`,
-                );
-            });
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
+        while (true) {
+            const scoreId = id++;
 
-            const overrideParameters = await obtainOverrideParameters(
-                scoreId,
-                scoreReplay,
-                false,
+            await processorPool.query(
+                `UPDATE ${ProcessorDatabaseTables.scoreCalculation} SET id = $1;`,
+                [id],
             );
 
-            scorePP = await difficultyCalculator
-                .calculateReplayPerformance(
-                    scoreReplay,
-                    false,
-                    overrideParameters,
-                )
-                .then((res) => res.result.total)
-                .catch((e: unknown) => {
-                    console.error(
-                        `Failed to calculate score with ID ${scoreId.toString()}:`,
-                        (e as Error).message,
-                    );
+            await Utils.sleep(5);
 
-                    return null;
-                });
-
-            // Update the score with the pp.
-            await updateOfficialScorePPValue(scoreId, scorePP);
-        }
-
-        if (
-            scoreReplay?.originalODR &&
-            scorePP !== null &&
-            bestScorePP !== null &&
-            scorePP > bestScorePP
-        ) {
+            // Get the current score.
             const score = await obtainOfficialScore(scoreId);
-
             if (!score) {
+                console.log("Score ID", scoreId, "does not exist");
+
+                await invalidateScore(scoreId);
                 continue;
             }
 
-            const bestScore: OfficialDatabaseBestScore = {
-                ...score,
-                pp: scorePP,
+            // Obtain the beatmap of the score.
+            const beatmap = await getBeatmap(score.hash);
+
+            if (
+                !beatmap ||
+                (beatmap.ranked_status !== RankedStatus.ranked &&
+                    beatmap.ranked_status !== RankedStatus.approved)
+            ) {
+                console.log("Score ID", scoreId, "has an unranked beatmap");
+
+                // Beatmap is not found - mark the score's pp as null and delete the best score.
+                await invalidateScore(scoreId);
+                continue;
+            }
+
+            // Determine the highest pp play among all scores.
+            let highestPP: number | null = null;
+            let highestPPReplay: ReplayAnalyzer | null = null;
+
+            // Obtain the replay of the top score in terms of score.
+            const scoreReplay = new ReplayAnalyzer({ scoreID: scoreId });
+            scoreReplay.originalODR = await getOnlineReplay(scoreId);
+
+            await scoreReplay.analyze().catch(() => {
+                console.error(
+                    "Top score replay of score ID",
+                    scoreId,
+                    scoreReplay.originalODR
+                        ? "cannot be parsed"
+                        : "does not exist",
+                );
+            });
+
+            let connection = await officialPool.getConnection();
+
+            try {
+                await connection.beginTransaction();
+
+                // Update the filename of the score.
+                await connection.query(
+                    `UPDATE ${scoreTable} SET filename = ? WHERE id = ?;`,
+                    [beatmap.title, scoreId],
+                );
+
+                if (
+                    scoreReplay.data &&
+                    isReplayValid(score, scoreReplay.data)
+                ) {
+                    // Calculate the pp value of the score.
+                    const overrideParameters = obtainOverrideParameters(
+                        score,
+                        scoreReplay,
+                    );
+
+                    const calcResult = await difficultyCalculator
+                        .calculateReplayPerformance(
+                            scoreReplay,
+                            false,
+                            overrideParameters,
+                        )
+                        .catch((e: unknown) => {
+                            console.error(
+                                `Failed to calculate score with ID ${scoreId.toString()}:`,
+                                (e as Error).message,
+                            );
+
+                            return null;
+                        });
+
+                    // Update the pp value of the score.
+                    await connection.query(
+                        `UPDATE ${scoreTable} SET pp = ? WHERE id = ?;`,
+                        [calcResult?.result.total ?? null, scoreId],
+                    );
+
+                    if (calcResult !== null) {
+                        highestPP = calcResult.result.total;
+                        highestPPReplay = scoreReplay;
+                    }
+                } else {
+                    // If the replay is not valid, invalidate the pp of the score.
+                    await connection.query(
+                        `UPDATE ${scoreTable} SET pp = NULL WHERE id = ?;`,
+                        [scoreId],
+                    );
+                }
+
+                await connection.commit();
+            } catch (e) {
+                console.error("Cannot calculate top score replay:", e);
+
+                await connection.rollback();
+            } finally {
+                connection.release();
+            }
+
+            // Get the current best score.
+            const bestScore = await obtainOfficialBestScore(scoreId);
+            // Obtain the replay of the top score in terms of score.
+            const bestScoreReplay = new ReplayAnalyzer({ scoreID: scoreId });
+            bestScoreReplay.originalODR = await getOfficialBestReplay(scoreId);
+
+            await bestScoreReplay.analyze().catch(() => {
+                console.error(
+                    "Best pp score replay of score ID",
+                    scoreId,
+                    bestScoreReplay.originalODR
+                        ? "cannot be parsed"
+                        : "does not exist",
+                );
+            });
+
+            connection = await officialPool.getConnection();
+
+            try {
+                await connection.beginTransaction();
+
+                if (
+                    bestScore &&
+                    bestScoreReplay.data &&
+                    !isReplayValid(bestScore, bestScoreReplay.data)
+                ) {
+                    // If the replay is not valid, delete the whole score.
+                    await connection.query(
+                        `DELETE FROM ${bestScoreTable} WHERE id = ?;`,
+                        [scoreId],
+                    );
+                } else {
+                    // Otherwise, update the filename of the best score.
+                    await connection.query(
+                        `UPDATE ${bestScoreTable} SET filename = ? WHERE id = ?;`,
+                        [beatmap.title, scoreId],
+                    );
+                }
+
+                if (bestScoreReplay.data) {
+                    // Calculate the pp value of the best score.
+                    const overrideParameters = bestScore
+                        ? obtainOverrideParameters(bestScore, bestScoreReplay)
+                        : null;
+
+                    const calcResult = await difficultyCalculator
+                        .calculateReplayPerformance(
+                            bestScoreReplay,
+                            false,
+                            overrideParameters,
+                        )
+                        .catch((e: unknown) => {
+                            console.error(
+                                `Failed to calculate best score with ID ${scoreId.toString()}:`,
+                                (e as Error).message,
+                            );
+
+                            return null;
+                        });
+
+                    if (calcResult !== null) {
+                        // Update the pp value of the best score.
+                        await connection.query(
+                            `UPDATE ${bestScoreTable} SET pp = ? WHERE id = ?;`,
+                            [calcResult.result.total, scoreId],
+                        );
+
+                        if (
+                            highestPP === null ||
+                            calcResult.result.total > highestPP
+                        ) {
+                            highestPP = calcResult.result.total;
+                            highestPPReplay = bestScoreReplay;
+                        }
+                    } else {
+                        // If the pp value is null, delete the whole score.
+                        await connection.query(
+                            `DELETE FROM ${bestScoreTable} WHERE id = ?;`,
+                            [scoreId],
+                        );
+                    }
+                }
+
+                await connection.commit();
+            } catch (e) {
+                console.error("Cannot calculate best score replay:", e);
+
+                await connection.rollback();
+            } finally {
+                connection.release();
+            }
+
+            // Process all dpp-stored replays of the beatmap from the player.
+            const accountTransfer = await accountTransferDb.getOne({
+                transferList: { $all: [score.uid] },
+            });
+
+            for (const uid of accountTransfer?.transferList ?? [score.uid]) {
+                const replays = await readdir(
+                    join(localReplayDirectory, uid.toString(), score.hash),
+                ).catch(() => null);
+
+                if (!replays) {
+                    continue;
+                }
+
+                for (const replay of replays) {
+                    const dppReplayDir = join(
+                        localReplayDirectory,
+                        uid.toString(),
+                        score.hash,
+                        replay,
+                    );
+
+                    const dppReplay = new ReplayAnalyzer({ scoreID: score.id });
+                    dppReplay.originalODR = await readFile(dppReplayDir).catch(
+                        () => null,
+                    );
+
+                    await dppReplay.analyze().catch(() => {
+                        console.error(
+                            `dpp-stored replay of score ID ${scoreId.toString()} cannot be parsed`,
+                        );
+
+                        console.error(
+                            "dpp-stored replay of score ID",
+                            scoreId,
+                            "with filename",
+                            replay,
+                            scoreReplay.originalODR
+                                ? "cannot be parsed"
+                                : "does not exist",
+                        );
+                    });
+
+                    if (!dppReplay.data) {
+                        continue;
+                    }
+
+                    const calcResult = await difficultyCalculator
+                        .calculateReplayPerformance(dppReplay, false)
+                        .catch((e: unknown) => {
+                            console.error(
+                                `Failed to calculate dpp-stored replay with ID ${scoreId.toString()}:`,
+                                (e as Error).message,
+                            );
+
+                            return null;
+                        });
+
+                    if (
+                        calcResult !== null &&
+                        (highestPP === null ||
+                            calcResult.result.total > highestPP)
+                    ) {
+                        highestPP = calcResult.result.total;
+                        highestPPReplay = dppReplay;
+                    }
+                }
+            }
+
+            if (highestPP === null || !highestPPReplay?.data) {
+                console.log("No valid replay found for score ID", scoreId);
+                continue;
+            }
+
+            const { data: replayData } = highestPPReplay;
+
+            // New best pp obtained - insert to the database.
+            const newBestScore: OfficialDatabaseBestScore = {
+                id: scoreId,
+                uid: score.uid,
+                filename: beatmap.title,
+                hash: score.hash,
+                mode: replayData.isReplayV3()
+                    ? constructModString(replayData)
+                    : score.mode,
+                score: replayData.isReplayV3() ? replayData.score : score.score,
+                combo: replayData.isReplayV3()
+                    ? replayData.maxCombo
+                    : score.combo,
+                mark: replayData.isReplayV3() ? replayData.rank : score.mark,
+                geki: replayData.isReplayV3() ? replayData.hit300k : score.geki,
+                perfect: replayData.accuracy.n300,
+                katu: replayData.isReplayV3() ? replayData.hit100k : score.katu,
+                good: replayData.accuracy.n100,
+                bad: replayData.accuracy.n50,
+                miss: replayData.accuracy.nmiss,
+                date: replayData.isReplayV3() ? replayData.time : score.date,
+                accuracy: replayData.accuracy.value(),
+                pp: highestPP,
             };
 
-            await insertBestScore(bestScore);
-            await saveReplayToOfficialPP(scoreReplay);
+            highestPPReplay.scoreID = newBestScore.id;
+
+            await insertBestScore(newBestScore);
+            await saveReplayToOfficialPP(highestPPReplay);
+
+            console.log(
+                "Processed score ID",
+                scoreId,
+                "with a pp value of",
+                highestPP,
+            );
         }
-
-        console.log("Successfully calculated score with ID", scoreId);
-    }
-})().catch((e: unknown) => {
-    console.error("Failed to connect to the database", e);
-
-    process.exit(1);
-});
+    })
+    .catch((e: unknown) => {
+        console.error("Failed to initialize database manager", e);
+    });

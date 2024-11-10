@@ -101,7 +101,7 @@ export abstract class BeatmapDifficultyCalculator<
     async calculateReplayPerformance(
         replay: ReplayAnalyzer,
         generateStrainChart: false,
-        overrideParameters?: PerformanceCalculationParameters,
+        overrideParameters?: PerformanceCalculationParameters | null,
     ): Promise<PerformanceCalculationResult<DA, PA, false>>;
 
     /**
@@ -115,13 +115,13 @@ export abstract class BeatmapDifficultyCalculator<
     async calculateReplayPerformance(
         replay: ReplayAnalyzer,
         generateStrainChart?: boolean,
-        overrideParameters?: PerformanceCalculationParameters,
+        overrideParameters?: PerformanceCalculationParameters | null,
     ): Promise<PerformanceCalculationResult<DA, PA>>;
 
     async calculateReplayPerformance(
         replay: ReplayAnalyzer,
         generateStrainChart?: boolean,
-        overrideParameters?: PerformanceCalculationParameters,
+        overrideParameters?: PerformanceCalculationParameters | null,
     ): Promise<PerformanceCalculationResult<DA, PA>> {
         if (!replay.data) {
             throw new Error("No replay data found");
@@ -156,7 +156,7 @@ export abstract class BeatmapDifficultyCalculator<
     async calculateReplayRebalancePerformance(
         replay: ReplayAnalyzer,
         generateStrainChart: true,
-        overrideParameters?: PerformanceCalculationParameters,
+        overrideParameters?: PerformanceCalculationParameters | null,
     ): Promise<RebalancePerformanceCalculationResult<RDA, RPA, true>>;
 
     /**
@@ -170,7 +170,7 @@ export abstract class BeatmapDifficultyCalculator<
     async calculateReplayRebalancePerformance(
         replay: ReplayAnalyzer,
         generateStrainChart: false,
-        overrideParameters?: PerformanceCalculationParameters,
+        overrideParameters?: PerformanceCalculationParameters | null,
     ): Promise<RebalancePerformanceCalculationResult<RDA, RPA, false>>;
 
     /**
@@ -184,13 +184,13 @@ export abstract class BeatmapDifficultyCalculator<
     async calculateReplayRebalancePerformance(
         replay: ReplayAnalyzer,
         generateStrainChart?: boolean,
-        overrideParameters?: PerformanceCalculationParameters,
+        overrideParameters?: PerformanceCalculationParameters | null,
     ): Promise<RebalancePerformanceCalculationResult<RDA, RPA>>;
 
     async calculateReplayRebalancePerformance(
         replay: ReplayAnalyzer,
         generateStrainChart?: boolean,
-        overrideParameters?: PerformanceCalculationParameters,
+        overrideParameters?: PerformanceCalculationParameters | null,
     ): Promise<RebalancePerformanceCalculationResult<RDA, RPA>> {
         if (!replay.data) {
             throw new Error("No replay data found");

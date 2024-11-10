@@ -1,3 +1,5 @@
+import { ScoreRank } from "@rian8337/osu-base";
+
 /**
  * Represents an osu!droid score.
  */
@@ -9,7 +11,7 @@ export interface OfficialDatabaseScore {
     readonly mode: string | null;
     readonly score: number;
     readonly combo: number;
-    readonly mark: string;
+    readonly mark: ScoreRank;
     readonly geki: number;
     readonly perfect: number;
     readonly katu: number;

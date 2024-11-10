@@ -9,45 +9,28 @@ import {
     unlink,
     stat,
 } from "fs/promises";
-import { homedir } from "os";
 import { join } from "path";
 import { isDebug, sortAlphabet } from "./util";
-
-const mainDirectory = join(homedir(), "..", "..");
 
 /**
  * The directory of local replays.
  */
-export const localReplayDirectory = join(mainDirectory, "data", "dpp-replays");
+export const localReplayDirectory = "/data/dpp-replays";
 
 /**
  * The directory of replays that have not been processed.
  */
-export const unprocessedReplayDirectory = join(
-    localReplayDirectory,
-    "unprocessed",
-);
+export const unprocessedReplayDirectory = `${localReplayDirectory}/unprocessed`;
 
 /**
  * The directory of online replays.
  */
-export const onlineReplayDirectory = join(
-    mainDirectory,
-    "DroidData",
-    "osudroid",
-    "zip",
-    "upload",
-);
+export const onlineReplayDirectory = "/DroidData/osudroid/zip/upload";
 
 /**
  * The directory of official replays.
  */
-export const officialReplayDirectory = join(
-    mainDirectory,
-    "data",
-    "osudroid",
-    "bestpp",
-);
+export const officialReplayDirectory = "/data/osudroid/bestpp";
 
 /**
  * Saves a replay to the disk.

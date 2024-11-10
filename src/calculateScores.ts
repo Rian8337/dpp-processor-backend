@@ -7,7 +7,7 @@ import {
     ReplayData,
 } from "@rian8337/osu-droid-replay-analyzer";
 import { config } from "dotenv";
-import { Accuracy, RankedStatus, Utils } from "@rian8337/osu-base";
+import { Accuracy, RankedStatus } from "@rian8337/osu-base";
 import { RowDataPacket } from "mysql2";
 import { officialPool } from "./database/official/OfficialDatabasePool";
 import {
@@ -244,8 +244,6 @@ DatabaseManager.init()
                 `UPDATE ${ProcessorDatabaseTables.scoreCalculation} SET id = $1;`,
                 [id],
             );
-
-            await Utils.sleep(1);
 
             // Get the current score.
             const score = await obtainOfficialScore(scoreId);

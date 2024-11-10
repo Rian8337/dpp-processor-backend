@@ -444,7 +444,7 @@ DatabaseManager.init()
 
             // Process all dpp-stored replays of the beatmap from the player.
             const accountTransfer = await accountTransferDb.getOne({
-                transferList: { $all: [score.uid] },
+                transferList: { $in: [score.uid] },
             });
 
             for (const uid of accountTransfer?.transferList ?? [score.uid]) {

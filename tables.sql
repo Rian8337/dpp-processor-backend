@@ -163,7 +163,7 @@ CREATE TABLE IF NOT EXISTS score_calculation (
     process_id                  int             NOT NULL,
     score_id                    int             NOT NULL,
 
-    PRIMARY KEY (id)
+    PRIMARY KEY (process_id)
 );
 
 CREATE TABLE IF NOT EXISTS total_pp_calculation (

@@ -245,7 +245,7 @@ DatabaseManager.init()
                 [id],
             );
 
-            await Utils.sleep(5);
+            await Utils.sleep(1);
 
             // Get the current score.
             const score = await obtainOfficialScore(scoreId);

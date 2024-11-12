@@ -296,7 +296,9 @@ DatabaseManager.init()
 
             // Obtain the replay of the top score in terms of score.
             const scoreReplay = new ReplayAnalyzer({ scoreID: scoreId });
-            scoreReplay.originalODR = await getOnlineReplay(scoreId);
+            scoreReplay.originalODR = await readFile(
+                join(onlineReplayDirectory, `${scoreId.toString()}.odr`),
+            ).catch(() => null);
 
             await scoreReplay.analyze().catch(() => {
                 console.error(

@@ -8,13 +8,8 @@ export class UserBindCollectionManager extends DatabaseCollectionManager<IUserBi
     override get defaultDocument(): IUserBind {
         return {
             discordid: "",
-            playc: 0,
-            pp: [],
-            pptotal: 0,
-            previous_bind: [],
             uid: 0,
             username: "",
-            weightedAccuracy: 0,
         };
     }
 
@@ -30,12 +25,6 @@ export class UserBindCollectionManager extends DatabaseCollectionManager<IUserBi
                 projection: {
                     _id: 0,
                     discordid: 1,
-                    uid: 1,
-                    username: 1,
-                    previous_bind: 1,
-                    pp: 1,
-                    pptotal: 1,
-                    playc: 1,
                 },
             },
         );

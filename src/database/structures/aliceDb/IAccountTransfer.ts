@@ -16,9 +16,4 @@ export interface IAccountTransfer {
      * The list of uids of osu!droid accounts to transfer scores from.
      */
     readonly transferList: number[];
-
-    /**
-     * Whether the transfer is done.
-     */
-    transferDone?: boolean;
 }

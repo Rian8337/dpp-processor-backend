@@ -27,9 +27,9 @@ import { ProcessorDatabaseScoreCalculation } from "./database/processor/schema/P
 import { ProcessorDatabaseTables } from "./database/processor/ProcessorDatabaseTables";
 import {
     getOfficialBestReplay,
-    getOnlineReplay,
     localReplayDirectory,
     officialReplayDirectory,
+    onlineReplayDirectory,
     saveReplayToOfficialPP,
 } from "./utils/replayManager";
 import { Score } from "@rian8337/osu-droid-utilities";
@@ -258,7 +258,7 @@ DatabaseManager.init()
         );
 
         // Modify this for ending point
-        while (id < 13000000) {
+        while (id < 5200000) {
             const scoreId = id++;
 
             await processorPool.query(
@@ -394,65 +394,74 @@ DatabaseManager.init()
             try {
                 await connection.beginTransaction();
 
-                if (
-                    bestScore &&
-                    bestScoreReplay.data &&
-                    !isReplayValid(bestScore, bestScoreReplay.data)
-                ) {
-                    // If the replay is not valid, delete the whole score.
-                    await connection.query(
-                        `DELETE FROM ${bestScoreTable} WHERE id = ?;`,
-                        [scoreId],
-                    );
-                } else {
-                    // Otherwise, update the filename of the best score.
-                    await connection.query(
-                        `UPDATE ${bestScoreTable} SET filename = ? WHERE id = ?;`,
-                        [beatmap.title, scoreId],
-                    );
-                }
+                // Update the filename of the best score.
+                await connection.query(
+                    `UPDATE ${bestScoreTable} SET filename = ? WHERE id = ?;`,
+                    [beatmap.title, scoreId],
+                );
 
                 if (bestScoreReplay.data) {
-                    // Calculate the pp value of the best score.
-                    const overrideParameters = bestScore
-                        ? obtainOverrideParameters(bestScore, bestScoreReplay)
-                        : null;
-
-                    const calcResult = await difficultyCalculator
-                        .calculateReplayPerformance(
-                            bestScoreReplay,
-                            false,
-                            overrideParameters,
-                        )
-                        .catch((e: unknown) => {
-                            console.error(
-                                `Failed to calculate best score with ID ${scoreId.toString()}:`,
-                                (e as Error).message,
-                            );
-
-                            return null;
-                        });
-
-                    if (calcResult !== null) {
-                        // Update the pp value of the best score.
-                        await connection.query(
-                            `UPDATE ${bestScoreTable} SET pp = ? WHERE id = ?;`,
-                            [calcResult.result.total, scoreId],
-                        );
-
-                        if (
-                            highestPP === null ||
-                            calcResult.result.total > highestPP
-                        ) {
-                            highestPP = calcResult.result.total;
-                            highestPPReplay = bestScoreReplay;
-                        }
-                    } else {
-                        // If the pp value is null, delete the whole score.
+                    if (
+                        bestScore &&
+                        !isReplayValid(bestScore, bestScoreReplay.data)
+                    ) {
+                        // If the replay is not valid, delete the whole score.
                         await connection.query(
                             `DELETE FROM ${bestScoreTable} WHERE id = ?;`,
                             [scoreId],
                         );
+
+                        await unlink(
+                            join(
+                                officialReplayDirectory,
+                                `${scoreId.toString()}.odr`,
+                            ),
+                        ).catch(() => null);
+                    } else {
+                        // Calculate the pp value of the best score.
+                        const overrideParameters = bestScore
+                            ? obtainOverrideParameters(
+                                  bestScore,
+                                  bestScoreReplay,
+                              )
+                            : null;
+
+                        const calcResult = await difficultyCalculator
+                            .calculateReplayPerformance(
+                                bestScoreReplay,
+                                false,
+                                overrideParameters,
+                            )
+                            .catch((e: unknown) => {
+                                console.error(
+                                    `Failed to calculate best score with ID ${scoreId.toString()}:`,
+                                    (e as Error).message,
+                                );
+
+                                return null;
+                            });
+
+                        if (calcResult !== null) {
+                            // Update the pp value of the best score.
+                            await connection.query(
+                                `UPDATE ${bestScoreTable} SET pp = ? WHERE id = ?;`,
+                                [calcResult.result.total, scoreId],
+                            );
+
+                            if (
+                                highestPP === null ||
+                                calcResult.result.total > highestPP
+                            ) {
+                                highestPP = calcResult.result.total;
+                                highestPPReplay = bestScoreReplay;
+                            }
+                        } else {
+                            // If the pp value is null, delete the whole score.
+                            await connection.query(
+                                `DELETE FROM ${bestScoreTable} WHERE id = ?;`,
+                                [scoreId],
+                            );
+                        }
                     }
                 }
 

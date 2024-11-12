@@ -268,7 +268,7 @@ DatabaseManager.init()
 
             // Get the current score.
             const score = await obtainOfficialScore(scoreId);
-            if (!score) {
+            if (!score || score.score === 0) {
                 console.log("Score ID", scoreId, "does not exist");
 
                 await invalidateScore(scoreId);

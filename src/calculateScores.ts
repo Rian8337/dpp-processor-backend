@@ -258,7 +258,7 @@ DatabaseManager.init()
         );
 
         // Modify this for ending point
-        while (id < 5200000) {
+        while (id < 2600000) {
             const scoreId = id++;
 
             await processorPool.query(
@@ -300,15 +300,17 @@ DatabaseManager.init()
                 join(onlineReplayDirectory, `${scoreId.toString()}.odr`),
             ).catch(() => null);
 
-            await scoreReplay.analyze().catch(() => {
-                console.error(
-                    "Top score replay of score ID",
-                    scoreId,
-                    scoreReplay.originalODR
-                        ? "cannot be parsed"
-                        : "does not exist",
-                );
-            });
+            if (scoreReplay.originalODR) {
+                await scoreReplay.analyze().catch(() => {
+                    console.error(
+                        "Top score replay of score ID",
+                        scoreId,
+                        scoreReplay.originalODR
+                            ? "cannot be parsed"
+                            : "does not exist",
+                    );
+                });
+            }
 
             let connection = await officialPool.getConnection();
 
@@ -379,15 +381,17 @@ DatabaseManager.init()
             const bestScoreReplay = new ReplayAnalyzer({ scoreID: scoreId });
             bestScoreReplay.originalODR = await getOfficialBestReplay(scoreId);
 
-            await bestScoreReplay.analyze().catch(() => {
-                console.error(
-                    "Best pp score replay of score ID",
-                    scoreId,
-                    bestScoreReplay.originalODR
-                        ? "cannot be parsed"
-                        : "does not exist",
-                );
-            });
+            if (bestScoreReplay.originalODR) {
+                await bestScoreReplay.analyze().catch(() => {
+                    console.error(
+                        "Best pp score replay of score ID",
+                        scoreId,
+                        bestScoreReplay.originalODR
+                            ? "cannot be parsed"
+                            : "does not exist",
+                    );
+                });
+            }
 
             connection = await officialPool.getConnection();
 
@@ -497,17 +501,19 @@ DatabaseManager.init()
                         () => null,
                     );
 
-                    await dppReplay.analyze().catch(() => {
-                        console.error(
-                            "dpp-stored replay of score ID",
-                            scoreId,
-                            "with filename",
-                            replay,
-                            scoreReplay.originalODR
-                                ? "cannot be parsed"
-                                : "does not exist",
-                        );
-                    });
+                    if (dppReplay.originalODR) {
+                        await dppReplay.analyze().catch(() => {
+                            console.error(
+                                "dpp-stored replay of score ID",
+                                scoreId,
+                                "with filename",
+                                replay,
+                                scoreReplay.originalODR
+                                    ? "cannot be parsed"
+                                    : "does not exist",
+                            );
+                        });
+                    }
 
                     if (!dppReplay.data) {
                         continue;

@@ -8,6 +8,7 @@ import {
     mkdir,
     unlink,
     stat,
+    chmod,
 } from "fs/promises";
 import { join } from "path";
 import { isDebug, sortAlphabet } from "./util";
@@ -171,7 +172,9 @@ export async function saveReplayToOfficialPP(
     const filePath = join(officialReplayDirectory, `${scoreID.toString()}.odr`);
 
     return ensureReplayDirectoryExists(filePath)
-        .then(() => writeFile(filePath, originalODR, { mode: 777 }))
+        .then(() => writeFile(filePath, originalODR, { mode: 0o777 }))
+        // For some reason, the file permission is not set correctly in the call above, so we have to set it again.
+        .then(() => chmod(filePath, 0o777))
         .then(() => true)
         .catch(() => false);
 }

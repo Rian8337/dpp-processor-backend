@@ -33,6 +33,10 @@ config();
         );
     }
 
+    const userTable = constructOfficialDatabaseTableName(
+        OfficialDatabaseTables.user,
+    );
+
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
     while (true) {
         // Update progress.
@@ -60,58 +64,73 @@ config();
                 return null;
             });
 
-        if (!topScores) {
-            console.log("User", id++, "has no scores");
-            continue;
+        const connection = await officialPool.getConnection();
+
+        try {
+            await connection.beginTransaction();
+
+            if (!topScores) {
+                console.log("User", id++, "has no scores");
+
+                await connection.query(
+                    `UPDATE ${userTable} SET pp = 0, accuracy = 1 WHERE id = ?;`,
+                    [id],
+                );
+
+                continue;
+            }
+
+            // Calculate total pp and accuracy.
+            let totalPP = 0;
+            let accuracy = 0;
+            let accuracyWeight = 0;
+
+            for (let i = 0; i < topScores.length; ++i) {
+                const score = topScores[i];
+                const weightMultiplier = Math.pow(0.95, i);
+
+                totalPP += score.pp * weightMultiplier;
+                accuracy += score.accuracy * weightMultiplier;
+                accuracyWeight += weightMultiplier;
+            }
+
+            if (accuracyWeight > 0) {
+                accuracy /= accuracyWeight;
+            } else {
+                accuracy = 1;
+            }
+
+            // Update total pp and accuracy.
+            await connection
+                .query<ResultSetHeader>(
+                    `UPDATE ${userTable} SET pp = ?, accuracy = ? WHERE id = ?;`,
+                    [totalPP, accuracy, id],
+                )
+                .then((res) => res[0].affectedRows === 1)
+                .catch((e: unknown) => {
+                    console.error(e);
+
+                    return null;
+                });
+
+            console.log(
+                "User",
+                id++,
+                "has",
+                totalPP,
+                "pp and",
+                accuracy,
+                "accuracy",
+            );
+
+            await connection.commit();
+        } catch (e: unknown) {
+            console.error(e);
+
+            await connection.rollback();
+        } finally {
+            connection.release();
         }
-
-        // Calculate total pp and accuracy.
-        let totalPP = 0;
-        let accuracy = 0;
-        let accuracyWeight = 0;
-
-        for (let i = 0; i < topScores.length; ++i) {
-            const score = topScores[i];
-            const weightMultiplier = Math.pow(0.95, i);
-
-            totalPP += score.pp * weightMultiplier;
-            accuracy += score.accuracy * weightMultiplier;
-            accuracyWeight += weightMultiplier;
-        }
-
-        if (accuracyWeight > 0) {
-            accuracy /= accuracyWeight;
-        } else {
-            accuracy = 1;
-        }
-
-        // Update total pp and accuracy.
-        const result = await officialPool
-            .query<ResultSetHeader>(
-                `UPDATE ${constructOfficialDatabaseTableName(OfficialDatabaseTables.user)} SET pp = ?, accuracy = ? WHERE id = ?;`,
-                [totalPP, accuracy, id],
-            )
-            .then((res) => res[0].affectedRows === 1)
-            .catch((e: unknown) => {
-                console.error(e);
-
-                return null;
-            });
-
-        if (result === null) {
-            console.log("Failed to update user", id);
-            continue;
-        }
-
-        console.log(
-            "User",
-            id++,
-            "has",
-            totalPP,
-            "pp and",
-            accuracy,
-            "accuracy",
-        );
     }
 })()
     .then(() => {

@@ -258,7 +258,7 @@ DatabaseManager.init()
         );
 
         // Modify this for ending point
-        while (id < 2600000) {
+        while (id <= 2600000) {
             const scoreId = id++;
 
             await processorPool.query(

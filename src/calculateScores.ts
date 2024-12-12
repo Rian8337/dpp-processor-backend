@@ -1,4 +1,4 @@
-import { readdir, readFile, unlink } from "fs/promises";
+import { readFile, unlink } from "fs/promises";
 import { DatabaseManager } from "./database/managers/DatabaseManager";
 import { join } from "path";
 import { BeatmapDroidDifficultyCalculator } from "./utils/calculator/BeatmapDroidDifficultyCalculator";
@@ -27,7 +27,6 @@ import { ProcessorDatabaseScoreCalculation } from "./database/processor/schema/P
 import { ProcessorDatabaseTables } from "./database/processor/ProcessorDatabaseTables";
 import {
     getOfficialBestReplay,
-    localReplayDirectory,
     officialReplayDirectory,
     onlineReplayDirectory,
     saveReplayToOfficialPP,
@@ -479,67 +478,67 @@ DatabaseManager.init()
             }
 
             // Process all dpp-stored replays of the beatmap from the player.
-            for (const uid of accountTransfers.get(score.uid) ?? [score.uid]) {
-                const replays = await readdir(
-                    join(localReplayDirectory, uid.toString(), score.hash),
-                ).catch(() => null);
+            // for (const uid of accountTransfers.get(score.uid) ?? [score.uid]) {
+            //     const replays = await readdir(
+            //         join(localReplayDirectory, uid.toString(), score.hash),
+            //     ).catch(() => null);
 
-                if (!replays) {
-                    continue;
-                }
+            //     if (!replays) {
+            //         continue;
+            //     }
 
-                for (const replay of replays) {
-                    const dppReplayDir = join(
-                        localReplayDirectory,
-                        uid.toString(),
-                        score.hash,
-                        replay,
-                    );
+            //     for (const replay of replays) {
+            //         const dppReplayDir = join(
+            //             localReplayDirectory,
+            //             uid.toString(),
+            //             score.hash,
+            //             replay,
+            //         );
 
-                    const dppReplay = new ReplayAnalyzer({ scoreID: score.id });
-                    dppReplay.originalODR = await readFile(dppReplayDir).catch(
-                        () => null,
-                    );
+            //         const dppReplay = new ReplayAnalyzer({ scoreID: score.id });
+            //         dppReplay.originalODR = await readFile(dppReplayDir).catch(
+            //             () => null,
+            //         );
 
-                    if (dppReplay.originalODR) {
-                        await dppReplay.analyze().catch(() => {
-                            console.error(
-                                "dpp-stored replay of score ID",
-                                scoreId,
-                                "with filename",
-                                replay,
-                                scoreReplay.originalODR
-                                    ? "cannot be parsed"
-                                    : "does not exist",
-                            );
-                        });
-                    }
+            //         if (dppReplay.originalODR) {
+            //             await dppReplay.analyze().catch(() => {
+            //                 console.error(
+            //                     "dpp-stored replay of score ID",
+            //                     scoreId,
+            //                     "with filename",
+            //                     replay,
+            //                     scoreReplay.originalODR
+            //                         ? "cannot be parsed"
+            //                         : "does not exist",
+            //                 );
+            //             });
+            //         }
 
-                    if (!dppReplay.data) {
-                        continue;
-                    }
+            //         if (!dppReplay.data) {
+            //             continue;
+            //         }
 
-                    const calcResult = await difficultyCalculator
-                        .calculateReplayPerformance(dppReplay, false)
-                        .catch((e: unknown) => {
-                            console.error(
-                                `Failed to calculate dpp-stored replay with ID ${scoreId.toString()}:`,
-                                (e as Error).message,
-                            );
+            //         const calcResult = await difficultyCalculator
+            //             .calculateReplayPerformance(dppReplay, false)
+            //             .catch((e: unknown) => {
+            //                 console.error(
+            //                     `Failed to calculate dpp-stored replay with ID ${scoreId.toString()}:`,
+            //                     (e as Error).message,
+            //                 );
 
-                            return null;
-                        });
+            //                 return null;
+            //             });
 
-                    if (
-                        calcResult !== null &&
-                        (highestPP === null ||
-                            calcResult.result.total > highestPP)
-                    ) {
-                        highestPP = calcResult.result.total;
-                        highestPPReplay = dppReplay;
-                    }
-                }
-            }
+            //         if (
+            //             calcResult !== null &&
+            //             (highestPP === null ||
+            //                 calcResult.result.total > highestPP)
+            //         ) {
+            //             highestPP = calcResult.result.total;
+            //             highestPPReplay = dppReplay;
+            //         }
+            //     }
+            // }
 
             if (highestPP === null || !highestPPReplay?.data) {
                 console.log("No valid replay found for score ID", scoreId);

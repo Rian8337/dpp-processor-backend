@@ -37,8 +37,7 @@ config();
         OfficialDatabaseTables.user,
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
-    while (true) {
+    while (id <= 500000) {
         // Update progress.
         await processorPool.query(
             `UPDATE ${ProcessorDatabaseTables.totalPPCalculation} SET id = $1;`,

@@ -336,7 +336,7 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
                     .catch((e: unknown) => {
                         console.error(
                             `Failed to calculate score with ID ${scoreId.toString()}:`,
-                            (e as Error).message,
+                            e,
                         );
 
                         return null;
@@ -430,7 +430,7 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
                         .catch((e: unknown) => {
                             console.error(
                                 `Failed to calculate best score with ID ${scoreId.toString()}:`,
-                                (e as Error).message,
+                                e,
                             );
 
                             return null;
@@ -515,7 +515,7 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
         //             .catch((e: unknown) => {
         //                 console.error(
         //                     `Failed to calculate dpp-stored replay with ID ${scoreId.toString()}:`,
-        //                     (e as Error).message,
+        //                     e,
         //                 );
 
         //                 return null;

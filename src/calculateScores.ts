@@ -83,7 +83,9 @@ function isReplayValid(
     // For replay v1 and v2, there is not that much information - just check the accuracy and hash.
     if (
         score.hash !== replayData.hash ||
-        !score.accuracy.equals(replayData.accuracy)
+        !score.accuracy.equals(replayData.accuracy) ||
+        // Also check if the accuracy is "empty", as in there are no hits at all.
+        Number.isNaN(replayData.accuracy.value())
     ) {
         return false;
     }

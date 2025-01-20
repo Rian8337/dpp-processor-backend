@@ -171,12 +171,14 @@ export async function saveReplayToOfficialPP(
 
     const filePath = join(officialReplayDirectory, `${scoreID.toString()}.odr`);
 
-    return ensureReplayDirectoryExists(filePath)
-        .then(() => writeFile(filePath, originalODR, { mode: 0o777 }))
-        // For some reason, the file permission is not set correctly in the call above, so we have to set it again.
-        .then(() => chmod(filePath, 0o777))
-        .then(() => true)
-        .catch(() => false);
+    return (
+        ensureReplayDirectoryExists(filePath)
+            .then(() => writeFile(filePath, originalODR, { mode: 0o777 }))
+            // For some reason, the file permission is not set correctly in the call above, so we have to set it again.
+            .then(() => chmod(filePath, 0o777))
+            .then(() => true)
+            .catch(() => false)
+    );
 }
 
 /**
@@ -351,14 +353,14 @@ export function getOnlineReplay(
 export function getOfficialBestReplay(
     scoreId: string | number,
 ): Promise<Buffer | null> {
-    if (isDebug) {
-        // Debug should not have access to local replays.
-        return Promise.resolve(null);
-    }
-
-    return readFile(
-        join(officialReplayDirectory, `${scoreId.toString()}.odr`),
-    ).catch(() => null);
+    return isDebug
+        ? fetch(`https://osudroid.moe/api/bestpp/${scoreId.toString()}.odr`)
+              .then((res) => res.arrayBuffer())
+              .then((res) => Buffer.from(res))
+              .catch(() => null)
+        : readFile(
+              join(officialReplayDirectory, `${scoreId.toString()}.odr`),
+          ).catch(() => null);
 }
 
 /**

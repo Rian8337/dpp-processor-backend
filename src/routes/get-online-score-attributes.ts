@@ -16,11 +16,12 @@ import {
 } from "@rian8337/osu-rebalance-difficulty-calculator";
 import { PPCalculationMethod } from "../structures/PPCalculationMethod";
 import { RebalanceDroidPerformanceAttributes } from "../structures/attributes/RebalanceDroidPerformanceAttributes";
-import { getOnlineReplay } from "../utils/replayManager";
+import { getOfficialBestReplay, getOnlineReplay } from "../utils/replayManager";
 import { validateGETInternalKey } from "../utils/util";
 import { RawDifficultyAttributes } from "../structures/attributes/RawDifficultyAttributes";
 import { PerformanceAttributes } from "../structures/attributes/PerformanceAttributes";
 import {
+    getOfficialBestScore,
     getOfficialScore,
     parseOfficialScoreMods,
 } from "../database/official/officialDatabaseUtil";
@@ -41,9 +42,10 @@ router.get<
         gamemode: string;
         calculationmethod: string;
         generatestrainchart?: string;
+        usebestpp?: string;
     }>
 >("/", validateGETInternalKey, async (req, res) => {
-    const { gamemode, uid, hash } = req.query;
+    const { gamemode, uid, hash, usebestpp } = req.query;
 
     if (!uid) {
         return res.status(400).json({ error: "Player ID is not specified" });
@@ -76,7 +78,9 @@ router.get<
     }
 
     const generateStrainChart = req.query.generatestrainchart !== undefined;
-    const score = await getOfficialScore(parseInt(uid), hash, false);
+    const score = usebestpp
+        ? await getOfficialBestScore(parseInt(uid), hash)
+        : await getOfficialScore(parseInt(uid), hash, false);
 
     if (!score) {
         return res.status(404).json({ error: "Score not found" });
@@ -85,7 +89,10 @@ router.get<
     const analyzer = new ReplayAnalyzer({ scoreID: score.id });
 
     // Retrieve replay locally.
-    analyzer.originalODR = await getOnlineReplay(score.id);
+    analyzer.originalODR = usebestpp
+        ? await getOfficialBestReplay(score.id)
+        : await getOnlineReplay(score.id);
+
     await analyzer.analyze().catch(() => {
         console.error(`Score of ID ${score.id.toString()} cannot be parsed`);
     });

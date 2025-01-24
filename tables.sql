@@ -88,6 +88,8 @@ CREATE TABLE IF NOT EXISTS rebalance_droid_difficulty_attributes (
     visual_slider_factor                    float           NOT NULL,
     possible_three_fingered_sections        text            NOT NULL,
     difficult_sliders                       text            NOT NULL,
+    average_speed_delta_time                float           NOT NULL,
+    vibro_factor                            float           NOT NULL,
 
     PRIMARY KEY (beatmap_id, mods, speed_multiplier, force_cs, force_ar, force_od, old_statistics),
     CONSTRAINT fk_rebalance_droid_difficulty_attributes_beatmap_id FOREIGN KEY (beatmap_id) REFERENCES beatmap(id) ON DELETE CASCADE

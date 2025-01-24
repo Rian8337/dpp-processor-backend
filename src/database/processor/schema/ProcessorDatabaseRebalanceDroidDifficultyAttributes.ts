@@ -46,20 +46,6 @@ export interface ProcessorDatabaseRebalanceDroidDifficultyAttributes
     readonly visual_difficult_strain_count: number;
 
     /**
-     * The average delta time of speed objects.
-     */
-    readonly average_speed_delta_time: number;
-
-    /**
-     * Describes how much of tap difficulty is contributed by notes that are "vibroable".
-     *
-     * A value closer to 1 indicates most of tap difficulty is contributed by notes that are not "vibroable".
-     *
-     * A value closer to 0 indicates most of tap difficulty is contributed by notes that are "vibroable".
-     */
-    readonly vibro_factor: number;
-
-    /**
      * Possible sections at which the player can use three fingers on.
      *
      * The sections are divided by whitespace, where each section is separated in such structure:

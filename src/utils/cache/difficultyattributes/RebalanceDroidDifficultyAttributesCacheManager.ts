@@ -36,7 +36,6 @@ export class RebalanceDroidDifficultyAttributesCacheManager extends DifficultyAt
             mode: "rebalance",
             aimDifficultSliderCount: attributes.aim_difficult_slider_count,
             aimNoteCount: attributes.aim_note_count,
-            averageSpeedDeltaTime: attributes.average_speed_delta_time,
             difficultSliders: ((): DifficultSlider[] => {
                 const sliders = attributes.difficult_sliders.split(" ");
 
@@ -83,7 +82,6 @@ export class RebalanceDroidDifficultyAttributesCacheManager extends DifficultyAt
             rhythmDifficulty: attributes.rhythm_difficulty,
             tapDifficultStrainCount: attributes.tap_difficult_strain_count,
             tapDifficulty: attributes.tap_difficulty,
-            vibroFactor: attributes.vibro_factor,
             visualDifficultStrainCount:
                 attributes.visual_difficult_strain_count,
             visualDifficulty: attributes.visual_difficulty,
@@ -100,7 +98,6 @@ export class RebalanceDroidDifficultyAttributesCacheManager extends DifficultyAt
         return {
             aim_note_count: attributes.aimNoteCount,
             aim_difficult_slider_count: attributes.aimDifficultSliderCount,
-            average_speed_delta_time: attributes.averageSpeedDeltaTime,
             difficult_sliders: attributes.difficultSliders
                 .map(
                     (slider) =>
@@ -124,7 +121,6 @@ export class RebalanceDroidDifficultyAttributesCacheManager extends DifficultyAt
             rhythm_difficulty: attributes.rhythmDifficulty,
             tap_difficult_strain_count: attributes.tapDifficultStrainCount,
             tap_difficulty: attributes.tapDifficulty,
-            vibro_factor: attributes.vibroFactor,
             visual_difficult_strain_count:
                 attributes.visualDifficultStrainCount,
             visual_difficulty: attributes.visualDifficulty,

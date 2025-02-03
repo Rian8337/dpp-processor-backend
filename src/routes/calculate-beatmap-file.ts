@@ -55,6 +55,7 @@ router.post<
         tappenalty?: string;
         flashlightslidercheesepenalty?: string;
         visualslidercheesepenalty?: string;
+        generatestrainchart?: string;
     }>
 >("/", validatePOSTInternalKey, async (req, res) => {
     if (!req.body.calculationmethod) {
@@ -108,7 +109,7 @@ router.post<
         return res.status(400).json({ error: "Invalid force OD" });
     }
 
-    const { gamemode } = req.body;
+    const { gamemode, generatestrainchart } = req.body;
     const calculationMethod = parseInt(req.body.calculationmethod);
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
@@ -178,13 +179,15 @@ router.post<
                         calculationParams,
                     );
 
-                    strainChart = await generateStrainChart(
-                        beatmap,
-                        diffCalc.strainPeaks,
-                        diffCalc.attributes.clockRate,
-                        undefined,
-                        StrainGraphColor.droidLive,
-                    );
+                    if (generatestrainchart) {
+                        strainChart = await generateStrainChart(
+                            beatmap,
+                            diffCalc.strainPeaks,
+                            diffCalc.attributes.clockRate,
+                            undefined,
+                            StrainGraphColor.droidLive,
+                        );
+                    }
 
                     attributes = {
                         params: calculationParams.toCloneable(),
@@ -232,13 +235,15 @@ router.post<
                         calculationParams,
                     );
 
-                    strainChart = await generateStrainChart(
-                        beatmap,
-                        diffCalc.strainPeaks,
-                        diffCalc.attributes.clockRate,
-                        undefined,
-                        StrainGraphColor.droidRebalance,
-                    );
+                    if (generatestrainchart) {
+                        strainChart = await generateStrainChart(
+                            beatmap,
+                            diffCalc.strainPeaks,
+                            diffCalc.attributes.clockRate,
+                            undefined,
+                            StrainGraphColor.droidRebalance,
+                        );
+                    }
 
                     attributes = {
                         params: calculationParams.toCloneable(),
@@ -292,13 +297,15 @@ router.post<
                         calculationParams,
                     );
 
-                    strainChart = await generateStrainChart(
-                        beatmap,
-                        diffCalc.strainPeaks,
-                        diffCalc.attributes.clockRate,
-                        undefined,
-                        StrainGraphColor.osuLive,
-                    );
+                    if (generatestrainchart) {
+                        strainChart = await generateStrainChart(
+                            beatmap,
+                            diffCalc.strainPeaks,
+                            diffCalc.attributes.clockRate,
+                            undefined,
+                            StrainGraphColor.osuLive,
+                        );
+                    }
 
                     attributes = {
                         params: calculationParams.toCloneable(),
@@ -375,7 +382,7 @@ router.post<
 
     res.json({
         attributes: attributes,
-        strainChart: strainChart.toJSON().data,
+        strainChart: strainChart?.toJSON().data,
     });
 });
 

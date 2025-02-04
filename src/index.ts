@@ -9,8 +9,15 @@ import getPerformanceAttributes from "./routes/get-performance-attributes";
 import getOnlineScoreAttributes from "./routes/get-online-score-attributes";
 import { initiateReplayProcessing } from "./utils/dppUtil";
 import { processorPool } from "./database/processor/ProcessorDatabasePool";
+import {
+    DroidAPIRequestBuilder,
+    OsuAPIRequestBuilder,
+} from "@rian8337/osu-base";
 
 config();
+
+DroidAPIRequestBuilder.setAPIKey(process.env.DROID_API_KEY!);
+OsuAPIRequestBuilder.setAPIKey(process.env.OSU_API_KEY!);
 
 const baseRouter = Router()
     .use("/calculate-beatmap-file", calculateBeatmapFile)

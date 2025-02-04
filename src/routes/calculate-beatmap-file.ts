@@ -193,7 +193,7 @@ router.post<
                         params: calculationParams.toCloneable(),
                         difficulty: {
                             ...perfCalc.difficultyAttributes,
-                            mods: perfCalc.difficultyAttributes.mods.reduce(
+                            mods: diffCalc.attributes.mods.reduce(
                                 (a, v) => a + v.acronym,
                                 "",
                             ),
@@ -249,7 +249,7 @@ router.post<
                         params: calculationParams.toCloneable(),
                         difficulty: {
                             ...perfCalc.difficultyAttributes,
-                            mods: perfCalc.difficultyAttributes.mods.reduce(
+                            mods: diffCalc.attributes.mods.reduce(
                                 (a, v) => a + v.acronym,
                                 "",
                             ),
@@ -311,7 +311,7 @@ router.post<
                         params: calculationParams.toCloneable(),
                         difficulty: {
                             ...perfCalc.difficultyAttributes,
-                            mods: perfCalc.difficultyAttributes.mods.reduce(
+                            mods: diffCalc.attributes.mods.reduce(
                                 (a, v) => a + v.acronym,
                                 "",
                             ),
@@ -355,7 +355,7 @@ router.post<
                         params: calculationParams.toCloneable(),
                         difficulty: {
                             ...perfCalc.difficultyAttributes,
-                            mods: perfCalc.difficultyAttributes.mods.reduce(
+                            mods: diffCalc.attributes.mods.reduce(
                                 (a, v) => a + v.acronym,
                                 "",
                             ),

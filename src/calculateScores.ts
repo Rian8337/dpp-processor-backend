@@ -453,9 +453,9 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
                             highestPPReplay = bestScoreReplay;
                         }
                     } else {
-                        // If the pp value is null, delete the whole score.
+                        // If the pp value is null, just set the pp value to 0.
                         await connection.query(
-                            `DELETE FROM ${bestScoreTable} WHERE id = ?;`,
+                            `UPDATE FROM ${bestScoreTable} SET pp = 0 WHERE id = ?;`,
                             [scoreId],
                         );
                     }
@@ -470,69 +470,6 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
         } finally {
             connection.release();
         }
-
-        // Process all dpp-stored replays of the beatmap from the player.
-        // for (const uid of accountTransfers.get(score.uid) ?? [score.uid]) {
-        //     const replays = await readdir(
-        //         join(localReplayDirectory, uid.toString(), score.hash),
-        //     ).catch(() => null);
-
-        //     if (!replays) {
-        //         continue;
-        //     }
-
-        //     for (const replay of replays) {
-        //         const dppReplayDir = join(
-        //             localReplayDirectory,
-        //             uid.toString(),
-        //             score.hash,
-        //             replay,
-        //         );
-
-        //         const dppReplay = new ReplayAnalyzer({ scoreID: score.id });
-        //         dppReplay.originalODR = await readFile(dppReplayDir).catch(
-        //             () => null,
-        //         );
-
-        //         if (dppReplay.originalODR) {
-        //             await dppReplay.analyze().catch(() => {
-        //                 console.error(
-        //                     "dpp-stored replay of score ID",
-        //                     scoreId,
-        //                     "with filename",
-        //                     replay,
-        //                     scoreReplay.originalODR
-        //                         ? "cannot be parsed"
-        //                         : "does not exist",
-        //                 );
-        //             });
-        //         }
-
-        //         if (!dppReplay.data) {
-        //             continue;
-        //         }
-
-        //         const calcResult = await difficultyCalculator
-        //             .calculateReplayPerformance(dppReplay, false)
-        //             .catch((e: unknown) => {
-        //                 console.error(
-        //                     `Failed to calculate dpp-stored replay with ID ${scoreId.toString()}:`,
-        //                     e,
-        //                 );
-
-        //                 return null;
-        //             });
-
-        //         if (
-        //             calcResult !== null &&
-        //             (highestPP === null ||
-        //                 calcResult.result.total > highestPP)
-        //         ) {
-        //             highestPP = calcResult.result.total;
-        //             highestPPReplay = dppReplay;
-        //         }
-        //     }
-        // }
 
         if (highestPP === null || !highestPPReplay?.data) {
             console.log("No valid replay found for score ID", scoreId);

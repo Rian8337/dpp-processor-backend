@@ -26,6 +26,11 @@ export interface ProcessorDatabaseLiveDroidDifficultyAttributes
     readonly visual_difficulty: number;
 
     /**
+     * The amount of sliders weighed by difficulty.
+     */
+    readonly aim_difficult_slider_count: number;
+
+    /**
      * The amount of strains that are considered difficult with respect to the tap skill.
      */
     readonly tap_difficult_strain_count: number;

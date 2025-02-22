@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS live_droid_difficulty_attributes (
     hit_circle_count                        int             NOT NULL,
     slider_count                            int             NOT NULL,
     spinner_count                           int             NOT NULL,
+    aim_difficult_slider_count              float           NOT NULL,
     aim_difficult_strain_count              float           NOT NULL,
     tap_difficult_strain_count              float           NOT NULL,
     flashlight_difficult_strain_count       float           NOT NULL,

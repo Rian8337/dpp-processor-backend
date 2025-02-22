@@ -26,6 +26,7 @@ export class LiveDroidDifficultyAttributesCacheManager extends DroidDifficultyAt
     ): Omit<ExtendedDroidDifficultyAttributes, keyof RawDifficultyAttributes> {
         return {
             mode: "live",
+            aimDifficultSliderCount: attributes.aim_difficult_slider_count,
             aimNoteCount: attributes.aim_note_count,
             averageSpeedDeltaTime: attributes.average_speed_delta_time,
             difficultSliders: ((): DifficultSlider[] => {
@@ -90,6 +91,7 @@ export class LiveDroidDifficultyAttributesCacheManager extends DroidDifficultyAt
     > {
         return {
             aim_note_count: attributes.aimNoteCount,
+            aim_difficult_slider_count: attributes.aimDifficultSliderCount,
             average_speed_delta_time: attributes.averageSpeedDeltaTime,
             difficult_sliders: attributes.difficultSliders
                 .map(

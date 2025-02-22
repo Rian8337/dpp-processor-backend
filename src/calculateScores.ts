@@ -204,25 +204,6 @@ function obtainOverrideParameters(
 const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
 
 (async () => {
-    // const accountTransfers = new Map<number, number[]>();
-
-    // await DatabaseManager.aliceDb.collections.accountTransfer
-    //     .get(
-    //         {},
-    //         { projection: { _id: 0, transferUid: 1, transferList: 1 } },
-    //     )
-    //     .then((transfers) => {
-    //         for (const transfer of transfers) {
-    //             accountTransfers.set(
-    //                 transfer.transferUid,
-    //                 transfer.transferList,
-    //             );
-    //         }
-    //     })
-    //     .catch((e: unknown) => {
-    //         console.error("Failed to fetch account transfers", e);
-    //     });
-
     // Modify this for starting point
     const processId = 0;
 

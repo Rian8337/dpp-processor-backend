@@ -273,6 +273,7 @@ export abstract class DifficultyAttributesCacheManager<
             sliderCount: attributes.slider_count,
             spinnerCount: attributes.spinner_count,
             starRating: attributes.star_rating,
+            aimDifficultSliderCount: attributes.aim_difficult_slider_count,
             aimDifficultStrainCount: attributes.aim_difficult_strain_count,
         } as TAttributes;
     }
@@ -299,6 +300,7 @@ export abstract class DifficultyAttributesCacheManager<
             slider_count: attributes.sliderCount,
             spinner_count: attributes.spinnerCount,
             star_rating: attributes.starRating,
+            aim_difficult_slider_count: attributes.aimDifficultSliderCount,
             aim_difficult_strain_count: attributes.aimDifficultStrainCount,
         } as Omit<
             TDatabaseAttributes,

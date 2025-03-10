@@ -120,6 +120,7 @@ CREATE TABLE IF NOT EXISTS live_osu_difficulty_attributes (
     hit_circle_count                        int             NOT NULL,
     slider_count                            int             NOT NULL,
     spinner_count                           int             NOT NULL,
+    aim_difficult_slider_count              float           NOT NULL,
     aim_difficult_strain_count              float           NOT NULL,
     speed_difficult_strain_count            float           NOT NULL,
 
@@ -151,6 +152,7 @@ CREATE TABLE IF NOT EXISTS rebalance_osu_difficulty_attributes (
     hit_circle_count                        int             NOT NULL,
     slider_count                            int             NOT NULL,
     spinner_count                           int             NOT NULL,
+    aim_difficult_slider_count              float           NOT NULL,
     aim_difficult_strain_count              float           NOT NULL,
     speed_difficult_strain_count            float           NOT NULL,
 

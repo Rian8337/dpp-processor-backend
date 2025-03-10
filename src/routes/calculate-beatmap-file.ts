@@ -21,7 +21,7 @@ import { CompleteCalculationAttributes } from "../structures/attributes/Complete
 import { DroidPerformanceAttributes } from "../structures/attributes/DroidPerformanceAttributes";
 import { OsuPerformanceAttributes } from "../structures/attributes/OsuPerformanceAttributes";
 import { PerformanceCalculationParameters } from "../utils/calculator/PerformanceCalculationParameters";
-import { readFileStream, validatePOSTInternalKey } from "../utils/util";
+import { validatePOSTInternalKey } from "../utils/util";
 import {
     calculateLocalBeatmapDifficulty,
     calculateLocalBeatmapPerformance,
@@ -29,6 +29,7 @@ import {
 import { RawDifficultyAttributes } from "../structures/attributes/RawDifficultyAttributes";
 import { PerformanceAttributes } from "../structures/attributes/PerformanceAttributes";
 import { StrainGraphColor } from "../enums/StrainGraphColor";
+import { buffer } from "stream/consumers";
 
 const router = Router();
 
@@ -72,7 +73,7 @@ router.post<
         return res.status(400).json({ error: "Beatmap not found" });
     }
 
-    const osuFile = (await readFileStream(fileStream)).toString("utf-8");
+    const osuFile = (await buffer(fileStream)).toString("utf-8");
 
     const mods = ModUtil.pcStringToMods(req.body.mods ?? "");
     const oldStatistics = req.body.oldstatistics !== undefined;

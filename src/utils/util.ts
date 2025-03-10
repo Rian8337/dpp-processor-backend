@@ -1,6 +1,5 @@
 import { createHash } from "crypto";
 import { Request, Response, NextFunction } from "express";
-import { ReadStream } from "fs";
 import { url } from "inspector";
 
 /**
@@ -84,22 +83,4 @@ export function validateOfficialPOSTInternalKey(
     }
 
     next();
-}
-
-/**
- * Reads a file stream and returns it as a buffer.
- *
- * @param stream The stream to read.
- * @returns The buffer represented by the read stream.
- */
-export function readFileStream(stream: ReadStream): Promise<Buffer> {
-    const chunks: Buffer[] = [];
-
-    return new Promise((resolve, reject) => {
-        stream.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
-        stream.on("error", reject);
-        stream.on("end", () => {
-            resolve(Buffer.concat(chunks));
-        });
-    });
 }

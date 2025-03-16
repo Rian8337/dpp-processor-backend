@@ -6,11 +6,6 @@ import { ProcessorDatabaseDifficultyAttributes } from "./ProcessorDatabaseDiffic
 export interface ProcessorDatabaseLiveDroidDifficultyAttributes
     extends ProcessorDatabaseDifficultyAttributes {
     /**
-     * The mods which were applied to the beatmap.
-     */
-    readonly mods: string;
-
-    /**
      * The difficulty corresponding to the tap skill.
      */
     readonly tap_difficulty: number;

@@ -8,6 +8,11 @@ export interface ProcessorDatabaseDifficultyAttributes {
     readonly beatmap_id: number;
 
     /**
+     * The mods which were applied to the beatmap.
+     */
+    readonly mods: string;
+
+    /**
      * The speed multiplier of the difficulty attributes.
      */
     readonly speed_multiplier: number;

@@ -10,7 +10,6 @@ import {
 } from "../../../database/processor/schema/ProcessorDatabaseDifficultyAttributes";
 import { ProcessorDatabaseTables } from "../../../database/processor/ProcessorDatabaseTables";
 import { getBeatmap } from "../beatmapStorage";
-import { sortAlphabet } from "../../util";
 
 /**
  * A cache manager for difficulty attributes.
@@ -151,40 +150,14 @@ export abstract class DifficultyAttributesCacheManager<
      * @param forceOD The force OD to construct with.
      */
     getAttributeName(
-        mods: Mod[] | string = [],
+        mods: Mod[] = [],
         oldStatistics = false,
         customSpeedMultiplier = 1,
         forceCS?: number,
         forceAR?: number,
         forceOD?: number,
     ): string {
-        let attributeName = "";
-
-        switch (this.mode) {
-            case Modes.droid:
-                attributeName +=
-                    sortAlphabet(
-                        (Array.isArray(mods)
-                            ? mods
-                            : ModUtil.droidStringToMods(mods)
-                        ).reduce(
-                            (a, m) =>
-                                a +
-                                (m.isApplicableToDroid() ? m.droidString : ""),
-                            "",
-                        ),
-                    ) || "-";
-                break;
-            case Modes.osu:
-                attributeName += (
-                    Array.isArray(mods) ? mods : ModUtil.pcStringToMods(mods)
-                )
-                    .reduce(
-                        (a, m) => a | (m.isApplicableToOsu() ? m.bitwise : 0),
-                        0,
-                    )
-                    .toString();
-        }
+        let attributeName = this.convertMods(mods);
 
         if (customSpeedMultiplier !== 1) {
             attributeName += `|${customSpeedMultiplier.toFixed(2)}x`;
@@ -217,6 +190,14 @@ export abstract class DifficultyAttributesCacheManager<
     invalidateCache(beatmapId: number) {
         this.cache.delete(beatmapId);
     }
+
+    /**
+     * Converts an array of {@link Mod}s to a string that will be stored in the database.
+     *
+     * @param mods The mods to convert.
+     * @returns The converted mods.
+     */
+    protected abstract convertMods(mods: Mod[]): string;
 
     /**
      * Converts mods received from the database to a {@link Mod} array.
@@ -294,6 +275,7 @@ export abstract class DifficultyAttributesCacheManager<
             flashlight_difficulty: attributes.flashlightDifficulty,
             hit_circle_count: attributes.hitCircleCount,
             max_combo: attributes.maxCombo,
+            mods: this.convertMods(attributes.mods),
             overall_difficulty: attributes.overallDifficulty,
             speed_note_count: attributes.speedNoteCount,
             slider_factor: attributes.sliderFactor,

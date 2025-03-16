@@ -1,20 +1,20 @@
-import { Mod, ModUtil, Modes } from "@rian8337/osu-base";
+import { Modes } from "@rian8337/osu-base";
 import {
     DifficultSlider,
     ExtendedDroidDifficultyAttributes,
     HighStrainSection,
 } from "@rian8337/osu-rebalance-difficulty-calculator";
-import { DifficultyAttributesCacheManager } from "./DifficultyAttributesCacheManager";
 import { PPCalculationMethod } from "../../../structures/PPCalculationMethod";
 import { ProcessorDatabaseRebalanceDroidDifficultyAttributes } from "../../../database/processor/schema/ProcessorDatabaseRebalanceDroidDifficultyAttributes";
 import { ProcessorDatabaseTables } from "../../../database/processor/ProcessorDatabaseTables";
 import { ProcessorDatabaseDifficultyAttributes } from "../../../database/processor/schema/ProcessorDatabaseDifficultyAttributes";
 import { RawDifficultyAttributes } from "../../../structures/attributes/RawDifficultyAttributes";
+import { DroidDifficultyAttributesCacheManager } from "./DroidDifficultyAttributesCacheManager";
 
 /**
  * A cache manager for osu!droid rebalance calculation difficulty attributes.
  */
-export class RebalanceDroidDifficultyAttributesCacheManager extends DifficultyAttributesCacheManager<
+export class RebalanceDroidDifficultyAttributesCacheManager extends DroidDifficultyAttributesCacheManager<
     ExtendedDroidDifficultyAttributes,
     ProcessorDatabaseRebalanceDroidDifficultyAttributes
 > {
@@ -22,12 +22,6 @@ export class RebalanceDroidDifficultyAttributesCacheManager extends DifficultyAt
     protected override readonly mode = Modes.droid;
     protected override readonly databaseTable =
         ProcessorDatabaseTables.rebalanceDroidDifficultyAttributes;
-
-    protected override convertDatabaseMods(
-        attributes: ProcessorDatabaseRebalanceDroidDifficultyAttributes,
-    ): Mod[] {
-        return ModUtil.droidStringToMods(attributes.mods);
-    }
 
     protected override convertDatabaseAttributesInternal(
         attributes: ProcessorDatabaseRebalanceDroidDifficultyAttributes,
@@ -108,10 +102,6 @@ export class RebalanceDroidDifficultyAttributesCacheManager extends DifficultyAt
             flashlight_difficult_strain_count:
                 attributes.flashlightDifficultStrainCount,
             flashlight_slider_factor: attributes.flashlightSliderFactor,
-            mods: attributes.mods.reduce(
-                (a, m) => a + (m.isApplicableToDroid() ? m.droidString : ""),
-                "",
-            ),
             possible_three_fingered_sections:
                 attributes.possibleThreeFingeredSections
                     .map(

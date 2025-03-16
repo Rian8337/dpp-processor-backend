@@ -100,10 +100,6 @@ export class LiveDroidDifficultyAttributesCacheManager extends DroidDifficultyAt
             flashlight_difficult_strain_count:
                 attributes.flashlightDifficultStrainCount,
             flashlight_slider_factor: attributes.flashlightSliderFactor,
-            mods: attributes.mods.reduce(
-                (a, m) => a + (m.isApplicableToDroid() ? m.droidString : ""),
-                "",
-            ),
             possible_three_fingered_sections:
                 attributes.possibleThreeFingeredSections
                     .map(

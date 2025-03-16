@@ -6,11 +6,6 @@ import { ProcessorDatabaseDifficultyAttributes } from "./ProcessorDatabaseDiffic
 export interface ProcessorDatabaseLiveOsuDifficultyAttributes
     extends ProcessorDatabaseDifficultyAttributes {
     /**
-     * The mods which were applied to the beatmap.
-     */
-    readonly mods: number;
-
-    /**
      * The difficulty corresponding to the speed skill.
      */
     readonly speed_difficulty: number;

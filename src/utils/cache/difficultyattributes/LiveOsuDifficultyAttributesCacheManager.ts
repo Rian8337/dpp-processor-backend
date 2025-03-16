@@ -35,11 +35,6 @@ export class LiveOsuDifficultyAttributesCacheManager extends OsuDifficultyAttrib
     > {
         return {
             speed_difficulty: attributes.speedDifficulty,
-            mods: attributes.mods.reduce(
-                (acc, mod) =>
-                    mod.isApplicableToOsu() ? acc | mod.bitwise : acc,
-                0,
-            ),
             approach_rate: attributes.approachRate,
             speed_difficult_strain_count: attributes.speedDifficultStrainCount,
         };

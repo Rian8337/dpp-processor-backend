@@ -1,16 +1,16 @@
-import { Mod, ModUtil, Modes } from "@rian8337/osu-base";
+import { Modes } from "@rian8337/osu-base";
 import { OsuDifficultyAttributes } from "@rian8337/osu-rebalance-difficulty-calculator";
-import { DifficultyAttributesCacheManager } from "./DifficultyAttributesCacheManager";
 import { PPCalculationMethod } from "../../../structures/PPCalculationMethod";
 import { ProcessorDatabaseTables } from "../../../database/processor/ProcessorDatabaseTables";
 import { ProcessorDatabaseDifficultyAttributes } from "../../../database/processor/schema/ProcessorDatabaseDifficultyAttributes";
 import { ProcessorDatabaseRebalanceOsuDifficultyAttributes } from "../../../database/processor/schema/ProcessorDatabaseRebalanceOsuDifficultyAttributes";
 import { RawDifficultyAttributes } from "../../../structures/attributes/RawDifficultyAttributes";
+import { OsuDifficultyAttributesCacheManager } from "./OsuDifficultyAttributesCacheManager";
 
 /**
  * A cache manager for osu!standard rebalance calculation difficulty attributes.
  */
-export class RebalanceOsuDifficultyAttributesCacheManager extends DifficultyAttributesCacheManager<
+export class RebalanceOsuDifficultyAttributesCacheManager extends OsuDifficultyAttributesCacheManager<
     OsuDifficultyAttributes,
     ProcessorDatabaseRebalanceOsuDifficultyAttributes
 > {
@@ -18,12 +18,6 @@ export class RebalanceOsuDifficultyAttributesCacheManager extends DifficultyAttr
     protected override readonly mode = Modes.osu;
     protected override readonly databaseTable =
         ProcessorDatabaseTables.rebalanceOsuDifficultyAttributes;
-
-    protected override convertDatabaseMods(
-        attributes: ProcessorDatabaseRebalanceOsuDifficultyAttributes,
-    ): Mod[] {
-        return ModUtil.pcModbitsToMods(attributes.mods);
-    }
 
     protected override convertDatabaseAttributesInternal(
         attributes: ProcessorDatabaseRebalanceOsuDifficultyAttributes,
@@ -43,11 +37,6 @@ export class RebalanceOsuDifficultyAttributesCacheManager extends DifficultyAttr
     > {
         return {
             speed_difficulty: attributes.speedDifficulty,
-            mods: attributes.mods.reduce(
-                (acc, mod) =>
-                    mod.isApplicableToOsu() ? acc | mod.bitwise : acc,
-                0,
-            ),
             approach_rate: attributes.approachRate,
             speed_difficult_strain_count: attributes.speedDifficultStrainCount,
         };

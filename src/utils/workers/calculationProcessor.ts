@@ -184,6 +184,10 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                             };
                     }
 
+                    // Also overwrite mods here in case it was not overridden above (due to cache).
+                    difficultyAttributes.mods =
+                        parameters?.mods ?? difficultyAttributes.mods;
+
                     calculationParams.applyFromAttributes(difficultyAttributes);
 
                     if (analyzer.data) {
@@ -317,6 +321,10 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                 mods: parameters?.mods ?? "",
                             };
                     }
+
+                    // Also overwrite mods here in case it was not overridden above (due to cache).
+                    difficultyAttributes.mods =
+                        parameters?.mods ?? difficultyAttributes.mods;
 
                     calculationParams.applyFromAttributes(difficultyAttributes);
 
@@ -468,6 +476,10 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                             ).cacheableAttributes;
                     }
 
+                    // Also overwrite mods here in case it was not overridden above (due to cache).
+                    difficultyAttributes.mods =
+                        parameters?.mods ?? difficultyAttributes.mods;
+
                     calculationParams.applyFromAttributes(difficultyAttributes);
 
                     const perfCalc = new OsuPerformanceCalculator(
@@ -525,6 +537,10 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                 calculationMethod,
                             ).cacheableAttributes;
                     }
+
+                    // Also overwrite mods here in case it was not overridden above (due to cache).
+                    difficultyAttributes.mods =
+                        parameters?.mods ?? difficultyAttributes.mods;
 
                     calculationParams.applyFromAttributes(difficultyAttributes);
 

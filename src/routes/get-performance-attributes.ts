@@ -167,6 +167,8 @@ router.get<
     >;
     let strainChart: Buffer | null = null;
 
+    const requestedMods = ModUtil.modsToOsuString(mods);
+
     switch (gamemode) {
         case Modes.droid: {
             const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
@@ -206,10 +208,7 @@ router.get<
                         params: calculationParams.toCloneable(),
                         difficulty: {
                             ...calculationResult.difficultyAttributes,
-                            mods: calculationResult.difficultyAttributes.mods.reduce(
-                                (a, v) => a + v.acronym,
-                                "",
-                            ),
+                            mods: requestedMods,
                         },
                         performance: {
                             total: result.total,
@@ -272,10 +271,7 @@ router.get<
                         params: calculationParams.toCloneable(),
                         difficulty: {
                             ...calculationResult.difficultyAttributes,
-                            mods: calculationResult.difficultyAttributes.mods.reduce(
-                                (a, v) => a + v.acronym,
-                                "",
-                            ),
+                            mods: requestedMods,
                         },
                         performance: {
                             total: result.total,
@@ -355,10 +351,7 @@ router.get<
                         params: calculationResult.params.toCloneable(),
                         difficulty: {
                             ...calculationResult.difficultyAttributes,
-                            mods: calculationResult.difficultyAttributes.mods.reduce(
-                                (a, v) => a + v.acronym,
-                                "",
-                            ),
+                            mods: requestedMods,
                         },
                         performance: {
                             total: result.total,
@@ -410,10 +403,7 @@ router.get<
                         params: calculationResult.params.toCloneable(),
                         difficulty: {
                             ...calculationResult.difficultyAttributes,
-                            mods: calculationResult.difficultyAttributes.mods.reduce(
-                                (a, v) => a + v.acronym,
-                                "",
-                            ),
+                            mods: requestedMods,
                         },
                         performance: {
                             total: result.total,

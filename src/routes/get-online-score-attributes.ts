@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
-import { Accuracy, MathUtils, Modes } from "@rian8337/osu-base";
+import { Accuracy, MathUtils, Modes, ModUtil } from "@rian8337/osu-base";
 import { BeatmapDroidDifficultyCalculator } from "../utils/calculator/BeatmapDroidDifficultyCalculator";
 import { DroidPerformanceAttributes } from "../structures/attributes/DroidPerformanceAttributes";
 import { BeatmapOsuDifficultyCalculator } from "../utils/calculator/BeatmapOsuDifficultyCalculator";
@@ -146,6 +146,15 @@ router.get<
     >;
     let strainChart: Buffer | null = null;
 
+    const requestedMods = ModUtil.modsToOsuString(
+        data.isReplayV3()
+            ? data.convertedMods
+            : (overrideParameters?.mods ??
+                  (score instanceof Score
+                      ? score.mods
+                      : parseOfficialScoreMods(score.mode).mods)),
+    );
+
     switch (gamemode) {
         case Modes.droid: {
             const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
@@ -185,10 +194,7 @@ router.get<
                         params: calculationResult.params.toCloneable(),
                         difficulty: {
                             ...calculationResult.difficultyAttributes,
-                            mods: calculationResult.difficultyAttributes.mods.reduce(
-                                (a, v) => a + v.acronym,
-                                "",
-                            ),
+                            mods: requestedMods,
                         },
                         performance: {
                             total: result.total,
@@ -251,10 +257,7 @@ router.get<
                         params: calculationResult.params.toCloneable(),
                         difficulty: {
                             ...calculationResult.difficultyAttributes,
-                            mods: calculationResult.difficultyAttributes.mods.reduce(
-                                (a, v) => a + v.acronym,
-                                "",
-                            ),
+                            mods: requestedMods,
                         },
                         performance: {
                             total: result.total,
@@ -335,10 +338,7 @@ router.get<
                         params: calculationResult.params.toCloneable(),
                         difficulty: {
                             ...calculationResult.difficultyAttributes,
-                            mods: calculationResult.difficultyAttributes.mods.reduce(
-                                (a, v) => a + v.acronym,
-                                "",
-                            ),
+                            mods: requestedMods,
                         },
                         performance: {
                             total: result.total,
@@ -390,10 +390,7 @@ router.get<
                         params: calculationResult.params.toCloneable(),
                         difficulty: {
                             ...calculationResult.difficultyAttributes,
-                            mods: calculationResult.difficultyAttributes.mods.reduce(
-                                (a, v) => a + v.acronym,
-                                "",
-                            ),
+                            mods: requestedMods,
                         },
                         performance: {
                             total: result.total,

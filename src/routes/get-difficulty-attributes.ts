@@ -209,9 +209,8 @@ router.get<
 
         difficultyAttributes = {
             ...calculationResult.difficultyAttributes,
-            mods: ModUtil.modsToOsuString(
-                calculationResult.difficultyAttributes.mods,
-            ),
+            // Override mods so that the response retains the originally requested mods.
+            mods: ModUtil.modsToOsuString(mods),
         };
         strainChart = calculationResult.strainChart;
     }

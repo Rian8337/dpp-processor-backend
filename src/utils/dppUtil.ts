@@ -26,8 +26,8 @@ import {
     ModRelax,
     ModScoreV2,
     ModSmallCircle,
-    ModSpeedUp,
     ModSuddenDeath,
+    ModTraceable,
 } from "@rian8337/osu-base";
 import { PerformanceCalculationResult } from "./calculator/PerformanceCalculationResult";
 import {
@@ -337,13 +337,13 @@ const replayModsConstants = {
     MOD_NOFAIL: new ModNoFail().droidString,
     MOD_EASY: new ModEasy().droidString,
     MOD_HIDDEN: new ModHidden().droidString,
+    MOD_TRACEABLE: new ModTraceable().droidString,
     MOD_HARDROCK: new ModHardRock().droidString,
     MOD_DOUBLETIME: new ModDoubleTime().droidString,
     MOD_HALFTIME: new ModHalfTime().droidString,
     MOD_NIGHTCORE: new ModNightCore().droidString,
     MOD_PRECISE: new ModPrecise().droidString,
     MOD_SMALLCIRCLE: new ModSmallCircle().droidString,
-    MOD_SPEEDUP: new ModSpeedUp().droidString,
     MOD_REALLYEASY: new ModReallyEasy().droidString,
     MOD_RELAX: new ModRelax().droidString,
     MOD_PERFECT: new ModPerfect().droidString,

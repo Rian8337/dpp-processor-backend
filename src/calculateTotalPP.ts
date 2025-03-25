@@ -1,23 +1,21 @@
 import { config } from "dotenv";
+import { ResultSetHeader, RowDataPacket } from "mysql2";
 import { officialPool } from "./database/official/OfficialDatabasePool";
-import { processorPool } from "./database/processor/ProcessorDatabasePool";
-import { ProcessorDatabaseTotalPPCalculation } from "./database/processor/schema/ProcessorDatabaseTotalPPCalculation";
-import { ProcessorDatabaseTables } from "./database/processor/ProcessorDatabaseTables";
 import {
     constructOfficialDatabaseTableName,
     OfficialDatabaseTables,
 } from "./database/official/OfficialDatabaseTables";
-import { ResultSetHeader, RowDataPacket } from "mysql2";
 import { OfficialDatabaseBestScore } from "./database/official/schema/OfficialDatabaseBestScore";
+import { processorDb } from "./database/processor";
+import { totalPPCalculationTable } from "./database/processor/schema";
 
 config();
 
 (async () => {
-    let id = await processorPool
-        .query<ProcessorDatabaseTotalPPCalculation>(
-            `SELECT id FROM ${ProcessorDatabaseTables.totalPPCalculation};`,
-        )
-        .then((res) => res.rows.at(0)?.id ?? null)
+    let id = await processorDb
+        .select()
+        .from(totalPPCalculationTable)
+        .then((res) => res.at(0)?.id ?? null)
         .catch((e: unknown) => {
             console.error(e);
 
@@ -27,10 +25,7 @@ config();
     if (id === null) {
         id = 2417;
 
-        await processorPool.query(
-            `INSERT INTO ${ProcessorDatabaseTables.totalPPCalculation} (id) VALUES ($1);`,
-            [id],
-        );
+        await processorDb.insert(totalPPCalculationTable).values({ id });
     }
 
     const userTable = constructOfficialDatabaseTableName(
@@ -39,10 +34,7 @@ config();
 
     while (id <= 500000) {
         // Update progress.
-        await processorPool.query(
-            `UPDATE ${ProcessorDatabaseTables.totalPPCalculation} SET id = $1;`,
-            [id],
-        );
+        await processorDb.update(totalPPCalculationTable).set({ id });
 
         // Get user top scores.
         const topScores = await officialPool
@@ -139,6 +131,5 @@ config();
         console.error(e);
     })
     .finally(async () => {
-        await processorPool.end();
         await officialPool.end();
     });

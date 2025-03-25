@@ -6,8 +6,6 @@ import {
     OsuDifficultyAttributes as RebalanceOsuDifficultyAttributes,
     OsuDifficultyCalculator as RebalanceOsuDifficultyCalculator,
 } from "@rian8337/osu-rebalance-difficulty-calculator";
-import { ProcessorDatabaseLiveOsuDifficultyAttributes } from "../../../database/processor/schema/ProcessorDatabaseLiveOsuDifficultyAttributes";
-import { ProcessorDatabaseRebalanceOsuDifficultyAttributes } from "../../../database/processor/schema/ProcessorDatabaseRebalanceOsuDifficultyAttributes";
 import { DifficultyAttributesCacheManager } from "./DifficultyAttributesCacheManager";
 import { Mod, Modes, ModUtil } from "@rian8337/osu-base";
 import { PPCalculationMethod } from "../../../structures/PPCalculationMethod";
@@ -19,10 +17,7 @@ export abstract class OsuDifficultyAttributesCacheManager<
     TAttributes extends
         | OsuDifficultyAttributes
         | RebalanceOsuDifficultyAttributes,
-    TDatabaseAttributes extends
-        | ProcessorDatabaseLiveOsuDifficultyAttributes
-        | ProcessorDatabaseRebalanceOsuDifficultyAttributes,
-> extends DifficultyAttributesCacheManager<TAttributes, TDatabaseAttributes> {
+> extends DifficultyAttributesCacheManager<TAttributes> {
     protected override readonly mode = Modes.osu;
 
     protected override convertMods(mods: Mod[]): string {
@@ -37,9 +32,13 @@ export abstract class OsuDifficultyAttributesCacheManager<
             .join("");
     }
 
-    protected override convertDatabaseMods(
-        attributes: TDatabaseAttributes,
-    ): Mod[] {
-        return ModUtil.pcStringToMods(attributes.mods);
+    /**
+     * Converts mods received from the database to a {@link Mod} array.
+     *
+     * @param mods The mods from the database.
+     * @returns The converted mods.
+     */
+    protected convertDatabaseMods(mods: string): Mod[] {
+        return ModUtil.pcStringToMods(mods);
     }
 }

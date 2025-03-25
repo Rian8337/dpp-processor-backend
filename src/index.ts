@@ -8,7 +8,6 @@ import getDifficultyAttributes from "./routes/get-difficulty-attributes";
 import getPerformanceAttributes from "./routes/get-performance-attributes";
 import getOnlineScoreAttributes from "./routes/get-online-score-attributes";
 import { initiateReplayProcessing } from "./utils/dppUtil";
-import { processorPool } from "./database/processor/ProcessorDatabasePool";
 import {
     DroidAPIRequestBuilder,
     OsuAPIRequestBuilder,
@@ -35,7 +34,7 @@ const app = express()
     .use(express.urlencoded({ extended: true }))
     .use("/api/dpp/processor", baseRouter);
 
-Promise.all([DatabaseManager.init(), processorPool.connect()])
+DatabaseManager.init()
     .then(async () => {
         const port = parseInt(process.env.PORT ?? "3006");
 

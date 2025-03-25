@@ -1,10 +1,11 @@
-import { MapInfo, RankedStatus } from "@rian8337/osu-base";
-import { ProcessorDatabaseBeatmap } from "../../database/processor/schema/ProcessorDatabaseBeatmap";
-import { processorPool } from "../../database/processor/ProcessorDatabasePool";
-import { ProcessorDatabaseTables } from "../../database/processor/ProcessorDatabaseTables";
-import { invalidateDifficultyAttributesCache } from "./difficultyAttributesStorage";
-import * as beatmapService from "../../services/beatmapService";
 import { Collection } from "@discordjs/collection";
+import { MapInfo, RankedStatus } from "@rian8337/osu-base";
+import { eq } from "drizzle-orm";
+import { processorDb } from "../../database/processor";
+import { beatmapTable } from "../../database/processor/schema";
+import { ProcessorDatabaseBeatmap } from "../../database/processor/schema/ProcessorDatabaseBeatmap";
+import * as beatmapService from "../../services/beatmapService";
+import { invalidateDifficultyAttributesCache } from "./difficultyAttributesStorage";
 
 /**
  * The database beatmap cache, mapped by beatmap ID.
@@ -31,7 +32,7 @@ const databaseBeatmapHashCache = new Collection<
  */
 export async function getBeatmap(
     beatmapIdOrHash: number | string,
-): Promise<ProcessorDatabaseBeatmap | null> {
+): Promise<typeof beatmapTable.$inferSelect | null> {
     // Check existing cache first.
     let cache =
         (typeof beatmapIdOrHash === "number"
@@ -73,9 +74,9 @@ export async function getBeatmap(
 
     // For unranked beatmaps, check the status if 30 minutes have passed since the last check.
     if (
-        cache.ranked_status !== RankedStatus.ranked &&
-        cache.ranked_status !== RankedStatus.approved &&
-        cache.last_checked < new Date(Date.now() - 1800000)
+        (cache.rankedStatus as RankedStatus) !== RankedStatus.ranked &&
+        (cache.rankedStatus as RankedStatus) !== RankedStatus.approved &&
+        cache.lastChecked < new Date(Date.now() - 1800000)
     ) {
         const apiBeatmap = await beatmapService.getBeatmap(beatmapIdOrHash);
 
@@ -96,20 +97,23 @@ export async function getBeatmap(
             await insertNewCache(cache);
         } else {
             // Update the last checked date.
-            cache.last_checked = new Date();
+            cache.lastChecked = new Date();
 
-            if (beatmap.approved !== cache.ranked_status) {
-                cache.ranked_status = beatmap.approved;
+            if (beatmap.approved !== (cache.rankedStatus as RankedStatus)) {
+                cache.rankedStatus = beatmap.approved;
 
-                await processorPool.query<ProcessorDatabaseBeatmap>(
-                    `UPDATE ${ProcessorDatabaseTables.beatmap} SET last_checked = $1, ranked_status = $2 WHERE id = $3;`,
-                    [cache.last_checked, cache.ranked_status, cache.id],
-                );
+                await processorDb
+                    .update(beatmapTable)
+                    .set({
+                        lastChecked: cache.lastChecked,
+                        rankedStatus: cache.rankedStatus,
+                    })
+                    .where(eq(beatmapTable.id, cache.id));
             } else {
-                await processorPool.query<ProcessorDatabaseBeatmap>(
-                    `UPDATE ${ProcessorDatabaseTables.beatmap} SET last_checked = $1 WHERE id = $2;`,
-                    [cache.last_checked, cache.id],
-                );
+                await processorDb
+                    .update(beatmapTable)
+                    .set({ lastChecked: cache.lastChecked })
+                    .where(eq(beatmapTable.id, cache.id));
             }
         }
     }
@@ -138,14 +142,13 @@ export async function updateBeatmapMaxCombo(
     const cache = databaseBeatmapIdCache.get(id);
 
     if (cache) {
-        cache.max_combo = maxCombo;
+        cache.maxCombo = maxCombo;
     }
 
-    return processorPool
-        .query(
-            `UPDATE ${ProcessorDatabaseTables.beatmap} SET max_combo = $1 WHERE id = $2;`,
-            [maxCombo, id],
-        )
+    return processorDb
+        .update(beatmapTable)
+        .set({ maxCombo })
+        .where(eq(beatmapTable.id, id))
         .then(() => true)
         .catch((e: unknown) => {
             console.error("Error when updating beatmap maximum combo:", e);
@@ -157,16 +160,20 @@ export async function updateBeatmapMaxCombo(
 function getBeatmapFromDatabase(
     beatmapIdOrHash: number | string,
 ): Promise<ProcessorDatabaseBeatmap | null> {
-    return processorPool
-        .query<ProcessorDatabaseBeatmap>(
-            `SELECT * FROM ${ProcessorDatabaseTables.beatmap} WHERE ${
-                typeof beatmapIdOrHash === "number" ? "id" : "hash"
-            } = $1;`,
-            [beatmapIdOrHash],
+    return processorDb
+        .select()
+        .from(beatmapTable)
+        .where(
+            eq(
+                typeof beatmapIdOrHash === "number"
+                    ? beatmapTable.id
+                    : beatmapTable.hash,
+                beatmapIdOrHash,
+            ),
         )
-        .then((res) => res.rows.at(0) ?? null)
+        .then((res) => res.at(0) ?? null)
         .catch((e: unknown) => {
-            console.error(e);
+            console.error("Error when getting beatmap from database:", e);
 
             return null;
         });
@@ -182,10 +189,9 @@ async function invalidateBeatmapCache(
     databaseBeatmapHashCache.delete(oldHash);
 
     // Delete the cache from the database. This will force all difficulty attributes to be dropped as well.
-    await processorPool.query<ProcessorDatabaseBeatmap>(
-        `DELETE FROM ${ProcessorDatabaseTables.beatmap} WHERE id = $1;`,
-        [newCache.id],
-    );
+    await processorDb
+        .delete(beatmapTable)
+        .where(eq(beatmapTable.id, newCache.id));
 }
 
 async function insertNewCache(cache: ProcessorDatabaseBeatmap) {
@@ -193,20 +199,7 @@ async function insertNewCache(cache: ProcessorDatabaseBeatmap) {
     databaseBeatmapHashCache.set(cache.hash, cache);
 
     // Insert the cache to the database.
-    await processorPool.query<ProcessorDatabaseBeatmap>(
-        `INSERT INTO ${ProcessorDatabaseTables.beatmap} (id, hash, title, hit_length, total_length, max_combo, object_count, ranked_status, last_checked) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);`,
-        [
-            cache.id,
-            cache.hash,
-            cache.title,
-            cache.hit_length,
-            cache.total_length,
-            cache.max_combo,
-            cache.object_count,
-            cache.ranked_status,
-            cache.last_checked,
-        ],
-    );
+    await processorDb.insert(beatmapTable).values(cache);
 }
 
 function beatmapToCache(beatmap: MapInfo): ProcessorDatabaseBeatmap {
@@ -214,11 +207,11 @@ function beatmapToCache(beatmap: MapInfo): ProcessorDatabaseBeatmap {
         id: beatmap.beatmapId,
         hash: beatmap.hash,
         title: beatmap.fullTitle,
-        hit_length: beatmap.hitLength,
-        total_length: beatmap.totalLength,
-        max_combo: beatmap.maxCombo,
-        object_count: beatmap.objects,
-        ranked_status: beatmap.approved,
-        last_checked: new Date(),
+        hitLength: beatmap.hitLength,
+        totalLength: beatmap.totalLength,
+        maxCombo: beatmap.maxCombo,
+        objectCount: beatmap.objects,
+        rankedStatus: beatmap.approved,
+        lastChecked: new Date(),
     };
 }

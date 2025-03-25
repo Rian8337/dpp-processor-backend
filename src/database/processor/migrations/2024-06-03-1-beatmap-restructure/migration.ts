@@ -1,63 +1,54 @@
-import { config } from "dotenv";
-import { processorPool } from "../../ProcessorDatabasePool";
-import { ProcessorDatabaseBeatmap } from "../../schema/ProcessorDatabaseBeatmap";
-import { ProcessorDatabaseTables } from "../../ProcessorDatabaseTables";
 import { MapInfo } from "@rian8337/osu-base";
+import "dotenv/config";
+import { eq } from "drizzle-orm";
+import { processorDb } from "../../";
+import { beatmapTable } from "../../schema";
 
-config();
+(async () => {
+    // Select beatmaps with empty hash
+    const emptyBeatmaps = await processorDb
+        .select()
+        .from(beatmapTable)
+        .where(eq(beatmapTable.hash, ""));
 
-processorPool
-    .connect()
-    .then(async () => {
-        // Select beatmaps with empty hash
-        const emptyBeatmapQuery =
-            await processorPool.query<ProcessorDatabaseBeatmap>(
-                `SELECT * FROM ${ProcessorDatabaseTables.beatmap} WHERE hash = '';`,
+    // Update beatmaps with empty hash
+    for (const emptyBeatmap of emptyBeatmaps) {
+        const apiBeatmap = await MapInfo.getInformation(emptyBeatmap.id, false);
+
+        if (!apiBeatmap) {
+            console.log(
+                `Cannot find beatmap with ID ${emptyBeatmap.id.toString()} from osu! API`,
             );
 
-        // Update beatmaps with empty hash
-        for (const beatmap of emptyBeatmapQuery.rows) {
-            const apiBeatmap = await MapInfo.getInformation(beatmap.id, false);
+            // Cannot find beatmap from API; delete from database
+            await processorDb
+                .delete(beatmapTable)
+                .where(eq(beatmapTable.id, emptyBeatmap.id));
 
-            if (!apiBeatmap) {
-                console.log(
-                    `Cannot find beatmap with ID ${beatmap.id.toString()} from osu! API`,
-                );
-
-                // Cannot find beatmap from API; delete from database
-                await processorPool.query(
-                    `DELETE FROM ${ProcessorDatabaseTables.beatmap} WHERE id = $1;`,
-                    [beatmap.id],
-                );
-
-                continue;
-            }
-
-            // Update beatmap information in the database
-            await processorPool.query(
-                `UPDATE ${ProcessorDatabaseTables.beatmap} SET hash = $1, title = $2, hit_length = $3, total_length = $4, max_combo = $5, object_count = $6, ranked_status = $7, last_checked = $8 WHERE id = $9;`,
-                [
-                    apiBeatmap.hash,
-                    apiBeatmap.fullTitle,
-                    apiBeatmap.hitLength,
-                    apiBeatmap.totalLength,
-                    apiBeatmap.maxCombo,
-                    apiBeatmap.objects,
-                    apiBeatmap.approved,
-                    new Date(),
-                    beatmap.id,
-                ],
-            );
-
-            console.log(`Updated beatmap with ID ${beatmap.id.toString()}`);
+            continue;
         }
 
-        console.log("Finished updating beatmaps with empty hash");
+        // Update beatmap information in the database
+        await processorDb
+            .update(beatmapTable)
+            .set({
+                hash: apiBeatmap.hash,
+                title: apiBeatmap.fullTitle,
+                hitLength: apiBeatmap.hitLength,
+                totalLength: apiBeatmap.totalLength,
+                maxCombo: apiBeatmap.maxCombo,
+                objectCount: apiBeatmap.objects,
+                rankedStatus: apiBeatmap.approved,
+                lastChecked: new Date(),
+            })
+            .where(eq(beatmapTable.id, emptyBeatmap.id));
 
-        process.exit(0);
-    })
-    .catch((e: unknown) => {
-        console.error(e);
+        console.log(`Updated beatmap with ID ${emptyBeatmap.id.toString()}`);
+    }
 
-        process.exit(1);
-    });
+    console.log("Finished updating beatmaps with empty hash");
+
+    process.exit(0);
+})().catch((e: unknown) => {
+    console.error(e);
+});

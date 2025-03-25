@@ -1,28 +1,25 @@
 import { Accuracy, Modes } from "@rian8337/osu-base";
 import { DifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
+import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import { DifficultyAttributes as RebalanceDifficultyAttributes } from "@rian8337/osu-rebalance-difficulty-calculator";
+import { ProcessorDatabaseBeatmap } from "../../database/processor/schema/ProcessorDatabaseBeatmap";
+import { getBeatmapFile } from "../../services/beatmapService";
+import { PPCalculationMethod } from "../../structures/PPCalculationMethod";
+import { PerformanceAttributes } from "../../structures/attributes/PerformanceAttributes";
+import { CalculationWorkerData } from "../../structures/workers/CalculationWorkerData";
+import { getBeatmap } from "../cache/beatmapStorage";
 import { DifficultyAttributesCacheManager } from "../cache/difficultyattributes/DifficultyAttributesCacheManager";
+import { CalculationWorkerPool } from "../workers/CalculationWorkerPool";
 import { PerformanceCalculationParameters } from "./PerformanceCalculationParameters";
 import { PerformanceCalculationResult } from "./PerformanceCalculationResult";
 import { RebalancePerformanceCalculationResult } from "./RebalancePerformanceCalculationResult";
-import { getBeatmap } from "../cache/beatmapStorage";
-import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
-import { CalculationWorkerPool } from "../workers/CalculationWorkerPool";
-import { CalculationWorkerData } from "../../structures/workers/CalculationWorkerData";
-import { PPCalculationMethod } from "../../structures/PPCalculationMethod";
-import { PerformanceAttributes } from "../../structures/attributes/PerformanceAttributes";
-import { ProcessorDatabaseDifficultyAttributes } from "../../database/processor/schema/ProcessorDatabaseDifficultyAttributes";
-import { ProcessorDatabaseBeatmap } from "../../database/processor/schema/ProcessorDatabaseBeatmap";
-import { getBeatmapFile } from "../../services/beatmapService";
 
 /**
  * A helper class for calculating difficulty and performance of beatmaps or replays.
  */
 export abstract class BeatmapDifficultyCalculator<
     DA extends DifficultyAttributes,
-    TDA extends ProcessorDatabaseDifficultyAttributes,
     RDA extends RebalanceDifficultyAttributes,
-    TRDA extends ProcessorDatabaseDifficultyAttributes,
     PA extends PerformanceAttributes,
     RPA extends PerformanceAttributes = PA,
 > {
@@ -34,18 +31,12 @@ export abstract class BeatmapDifficultyCalculator<
     /**
      * The cache manager responsible for storing live calculation difficulty attributes.
      */
-    protected abstract readonly liveDifficultyAttributesCache: DifficultyAttributesCacheManager<
-        DA,
-        TDA
-    >;
+    protected abstract readonly liveDifficultyAttributesCache: DifficultyAttributesCacheManager<DA>;
 
     /**
      * The cache manager responsible for storing rebalance calculation difficulty attributes.
      */
-    protected abstract readonly rebalanceDifficultyAttributesCache: DifficultyAttributesCacheManager<
-        RDA,
-        TRDA
-    >;
+    protected abstract readonly rebalanceDifficultyAttributesCache: DifficultyAttributesCacheManager<RDA>;
 
     /**
      * Calculator worker pool.

@@ -140,17 +140,17 @@ router.get<
             n100: Math.max(0, parseInt(req.query.n100 ?? "0")),
             n50: Math.max(0, parseInt(req.query.n50 ?? "0")),
             nmiss: Math.max(0, parseInt(req.query.nmiss ?? "0")),
-            nobjects: apiBeatmap.object_count,
+            nobjects: apiBeatmap.objectCount,
         }),
         combo:
             typeof req.query.maxcombo === "string" &&
-            apiBeatmap.max_combo !== null
+            apiBeatmap.maxCombo !== null
                 ? MathUtils.clamp(
                       parseInt(req.query.maxcombo),
                       0,
-                      apiBeatmap.max_combo,
+                      apiBeatmap.maxCombo,
                   )
-                : (apiBeatmap.max_combo ?? undefined),
+                : (apiBeatmap.maxCombo ?? undefined),
         tapPenalty: parseInt(req.query.tappenalty ?? "1"),
         sliderCheesePenalty: {
             aimPenalty: parseInt(req.query.aimslidercheesepenalty ?? "1"),
@@ -427,7 +427,7 @@ router.get<
         }
     }
 
-    if (apiBeatmap.max_combo === null) {
+    if (apiBeatmap.maxCombo === null) {
         // Update beatmap max combo based on calculation result.
         await updateBeatmapMaxCombo(
             apiBeatmap.id,

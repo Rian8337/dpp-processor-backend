@@ -1,13 +1,14 @@
-import { readFile, unlink } from "fs/promises";
-import { join } from "path";
-import { BeatmapDroidDifficultyCalculator } from "./utils/calculator/BeatmapDroidDifficultyCalculator";
+import { Accuracy, RankedStatus } from "@rian8337/osu-base";
 import {
     ReplayAnalyzer,
     ReplayData,
 } from "@rian8337/osu-droid-replay-analyzer";
-import { config } from "dotenv";
-import { Accuracy, RankedStatus } from "@rian8337/osu-base";
+import { Score } from "@rian8337/osu-droid-utilities";
+import "dotenv/config";
+import { eq } from "drizzle-orm";
+import { readFile, unlink } from "fs/promises";
 import { RowDataPacket } from "mysql2";
+import { join } from "path";
 import { officialPool } from "./database/official/OfficialDatabasePool";
 import {
     constructOfficialDatabaseTableName,
@@ -19,22 +20,19 @@ import {
 } from "./database/official/officialDatabaseUtil";
 import { OfficialDatabaseBestScore } from "./database/official/schema/OfficialDatabaseBestScore";
 import { OfficialDatabaseScore } from "./database/official/schema/OfficialDatabaseScore";
-import { PerformanceCalculationParameters } from "./utils/calculator/PerformanceCalculationParameters";
+import { processorDb } from "./database/processor";
+import { scoreCalculationTable } from "./database/processor/schema";
 import { getBeatmap } from "./utils/cache/beatmapStorage";
-import { processorPool } from "./database/processor/ProcessorDatabasePool";
-import { ProcessorDatabaseScoreCalculation } from "./database/processor/schema/ProcessorDatabaseScoreCalculation";
-import { ProcessorDatabaseTables } from "./database/processor/ProcessorDatabaseTables";
+import { BeatmapDroidDifficultyCalculator } from "./utils/calculator/BeatmapDroidDifficultyCalculator";
+import { PerformanceCalculationParameters } from "./utils/calculator/PerformanceCalculationParameters";
+import { constructModString } from "./utils/dppUtil";
 import {
     getOfficialBestReplay,
     officialReplayDirectory,
     onlineReplayDirectory,
     saveReplayToOfficialPP,
 } from "./utils/replayManager";
-import { Score } from "@rian8337/osu-droid-utilities";
 import { sortAlphabet } from "./utils/util";
-import { constructModString } from "./utils/dppUtil";
-
-config();
 
 function obtainOfficialScore(
     scoreId: number,
@@ -207,12 +205,11 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
     // Modify this for starting point
     const processId = 0;
 
-    let id = await processorPool
-        .query<ProcessorDatabaseScoreCalculation>(
-            `SELECT score_id FROM ${ProcessorDatabaseTables.scoreCalculation} WHERE process_id = $1;`,
-            [processId],
-        )
-        .then((res) => res.rows.at(0)?.score_id ?? null)
+    let id = await processorDb
+        .select()
+        .from(scoreCalculationTable)
+        .where(eq(scoreCalculationTable.process_id, processId))
+        .then((res) => res.at(0)?.score_id ?? null)
         .catch((e: unknown) => {
             console.error("Failed to fetch calculation progress", e);
 
@@ -223,10 +220,10 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
         // Modify this for starting point
         id = 207695;
 
-        await processorPool.query(
-            `INSERT INTO ${ProcessorDatabaseTables.scoreCalculation} (process_id, score_id) VALUES ($1, $2);`,
-            [processId, id],
-        );
+        await processorDb.insert(scoreCalculationTable).values({
+            process_id: processId,
+            score_id: id,
+        });
     }
 
     const scoreTable = constructOfficialDatabaseTableName(
@@ -241,10 +238,10 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
     while (id <= 2600000) {
         const scoreId = id++;
 
-        await processorPool.query(
-            `UPDATE ${ProcessorDatabaseTables.scoreCalculation} SET score_id = $1 WHERE process_id = $2;`,
-            [scoreId, processId],
-        );
+        await processorDb
+            .update(scoreCalculationTable)
+            .set({ score_id: id })
+            .where(eq(scoreCalculationTable.process_id, processId));
 
         // Get the current score.
         const score = await obtainOfficialScore(scoreId);
@@ -260,8 +257,9 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
 
         if (
             !beatmap ||
-            (beatmap.ranked_status !== RankedStatus.ranked &&
-                beatmap.ranked_status !== RankedStatus.approved)
+            ((beatmap.rankedStatus as RankedStatus) !== RankedStatus.ranked &&
+                (beatmap.rankedStatus as RankedStatus) !==
+                    RankedStatus.approved)
         ) {
             console.log("Score ID", scoreId, "has an unranked beatmap");
 

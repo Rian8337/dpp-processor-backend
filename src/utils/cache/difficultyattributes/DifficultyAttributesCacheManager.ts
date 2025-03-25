@@ -1,22 +1,22 @@
 import { Collection } from "@discordjs/collection";
 import { Mod, Modes, ModUtil } from "@rian8337/osu-base";
+import { CacheableDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
 import { PPCalculationMethod } from "../../../structures/PPCalculationMethod";
 import { RawDifficultyAttributes } from "../../../structures/attributes/RawDifficultyAttributes";
-import { CacheableDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
-import { processorPool } from "../../../database/processor/ProcessorDatabasePool";
-import {
-    ProcessorDatabaseDifficultyAttributes,
-    DatabaseDifficultyAttributesPrimaryKey,
-} from "../../../database/processor/schema/ProcessorDatabaseDifficultyAttributes";
-import { ProcessorDatabaseTables } from "../../../database/processor/ProcessorDatabaseTables";
 import { getBeatmap } from "../beatmapStorage";
+import {
+    liveDroidDifficultyAttributesTable,
+    liveOsuDifficultyAttributesTable,
+    rebalanceDroidDifficultyAttributesTable,
+    rebalanceOsuDifficultyAttributesTable,
+} from "../../../database/processor/schema";
+import { DifficultyAttributesPrimaryKey } from "../../../database/processor/columns.helper";
 
 /**
  * A cache manager for difficulty attributes.
  */
 export abstract class DifficultyAttributesCacheManager<
     TAttributes extends RawDifficultyAttributes,
-    TDatabaseAttributes extends ProcessorDatabaseDifficultyAttributes,
 > {
     /**
      * The type of the attribute.
@@ -27,14 +27,6 @@ export abstract class DifficultyAttributesCacheManager<
      * The gamemode at which the difficulty attribute is stored for.
      */
     protected abstract readonly mode: Modes;
-
-    /**
-     * The database table that stores the difficulty attributes.
-     */
-    protected abstract readonly databaseTable: Exclude<
-        ProcessorDatabaseTables,
-        ProcessorDatabaseTables.beatmap
-    >;
 
     /**
      * The difficulty attributes cache.
@@ -116,24 +108,14 @@ export abstract class DifficultyAttributesCacheManager<
 
         this.cache.set(beatmapId, cache);
 
-        // Also add to database.
-        const databaseAttributes = {
-            beatmap_id: beatmapId,
-            force_cs: forceCS ?? -1,
-            force_ar: forceAR ?? -1,
-            force_od: forceOD ?? -1,
-            old_statistics: oldStatistics ? 1 : 0,
-            speed_multiplier: customSpeedMultiplier,
-            ...this.convertDifficultyAttributes(difficultyAttributes),
-        } as TDatabaseAttributes;
-
-        const keys = Object.keys(databaseAttributes);
-
-        await processorPool.query<TDatabaseAttributes>(
-            `INSERT INTO ${this.databaseTable} (${keys.join(
-                ",",
-            )}) VALUES (${keys.map((_, i) => `$${(i + 1).toString()}`).join()}) ON CONFLICT DO NOTHING`,
-            Object.values(databaseAttributes),
+        await this.insertToDatabase(
+            beatmapId,
+            oldStatistics,
+            customSpeedMultiplier,
+            forceCS,
+            forceAR,
+            forceOD,
+            difficultyAttributes,
         );
 
         return cacheableAttributes;
@@ -192,6 +174,40 @@ export abstract class DifficultyAttributesCacheManager<
     }
 
     /**
+     * Inserts an attribute to the database.
+     *
+     * @param beatmapId The ID of the beatmap.
+     * @param oldStatistics Whether the difficulty attributes uses old statistics (pre-1.6.8 pre-release).
+     * @param customSpeedMultiplier The custom speed multiplier that was used to generate the attributes.
+     * @param forceCS The force CS that was used to generate the attributes.
+     * @param forceAR The force AR that was used to generate the attributes.
+     * @param forceOD The force OD that was used to generate the attributes.
+     * @param attributes The attributes to insert.
+     */
+    protected abstract insertToDatabase(
+        beatmapId: number,
+        oldStatistics: boolean,
+        customSpeedMultiplier: number,
+        forceCS: number | undefined,
+        forceAR: number | undefined,
+        forceOD: number | undefined,
+        attributes: TAttributes,
+    ): Promise<void>;
+
+    /**
+     * Gets the difficulty attributes cache of a beatmap from the database.
+     *
+     * @param beatmapId The MD5 hash of the beatmap.
+     * @returns The difficulty attributes cache, `null` if not found.
+     */
+    protected abstract getCacheFromDatabase(
+        beatmapId: number,
+    ): Promise<Collection<
+        string,
+        CacheableDifficultyAttributes<TAttributes>
+    > | null>;
+
+    /**
      * Converts an array of {@link Mod}s to a string that will be stored in the database.
      *
      * @param mods The mods to convert.
@@ -200,100 +216,33 @@ export abstract class DifficultyAttributesCacheManager<
     protected abstract convertMods(mods: Mod[]): string;
 
     /**
-     * Converts mods received from the database to a {@link Mod} array.
+     * Removes the primary keys from difficulty attributes that were retrieved from the database, except mods.
      *
-     * @param attributes The database attributes to convert.
-     * @returns The converted mods.
+     * @param attributes The attributes to remove the primary keys from.
      */
-    protected abstract convertDatabaseMods(
-        attributes: TDatabaseAttributes,
-    ): Mod[];
-
-    /**
-     * Converts a database attributes to a difficulty attributes, but only accounts for the attributes
-     * that are specific to the gamemode.
-     *
-     * @param attributes The database attributes to convert.
-     * @returns The converted difficulty attributes.
-     */
-    protected abstract convertDatabaseAttributesInternal(
-        attributes: TDatabaseAttributes,
-    ): Omit<TAttributes, keyof RawDifficultyAttributes>;
-
-    /**
-     * Converts a difficulty attributes to a database attributes, but only accounts for the attributes
-     * that are specific to the gamemode.
-     *
-     * @param attributes The difficulty attributes to convert.
-     * @returns The converted database attributes.
-     */
-    protected abstract convertDifficultyAttributesInternal(
-        attributes: TAttributes,
-    ): Omit<TDatabaseAttributes, keyof ProcessorDatabaseDifficultyAttributes>;
-
-    /**
-     * Converts a database attributes to a difficulty attributes.
-     *
-     * @param attributes The database attributes to convert.
-     * @returns The converted difficulty attributes.
-     */
-    private convertDatabaseAttributes(
-        attributes: TDatabaseAttributes,
-    ): TAttributes {
-        return {
-            ...this.convertDatabaseAttributesInternal(attributes),
-            mods: this.convertDatabaseMods(attributes),
-            aimDifficulty: attributes.aim_difficulty,
-            clockRate: attributes.clock_rate,
-            flashlightDifficulty: attributes.flashlight_difficulty,
-            hitCircleCount: attributes.hit_circle_count,
-            maxCombo: attributes.max_combo,
-            overallDifficulty: attributes.overall_difficulty,
-            speedNoteCount: attributes.speed_note_count,
-            sliderFactor: attributes.slider_factor,
-            sliderCount: attributes.slider_count,
-            spinnerCount: attributes.spinner_count,
-            starRating: attributes.star_rating,
-            aimDifficultSliderCount: attributes.aim_difficult_slider_count,
-            aimDifficultStrainCount: attributes.aim_difficult_strain_count,
-        } as TAttributes;
-    }
-
-    /**
-     * Converts a difficulty attributes to a database attributes.
-     *
-     * @param attributes The difficulty attributes to convert.
-     * @returns The converted database attributes.
-     */
-    private convertDifficultyAttributes(
-        attributes: TAttributes,
-    ): Omit<TDatabaseAttributes, keyof DatabaseDifficultyAttributesPrimaryKey> {
-        return {
-            ...this.convertDifficultyAttributesInternal(attributes),
-            aim_difficulty: attributes.aimDifficulty,
-            clock_rate: attributes.clockRate,
-            flashlight_difficulty: attributes.flashlightDifficulty,
-            hit_circle_count: attributes.hitCircleCount,
-            max_combo: attributes.maxCombo,
-            mods: this.convertMods(attributes.mods),
-            overall_difficulty: attributes.overallDifficulty,
-            speed_note_count: attributes.speedNoteCount,
-            slider_factor: attributes.sliderFactor,
-            slider_count: attributes.sliderCount,
-            spinner_count: attributes.spinnerCount,
-            star_rating: attributes.starRating,
-            aim_difficult_slider_count: attributes.aimDifficultSliderCount,
-            aim_difficult_strain_count: attributes.aimDifficultStrainCount,
-        } as Omit<
-            TDatabaseAttributes,
-            keyof DatabaseDifficultyAttributesPrimaryKey
-        >;
+    protected removePrimaryKeys<
+        T extends
+            | typeof liveDroidDifficultyAttributesTable.$inferSelect
+            | typeof rebalanceDroidDifficultyAttributesTable.$inferSelect
+            | typeof liveOsuDifficultyAttributesTable.$inferSelect
+            | typeof rebalanceOsuDifficultyAttributesTable.$inferSelect,
+    >(
+        attribute: Partial<
+            Pick<T, Exclude<DifficultyAttributesPrimaryKey, "mods">>
+        >,
+    ) {
+        delete attribute.beatmapId;
+        delete attribute.forceAR;
+        delete attribute.forceCS;
+        delete attribute.forceOD;
+        delete attribute.oldStatistics;
+        delete attribute.speedMultiplier;
     }
 
     /**
      * Gets the difficulty attributes cache of a beatmap.
      *
-     * @param beatmapId The MD5 hash of the beatmap.
+     * @param beatmapId The ID of the beatmap.
      * @returns The difficulty attributes cache, `null` if not found.
      */
     private async getCache(
@@ -302,7 +251,7 @@ export abstract class DifficultyAttributesCacheManager<
         string,
         CacheableDifficultyAttributes<TAttributes>
     > | null> {
-        let cache = this.cache.get(beatmapId);
+        let cache = this.cache.get(beatmapId) ?? null;
 
         if (!cache) {
             // Try to get cache from database.
@@ -312,47 +261,11 @@ export abstract class DifficultyAttributesCacheManager<
                 return null;
             }
 
-            const difficultyAttributesCache = await processorPool
-                .query<TDatabaseAttributes>(
-                    `SELECT * FROM ${this.databaseTable} WHERE beatmap_id = $1;`,
-                    [beatmap.id],
-                )
-                .then((res) =>
-                    res.rows.map<{
-                        readonly name: string;
-                        readonly attributes: CacheableDifficultyAttributes<TAttributes>;
-                    }>((v) => {
-                        const attributes = this.convertDatabaseAttributes(v);
+            cache = await this.getCacheFromDatabase(beatmap.id);
 
-                        return {
-                            name: this.getAttributeName(
-                                attributes.mods,
-                                Boolean(v.old_statistics),
-                                v.speed_multiplier,
-                                v.force_cs,
-                                v.force_ar,
-                                v.force_od,
-                            ),
-                            attributes: {
-                                ...attributes,
-                                mods: ModUtil.modsToOsuString(attributes.mods),
-                            },
-                        };
-                    }),
-                )
-                .catch(() => null);
-
-            if (!difficultyAttributesCache) {
-                return null;
+            if (cache) {
+                this.cache.set(beatmapId, cache);
             }
-
-            cache = new Collection();
-
-            for (const attribute of difficultyAttributesCache) {
-                cache.set(attribute.name, attribute.attributes);
-            }
-
-            this.cache.set(beatmapId, cache);
         }
 
         return cache;

@@ -1,29 +1,25 @@
-import { BeatmapDifficultyCalculator } from "./BeatmapDifficultyCalculator";
 import { Beatmap, Modes } from "@rian8337/osu-base";
 import { ExtendedDroidDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
-import { ExtendedDroidDifficultyAttributes as RebalanceExtendedDroidDifficultyAttributes } from "@rian8337/osu-rebalance-difficulty-calculator";
 import {
     ReplayAnalyzer,
     ThreeFingerChecker,
 } from "@rian8337/osu-droid-replay-analyzer";
+import { ExtendedDroidDifficultyAttributes as RebalanceExtendedDroidDifficultyAttributes } from "@rian8337/osu-rebalance-difficulty-calculator";
+import { DroidPerformanceAttributes } from "../../structures/attributes/DroidPerformanceAttributes";
+import { RebalanceDroidPerformanceAttributes } from "../../structures/attributes/RebalanceDroidPerformanceAttributes";
 import {
     liveDroidDifficultyCache,
     rebalanceDroidDifficultyCache,
 } from "../cache/difficultyAttributesStorage";
-import { DroidPerformanceAttributes } from "../../structures/attributes/DroidPerformanceAttributes";
-import { RebalanceDroidPerformanceAttributes } from "../../structures/attributes/RebalanceDroidPerformanceAttributes";
+import { BeatmapDifficultyCalculator } from "./BeatmapDifficultyCalculator";
 import { PerformanceCalculationParameters } from "./PerformanceCalculationParameters";
-import { ProcessorDatabaseLiveDroidDifficultyAttributes } from "../../database/processor/schema/ProcessorDatabaseLiveDroidDifficultyAttributes";
-import { ProcessorDatabaseRebalanceDroidDifficultyAttributes } from "../../database/processor/schema/ProcessorDatabaseRebalanceDroidDifficultyAttributes";
 
 /**
  * A helper class for calculating osu!droid difficulty and performance of beatmaps or scores.
  */
 export class BeatmapDroidDifficultyCalculator extends BeatmapDifficultyCalculator<
     ExtendedDroidDifficultyAttributes,
-    ProcessorDatabaseLiveDroidDifficultyAttributes,
     RebalanceExtendedDroidDifficultyAttributes,
-    ProcessorDatabaseRebalanceDroidDifficultyAttributes,
     DroidPerformanceAttributes,
     RebalanceDroidPerformanceAttributes
 > {
@@ -48,7 +44,7 @@ export class BeatmapDroidDifficultyCalculator extends BeatmapDifficultyCalculato
         replay: ReplayAnalyzer,
         difficultyAttributes:
             | ExtendedDroidDifficultyAttributes
-            | RebalanceExtendedDroidDifficultyAttributes
+            | RebalanceExtendedDroidDifficultyAttributes,
     ): boolean {
         if (!replay.data) {
             return false;
@@ -84,7 +80,7 @@ export class BeatmapDroidDifficultyCalculator extends BeatmapDifficultyCalculato
         replay: ReplayAnalyzer,
         difficultyAttributes:
             | ExtendedDroidDifficultyAttributes
-            | RebalanceExtendedDroidDifficultyAttributes
+            | RebalanceExtendedDroidDifficultyAttributes,
     ): boolean {
         if (difficultyAttributes.difficultSliders.length === 0) {
             return true;

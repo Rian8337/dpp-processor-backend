@@ -1,0 +1,198 @@
+import {
+    foreignKey,
+    index,
+    integer,
+    pgTable,
+    primaryKey,
+    smallint,
+    text,
+    timestamp,
+    varchar,
+} from "drizzle-orm/pg-core";
+import {
+    baseDroidDifficultyAttributesColumns,
+    baseOsuDifficultyAttributesColumns,
+} from "./columns.helper";
+
+/**
+ * The beatmap table.
+ */
+export const beatmapTable = pgTable(
+    "beatmap",
+    {
+        id: integer().primaryKey(),
+        hash: varchar({ length: 32 }).notNull(),
+        title: text().notNull(),
+        hitLength: integer().notNull(),
+        totalLength: integer().notNull(),
+        maxCombo: integer(),
+        objectCount: integer().notNull(),
+        rankedStatus: smallint().notNull(),
+        lastChecked: timestamp().notNull(),
+    },
+    (table) => [
+        index("beatmap_id_idx").on(table.id),
+        index("beatmap_hash_idx").on(table.hash),
+    ],
+);
+
+/**
+ * The osu!droid live difficulty attributes table.
+ */
+export const liveDroidDifficultyAttributesTable = pgTable(
+    "live_droid_difficulty_attributes",
+    baseDroidDifficultyAttributesColumns,
+    (table) => [
+        primaryKey({
+            columns: [
+                table.beatmapId,
+                table.mods,
+                table.speedMultiplier,
+                table.forceCS,
+                table.forceAR,
+                table.forceOD,
+                table.oldStatistics,
+            ],
+        }),
+        foreignKey({
+            name: "fk_live_droid_difficulty_attributes_beatmap_id",
+            columns: [table.beatmapId],
+            foreignColumns: [beatmapTable.id],
+        }).onDelete("cascade"),
+        index("live_droid_difficulty_attributes_main_idx").on(
+            table.beatmapId,
+            table.mods,
+            table.speedMultiplier,
+            table.forceCS,
+            table.forceAR,
+            table.forceOD,
+        ),
+        index("live_droid_difficulty_attributes_beatmap_idx").on(
+            table.beatmapId,
+        ),
+    ],
+);
+
+/**
+ * The osu!droid rebalance difficulty attributes table.
+ */
+export const rebalanceDroidDifficultyAttributesTable = pgTable(
+    "rebalance_droid_difficulty_attributes",
+    baseDroidDifficultyAttributesColumns,
+    (table) => [
+        primaryKey({
+            columns: [
+                table.beatmapId,
+                table.mods,
+                table.speedMultiplier,
+                table.forceCS,
+                table.forceAR,
+                table.forceOD,
+                table.oldStatistics,
+            ],
+        }),
+        foreignKey({
+            name: "fk_rebalance_droid_difficulty_attributes_beatmap_id",
+            columns: [table.beatmapId],
+            foreignColumns: [beatmapTable.id],
+        }).onDelete("cascade"),
+        index("rebalance_droid_difficulty_attributes_main_idx").on(
+            table.beatmapId,
+            table.mods,
+            table.speedMultiplier,
+            table.forceCS,
+            table.forceAR,
+            table.forceOD,
+        ),
+        index("rebalance_droid_difficulty_attributes_beatmap_idx").on(
+            table.beatmapId,
+        ),
+    ],
+);
+
+/**
+ * The osu!standard live difficulty attributes table.
+ */
+export const liveOsuDifficultyAttributesTable = pgTable(
+    "live_osu_difficulty_attributes",
+    baseOsuDifficultyAttributesColumns,
+    (table) => [
+        primaryKey({
+            columns: [
+                table.beatmapId,
+                table.mods,
+                table.speedMultiplier,
+                table.forceCS,
+                table.forceAR,
+                table.forceOD,
+                table.oldStatistics,
+            ],
+        }),
+        foreignKey({
+            name: "fk_live_osu_difficulty_attributes_beatmap_id",
+            columns: [table.beatmapId],
+            foreignColumns: [beatmapTable.id],
+        }).onDelete("cascade"),
+        index("live_osu_difficulty_attributes_main_idx").on(
+            table.beatmapId,
+            table.mods,
+            table.speedMultiplier,
+            table.forceCS,
+            table.forceAR,
+            table.forceOD,
+        ),
+        index("live_osu_difficulty_attributes_beatmap_idx").on(table.beatmapId),
+    ],
+);
+
+/**
+ * The osu!standard rebalance difficulty attributes table.
+ */
+export const rebalanceOsuDifficultyAttributesTable = pgTable(
+    "rebalance_osu_difficulty_attributes",
+    baseOsuDifficultyAttributesColumns,
+    (table) => [
+        primaryKey({
+            columns: [
+                table.beatmapId,
+                table.mods,
+                table.speedMultiplier,
+                table.forceCS,
+                table.forceAR,
+                table.forceOD,
+                table.oldStatistics,
+            ],
+        }),
+        foreignKey({
+            name: "fk_rebalance_osu_difficulty_attributes_beatmap_id",
+            columns: [table.beatmapId],
+            foreignColumns: [beatmapTable.id],
+        }).onDelete("cascade"),
+        index("rebalance_osu_difficulty_attributes_main_idx").on(
+            table.beatmapId,
+            table.mods,
+            table.speedMultiplier,
+            table.forceCS,
+            table.forceAR,
+            table.forceOD,
+        ),
+        index("rebalance_osu_difficulty_attributes_beatmap_idx").on(
+            table.beatmapId,
+        ),
+    ],
+);
+
+/**
+ * The score calculation table.
+ */
+export const scoreCalculationTable = pgTable("score_calculation", {
+    process_id: integer().primaryKey(),
+    score_id: integer().notNull(),
+});
+
+/**
+ * The total pp calculation table.
+ */
+export const totalPPCalculationTable = pgTable("total_pp_calculation", {
+    id: integer().primaryKey(),
+});

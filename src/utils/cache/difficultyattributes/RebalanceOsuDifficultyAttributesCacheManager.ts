@@ -1,44 +1,86 @@
-import { Modes } from "@rian8337/osu-base";
-import { OsuDifficultyAttributes } from "@rian8337/osu-rebalance-difficulty-calculator";
+import { Collection } from "@discordjs/collection";
+import {
+    CacheableDifficultyAttributes,
+    OsuDifficultyAttributes,
+} from "@rian8337/osu-rebalance-difficulty-calculator";
+import { eq } from "drizzle-orm";
+import { createSelectSchema } from "drizzle-zod";
+import { processorDb } from "../../../database/processor";
+import { rebalanceOsuDifficultyAttributesTable } from "../../../database/processor/schema";
 import { PPCalculationMethod } from "../../../structures/PPCalculationMethod";
-import { ProcessorDatabaseTables } from "../../../database/processor/ProcessorDatabaseTables";
-import { ProcessorDatabaseDifficultyAttributes } from "../../../database/processor/schema/ProcessorDatabaseDifficultyAttributes";
-import { ProcessorDatabaseRebalanceOsuDifficultyAttributes } from "../../../database/processor/schema/ProcessorDatabaseRebalanceOsuDifficultyAttributes";
-import { RawDifficultyAttributes } from "../../../structures/attributes/RawDifficultyAttributes";
 import { OsuDifficultyAttributesCacheManager } from "./OsuDifficultyAttributesCacheManager";
 
 /**
  * A cache manager for osu!standard rebalance calculation difficulty attributes.
  */
-export class RebalanceOsuDifficultyAttributesCacheManager extends OsuDifficultyAttributesCacheManager<
-    OsuDifficultyAttributes,
-    ProcessorDatabaseRebalanceOsuDifficultyAttributes
-> {
+export class RebalanceOsuDifficultyAttributesCacheManager extends OsuDifficultyAttributesCacheManager<OsuDifficultyAttributes> {
     protected override readonly attributeType = PPCalculationMethod.rebalance;
-    protected override readonly mode = Modes.osu;
-    protected override readonly databaseTable =
-        ProcessorDatabaseTables.rebalanceOsuDifficultyAttributes;
 
-    protected override convertDatabaseAttributesInternal(
-        attributes: ProcessorDatabaseRebalanceOsuDifficultyAttributes,
-    ): Omit<OsuDifficultyAttributes, keyof RawDifficultyAttributes> {
-        return {
-            speedDifficulty: attributes.speed_difficulty,
-            approachRate: attributes.approach_rate,
-            speedDifficultStrainCount: attributes.speed_difficult_strain_count,
-        };
+    protected async insertToDatabase(
+        beatmapId: number,
+        oldStatistics: boolean,
+        customSpeedMultiplier: number,
+        forceCS: number | undefined,
+        forceAR: number | undefined,
+        forceOD: number | undefined,
+        attributes: OsuDifficultyAttributes,
+    ): Promise<void> {
+        await processorDb.insert(rebalanceOsuDifficultyAttributesTable).values({
+            ...attributes,
+            beatmapId,
+            oldStatistics,
+            speedMultiplier: customSpeedMultiplier,
+            forceCS: forceCS ?? -1,
+            forceAR: forceAR ?? -1,
+            forceOD: forceOD ?? -1,
+            mods: this.convertMods(attributes.mods),
+        });
     }
 
-    protected override convertDifficultyAttributesInternal(
-        attributes: OsuDifficultyAttributes,
-    ): Omit<
-        ProcessorDatabaseRebalanceOsuDifficultyAttributes,
-        keyof ProcessorDatabaseDifficultyAttributes
-    > {
-        return {
-            speed_difficulty: attributes.speedDifficulty,
-            approach_rate: attributes.approachRate,
-            speed_difficult_strain_count: attributes.speedDifficultStrainCount,
-        };
+    protected async getCacheFromDatabase(
+        beatmapId: number,
+    ): Promise<Collection<
+        string,
+        CacheableDifficultyAttributes<OsuDifficultyAttributes>
+    > | null> {
+        const schema = createSelectSchema(
+            rebalanceOsuDifficultyAttributesTable,
+        );
+
+        const result = await processorDb
+            .select()
+            .from(rebalanceOsuDifficultyAttributesTable)
+            .where(
+                eq(rebalanceOsuDifficultyAttributesTable.beatmapId, beatmapId),
+            );
+
+        if (result.length === 0) {
+            return null;
+        }
+
+        const cache = new Collection<
+            string,
+            CacheableDifficultyAttributes<OsuDifficultyAttributes>
+        >();
+
+        for (const row of result) {
+            const parsed = schema.parse(row);
+
+            this.removePrimaryKeys(parsed);
+
+            cache.set(
+                this.getAttributeName(
+                    this.convertDatabaseMods(parsed.mods),
+                    parsed.oldStatistics,
+                    parsed.speedMultiplier,
+                    parsed.forceCS,
+                    parsed.forceAR,
+                    parsed.forceOD,
+                ),
+                parsed,
+            );
+        }
+
+        return cache;
     }
 }

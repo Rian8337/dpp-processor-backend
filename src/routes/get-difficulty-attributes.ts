@@ -1,13 +1,12 @@
 import { Accuracy, MathUtils, ModUtil, Modes } from "@rian8337/osu-base";
+import { CacheableDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
 import { Router } from "express";
+import { RawDifficultyAttributes } from "../structures/attributes/RawDifficultyAttributes";
+import { PPCalculationMethod } from "../structures/PPCalculationMethod";
 import {
     getBeatmap,
     updateBeatmapMaxCombo,
 } from "../utils/cache/beatmapStorage";
-import { PPCalculationMethod } from "../structures/PPCalculationMethod";
-import { RawDifficultyAttributes } from "../structures/attributes/RawDifficultyAttributes";
-import { BeatmapDroidDifficultyCalculator } from "../utils/calculator/BeatmapDroidDifficultyCalculator";
-import { BeatmapOsuDifficultyCalculator } from "../utils/calculator/BeatmapOsuDifficultyCalculator";
 import { DifficultyAttributesCacheManager } from "../utils/cache/difficultyattributes/DifficultyAttributesCacheManager";
 import {
     liveDroidDifficultyCache,
@@ -15,9 +14,9 @@ import {
     rebalanceDroidDifficultyCache,
     rebalanceOsuDifficultyCache,
 } from "../utils/cache/difficultyAttributesStorage";
+import { BeatmapDroidDifficultyCalculator } from "../utils/calculator/BeatmapDroidDifficultyCalculator";
+import { BeatmapOsuDifficultyCalculator } from "../utils/calculator/BeatmapOsuDifficultyCalculator";
 import { PerformanceCalculationParameters } from "../utils/calculator/PerformanceCalculationParameters";
-import { CacheableDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
-import { ProcessorDatabaseDifficultyAttributes } from "../database/processor/schema/ProcessorDatabaseDifficultyAttributes";
 import { validateGETInternalKey } from "../utils/util";
 
 const router = Router();
@@ -118,10 +117,7 @@ router.get<
 
     let difficultyAttributes: CacheableDifficultyAttributes<RawDifficultyAttributes> | null;
     let strainChart: Buffer | null = null;
-    let difficultyCacheManager: DifficultyAttributesCacheManager<
-        RawDifficultyAttributes,
-        ProcessorDatabaseDifficultyAttributes
-    >;
+    let difficultyCacheManager: DifficultyAttributesCacheManager<RawDifficultyAttributes>;
     let difficultyCalculator:
         | BeatmapDroidDifficultyCalculator
         | BeatmapOsuDifficultyCalculator;
@@ -129,8 +125,8 @@ router.get<
     const calculationParams = new PerformanceCalculationParameters({
         mods: mods,
         customSpeedMultiplier: customSpeedMultiplier,
-        combo: beatmap.max_combo ?? undefined,
-        accuracy: new Accuracy({ nobjects: beatmap.object_count }),
+        combo: beatmap.maxCombo ?? undefined,
+        accuracy: new Accuracy({ nobjects: beatmap.objectCount }),
         forceCS: forceCS,
         forceAR: forceAR,
         forceOD: forceOD,
@@ -215,7 +211,7 @@ router.get<
         strainChart = calculationResult.strainChart;
     }
 
-    if (beatmap.max_combo === null) {
+    if (beatmap.maxCombo === null) {
         // Update beatmap max combo based on calculation result.
         await updateBeatmapMaxCombo(beatmap.id, difficultyAttributes.maxCombo);
     }

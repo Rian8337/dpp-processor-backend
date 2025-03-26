@@ -1,8 +1,6 @@
-import { OfficialDatabaseScore } from "./OfficialDatabaseScore";
+import { bestScoresTable } from "../schema";
 
 /**
  * Represents an osu!droid score that is considered the best performing score.
  */
-export interface OfficialDatabaseBestScore extends OfficialDatabaseScore {
-    readonly pp: number;
-}
+export type OfficialDatabaseBestScore = typeof bestScoresTable.$inferSelect;

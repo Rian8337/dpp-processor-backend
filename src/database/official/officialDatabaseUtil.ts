@@ -1,16 +1,14 @@
-import { Player, Score } from "@rian8337/osu-droid-utilities";
-import { OfficialDatabaseUser } from "./schema/OfficialDatabaseUser";
-import { officialPool } from "./OfficialDatabasePool";
-import {
-    constructOfficialDatabaseTableName,
-    OfficialDatabaseTables,
-} from "./OfficialDatabaseTables";
-import { ResultSetHeader, RowDataPacket } from "mysql2";
-import { OfficialDatabaseScore } from "./schema/OfficialDatabaseScore";
-import { isDebug } from "../../utils/util";
-import { OfficialDatabaseBestScore } from "./schema/OfficialDatabaseBestScore";
 import { ModUtil } from "@rian8337/osu-base";
+import { Player, Score } from "@rian8337/osu-droid-utilities";
+import { and, eq, gt } from "drizzle-orm";
+import { SelectedFields } from "drizzle-orm/mysql-core";
+import { officialDb } from ".";
 import { OfficialDatabaseScoreMods } from "../../structures/OfficialDatabaseScoreMods";
+import { isDebug } from "../../utils/util";
+import { bestScoresTable, scoresTable, usersTable } from "./schema";
+import { OfficialDatabaseBestScore } from "./schema/OfficialDatabaseBestScore";
+import { OfficialDatabaseScore } from "./schema/OfficialDatabaseScore";
+import { OfficialDatabaseUser } from "./schema/OfficialDatabaseUser";
 
 /**
  * Gets a player's information from their username.
@@ -31,16 +29,22 @@ export async function getPlayerFromUsername<
         return Player.getInformation(username);
     }
 
-    const playerQuery = await officialPool.query<RowDataPacket[]>(
-        `SELECT ${
-            databaseColumns.join() || "*"
-        } FROM ${constructOfficialDatabaseTableName(
-            OfficialDatabaseTables.user,
-        )} WHERE username = ?;`,
-        [username],
-    );
+    const columns: SelectedFields = {};
 
-    return (playerQuery[0] as OfficialDatabaseUser[]).at(0) ?? null;
+    for (const column of databaseColumns) {
+        columns[column] = usersTable[column];
+    }
+
+    return officialDb
+        .select(columns)
+        .from(usersTable)
+        .where(eq(usersTable.username, username))
+        .then((res) => res.at(0) as Pick<OfficialDatabaseUser, K> | null)
+        .catch((e: unknown) => {
+            console.error(e);
+
+            return null;
+        });
 }
 
 /**
@@ -85,16 +89,28 @@ export async function getOfficialScore<K extends keyof OfficialDatabaseScore>(
         return forceDatabaseQuery ? null : Score.getFromHash(uid, hash);
     }
 
-    const scoreQuery = await officialPool.query<RowDataPacket[]>(
-        `SELECT ${
-            databaseColumns.join() || "*"
-        } FROM ${constructOfficialDatabaseTableName(
-            OfficialDatabaseTables.score,
-        )} WHERE uid = ? AND hash = ? AND score > 0;`,
-        [uid, hash],
-    );
+    const columns: SelectedFields = {};
 
-    return (scoreQuery[0] as OfficialDatabaseScore[]).at(0) ?? null;
+    for (const column of databaseColumns) {
+        columns[column] = scoresTable[column];
+    }
+
+    return officialDb
+        .select(columns)
+        .from(scoresTable)
+        .where(
+            and(
+                eq(scoresTable.uid, uid),
+                eq(scoresTable.hash, hash),
+                gt(scoresTable.score, 0),
+            ),
+        )
+        .then((res) => res.at(0) as Pick<OfficialDatabaseScore, K> | null)
+        .catch((e: unknown) => {
+            console.error(e);
+
+            return null;
+        });
 }
 
 /**
@@ -117,16 +133,24 @@ export async function getOfficialBestScore<
         return null;
     }
 
-    const scoreQuery = await officialPool.query<RowDataPacket[]>(
-        `SELECT ${
-            databaseColumns.join() || "*"
-        } FROM ${constructOfficialDatabaseTableName(
-            OfficialDatabaseTables.bestScore,
-        )} WHERE uid = ? AND hash = ?;`,
-        [uid, hash],
-    );
+    const columns: SelectedFields = {};
 
-    return (scoreQuery[0] as OfficialDatabaseBestScore[]).at(0) ?? null;
+    for (const column of databaseColumns) {
+        columns[column] = bestScoresTable[column];
+    }
+
+    return officialDb
+        .select(columns)
+        .from(bestScoresTable)
+        .where(
+            and(eq(bestScoresTable.uid, uid), eq(bestScoresTable.hash, hash)),
+        )
+        .then((res) => res.at(0) as Pick<OfficialDatabaseBestScore, K> | null)
+        .catch((e: unknown) => {
+            console.error(e);
+
+            return null;
+        });
 }
 
 /**
@@ -140,13 +164,10 @@ export function updateOfficialScorePPValue(
     scoreId: number,
     pp: number | null,
 ): Promise<boolean> {
-    return officialPool
-        .query<ResultSetHeader>(
-            `UPDATE ${constructOfficialDatabaseTableName(
-                OfficialDatabaseTables.score,
-            )} SET pp = ? WHERE id = ?;`,
-            [pp, scoreId],
-        )
+    return officialDb
+        .update(scoresTable)
+        .set({ pp })
+        .where(eq(scoresTable.id, scoreId))
         .then((res) => res[0].affectedRows === 1)
         .catch((e: unknown) => {
             console.error(e);
@@ -166,11 +187,10 @@ export function updateBestScorePPValue(
     scoreId: number,
     pp: number,
 ): Promise<boolean> {
-    return officialPool
-        .query<ResultSetHeader>(
-            `UPDATE ${constructOfficialDatabaseTableName(OfficialDatabaseTables.bestScore)} SET pp = ? WHERE id = ?;`,
-            [pp, scoreId],
-        )
+    return officialDb
+        .update(bestScoresTable)
+        .set({ pp })
+        .where(eq(bestScoresTable.id, scoreId))
         .then((res) => res[0].affectedRows === 1)
         .catch((e: unknown) => {
             console.error(e);
@@ -188,29 +208,17 @@ export function updateBestScorePPValue(
 export function insertBestScore(
     score: OfficialDatabaseBestScore,
 ): Promise<boolean> {
-    const scoreKeys = Object.keys(score);
-
-    return officialPool
-        .query<ResultSetHeader>(
-            `INSERT INTO ${constructOfficialDatabaseTableName(OfficialDatabaseTables.bestScore)} (${scoreKeys.join()}) VALUES (${scoreKeys.map(() => "?").join()})
-            ON DUPLICATE KEY UPDATE
-            filename = VALUES(filename),
-            mode = VALUES(mode),
-            score = VALUES(score),
-            combo = VALUES(combo),
-            mark = VALUES(mark),
-            geki = VALUES(geki),
-            perfect = VALUES(perfect),
-            katu = VALUES(katu),
-            good = VALUES(good),
-            bad = VALUES(bad),
-            miss = VALUES(miss),
-            accuracy = VALUES(accuracy),
-            date = VALUES(date),
-            pp = VALUES(pp);`,
-            Object.values(score),
-        )
-        .then(() => true)
+    return officialDb
+        .insert(bestScoresTable)
+        .values(score)
+        .onDuplicateKeyUpdate({
+            set: {
+                ...score,
+                id: undefined,
+                uid: undefined,
+            },
+        })
+        .then((res) => res[0].affectedRows === 1)
         .catch((e: unknown) => {
             console.error(e);
 

@@ -1,11 +1,8 @@
-import { Collection } from "@discordjs/collection";
+import { ExtendedDroidDifficultyAttributes } from "@rian8337/osu-rebalance-difficulty-calculator";
 import {
-    CacheableDifficultyAttributes,
-    ExtendedDroidDifficultyAttributes,
-} from "@rian8337/osu-rebalance-difficulty-calculator";
-import { eq } from "drizzle-orm";
-import { createSelectSchema } from "drizzle-zod";
-import { processorDb } from "../../../database/processor";
+    baseDifficultyAttributesColumns,
+    DifficultyAttributesPrimaryKey,
+} from "../../../database/processor/columns.helper";
 import { rebalanceDroidDifficultyAttributesTable } from "../../../database/processor/schema";
 import { PPCalculationMethod } from "../../../structures/PPCalculationMethod";
 import { DroidDifficultyAttributesCacheManager } from "./DroidDifficultyAttributesCacheManager";
@@ -16,93 +13,49 @@ import { DroidDifficultyAttributesCacheManager } from "./DroidDifficultyAttribut
 export class RebalanceDroidDifficultyAttributesCacheManager extends DroidDifficultyAttributesCacheManager<ExtendedDroidDifficultyAttributes> {
     protected override readonly attributeType = PPCalculationMethod.rebalance;
 
-    protected override async insertToDatabase(
-        beatmapId: number,
-        oldStatistics: boolean,
-        customSpeedMultiplier: number,
-        forceCS: number | undefined,
-        forceAR: number | undefined,
-        forceOD: number | undefined,
-        attributes: ExtendedDroidDifficultyAttributes,
-    ): Promise<void> {
-        await processorDb
-            .insert(rebalanceDroidDifficultyAttributesTable)
-            .values({
-                ...attributes,
-                beatmapId,
-                oldStatistics,
-                speedMultiplier: customSpeedMultiplier,
-                forceCS: forceCS ?? -1,
-                forceAR: forceAR ?? -1,
-                forceOD: forceOD ?? -1,
-                mods: this.convertMods(attributes.mods),
-                difficultSliders: this.convertDifficultSlidersToDatabase(
-                    attributes.difficultSliders,
+    protected override readonly databaseTable =
+        rebalanceDroidDifficultyAttributesTable;
+
+    protected convertDatabaseAttributes(
+        attributes: typeof this.databaseTable.$inferSelect,
+    ): Omit<
+        ExtendedDroidDifficultyAttributes,
+        keyof typeof baseDifficultyAttributesColumns
+    > {
+        return {
+            ...attributes,
+            mode: "rebalance",
+            difficultSliders: this.convertDifficultSlidersFromDatabase(
+                attributes.difficultSliders,
+            ),
+            possibleThreeFingeredSections:
+                this.convertHighStrainSectionsFromDatabase(
+                    attributes.possibleThreeFingeredSections,
                 ),
-                possibleThreeFingeredSections:
-                    this.convertHighStrainSectionsToDatabase(
-                        attributes.possibleThreeFingeredSections,
-                    ),
-            });
+        };
     }
 
-    protected override async getCacheFromDatabase(
-        beatmapId: number,
-    ): Promise<Collection<
-        string,
-        CacheableDifficultyAttributes<ExtendedDroidDifficultyAttributes>
-    > | null> {
-        const schema = createSelectSchema(
-            rebalanceDroidDifficultyAttributesTable,
-        );
-
-        const result = await processorDb
-            .select()
-            .from(rebalanceDroidDifficultyAttributesTable)
-            .where(
-                eq(
-                    rebalanceDroidDifficultyAttributesTable.beatmapId,
-                    beatmapId,
+    protected convertDifficultyAttributes(
+        attributes: ExtendedDroidDifficultyAttributes,
+    ): Omit<
+        typeof this.databaseTable.$inferSelect,
+        DifficultyAttributesPrimaryKey
+    > {
+        const databaseAttributes = {
+            ...attributes,
+            difficultSliders: this.convertDifficultSlidersToDatabase(
+                attributes.difficultSliders,
+            ),
+            possibleThreeFingeredSections:
+                this.convertHighStrainSectionsToDatabase(
+                    attributes.possibleThreeFingeredSections,
                 ),
-            );
+            // Overwrite mode to undefined to prevent it from being inserted into the database.
+            mode: undefined,
+        };
 
-        if (result.length === 0) {
-            return null;
-        }
+        delete databaseAttributes.mode;
 
-        const cache = new Collection<
-            string,
-            CacheableDifficultyAttributes<ExtendedDroidDifficultyAttributes>
-        >();
-
-        for (const row of result) {
-            const parsed = schema.parse(row);
-
-            this.removePrimaryKeys(parsed);
-
-            cache.set(
-                this.getAttributeName(
-                    this.convertDatabaseMods(parsed.mods),
-                    parsed.oldStatistics,
-                    parsed.speedMultiplier,
-                    parsed.forceCS,
-                    parsed.forceAR,
-                    parsed.forceOD,
-                ),
-                {
-                    ...parsed,
-                    difficultSliders: this.convertDifficultSlidersFromDatabase(
-                        parsed.difficultSliders,
-                    ),
-                    mode: "rebalance",
-                    possibleThreeFingeredSections:
-                        this.convertHighStrainSectionsFromDatabase(
-                            parsed.possibleThreeFingeredSections,
-                        ),
-                },
-            );
-        }
-
-        return cache;
+        return databaseAttributes;
     }
 }

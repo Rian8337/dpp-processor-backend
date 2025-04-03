@@ -1,3 +1,4 @@
+import { Mod, Modes, ModUtil } from "@rian8337/osu-base";
 import {
     OsuDifficultyAttributes,
     OsuDifficultyCalculator,
@@ -6,9 +7,8 @@ import {
     OsuDifficultyAttributes as RebalanceOsuDifficultyAttributes,
     OsuDifficultyCalculator as RebalanceOsuDifficultyCalculator,
 } from "@rian8337/osu-rebalance-difficulty-calculator";
-import { DifficultyAttributesCacheManager } from "./DifficultyAttributesCacheManager";
-import { Mod, Modes, ModUtil } from "@rian8337/osu-base";
 import { PPCalculationMethod } from "../../../structures/PPCalculationMethod";
+import { DifficultyAttributesCacheManager } from "./DifficultyAttributesCacheManager";
 
 /**
  * A base cache manager for osu!standard difficulty attributes.

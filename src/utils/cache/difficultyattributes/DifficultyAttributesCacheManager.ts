@@ -10,7 +10,13 @@ import {
     rebalanceDroidDifficultyAttributesTable,
     rebalanceOsuDifficultyAttributesTable,
 } from "../../../database/processor/schema";
-import { DifficultyAttributesPrimaryKey } from "../../../database/processor/columns.helper";
+import {
+    baseDifficultyAttributesColumns,
+    DifficultyAttributesPrimaryKey,
+} from "../../../database/processor/columns.helper";
+import { processorDb } from "../../../database/processor";
+import { eq } from "drizzle-orm";
+import { createSelectSchema } from "drizzle-zod";
 
 /**
  * A cache manager for difficulty attributes.
@@ -27,6 +33,15 @@ export abstract class DifficultyAttributesCacheManager<
      * The gamemode at which the difficulty attribute is stored for.
      */
     protected abstract readonly mode: Modes;
+
+    /**
+     * The database table that stores the difficulty attributes.
+     */
+    protected abstract readonly databaseTable:
+        | typeof liveDroidDifficultyAttributesTable
+        | typeof rebalanceDroidDifficultyAttributesTable
+        | typeof liveOsuDifficultyAttributesTable
+        | typeof rebalanceOsuDifficultyAttributesTable;
 
     /**
      * The difficulty attributes cache.
@@ -108,15 +123,21 @@ export abstract class DifficultyAttributesCacheManager<
 
         this.cache.set(beatmapId, cache);
 
-        await this.insertToDatabase(
-            beatmapId,
-            oldStatistics,
-            customSpeedMultiplier,
-            forceCS,
-            forceAR,
-            forceOD,
-            difficultyAttributes,
-        );
+        // Also insert attributes to database.
+        const databaseAttributes = {
+            ...this.convertDifficultyAttributes(difficultyAttributes),
+            ...this.constructAttributePrimaryKeys(
+                beatmapId,
+                difficultyAttributes.mods,
+                oldStatistics,
+                customSpeedMultiplier,
+                forceCS,
+                forceAR,
+                forceOD,
+            ),
+        } as typeof this.databaseTable.$inferInsert;
+
+        await processorDb.insert(this.databaseTable).values(databaseAttributes);
 
         return cacheableAttributes;
     }
@@ -174,40 +195,6 @@ export abstract class DifficultyAttributesCacheManager<
     }
 
     /**
-     * Inserts an attribute to the database.
-     *
-     * @param beatmapId The ID of the beatmap.
-     * @param oldStatistics Whether the difficulty attributes uses old statistics (pre-1.6.8 pre-release).
-     * @param customSpeedMultiplier The custom speed multiplier that was used to generate the attributes.
-     * @param forceCS The force CS that was used to generate the attributes.
-     * @param forceAR The force AR that was used to generate the attributes.
-     * @param forceOD The force OD that was used to generate the attributes.
-     * @param attributes The attributes to insert.
-     */
-    protected abstract insertToDatabase(
-        beatmapId: number,
-        oldStatistics: boolean,
-        customSpeedMultiplier: number,
-        forceCS: number | undefined,
-        forceAR: number | undefined,
-        forceOD: number | undefined,
-        attributes: TAttributes,
-    ): Promise<void>;
-
-    /**
-     * Gets the difficulty attributes cache of a beatmap from the database.
-     *
-     * @param beatmapId The MD5 hash of the beatmap.
-     * @returns The difficulty attributes cache, `null` if not found.
-     */
-    protected abstract getCacheFromDatabase(
-        beatmapId: number,
-    ): Promise<Collection<
-        string,
-        CacheableDifficultyAttributes<TAttributes>
-    > | null>;
-
-    /**
      * Converts an array of {@link Mod}s to a string that will be stored in the database.
      *
      * @param mods The mods to convert.
@@ -216,19 +203,84 @@ export abstract class DifficultyAttributesCacheManager<
     protected abstract convertMods(mods: Mod[]): string;
 
     /**
+     * Converts mods received from the database to a {@link Mod} array.
+     *
+     * @param mods The mods from the database.
+     * @returns The converted mods.
+     */
+    protected abstract convertDatabaseMods(mods: string): Mod[];
+
+    /**
+     * Converts a database attributes to a difficulty attributes, but only accounts for the attributes that
+     * are specific to the gamemode.
+     *
+     * @param attributes The database attributes to convert.
+     * @returns The converted difficulty attributes.
+     */
+    protected abstract convertDatabaseAttributes(
+        attributes: typeof this.databaseTable.$inferSelect,
+    ): Omit<TAttributes, keyof typeof baseDifficultyAttributesColumns>;
+
+    /**
+     * Converts difficulty attributes to database attributes, but only accounts for the attributes that are
+     * specific to the gamemode.
+     *
+     * @param attributes The difficulty attributes to convert.
+     * @returns The converted database attributes.
+     */
+    protected abstract convertDifficultyAttributes(
+        attributes: TAttributes,
+    ): Omit<
+        typeof this.databaseTable.$inferSelect,
+        DifficultyAttributesPrimaryKey
+    >;
+
+    /**
+     * Constructs the primary keys for difficulty attributes.
+     *
+     * @param beatmapId The ID of the beatmap.
+     * @param mods The mods that were used to generate the attributes.
+     * @param oldStatistics Whether the difficulty attributes uses old statistics (pre-1.6.8 pre-release).
+     * @param customSpeedMultiplier The custom speed multiplier that was used to generate the attributes.
+     * @param forceCS The force CS that was used to generate the attributes.
+     * @param forceAR The force AR that was used to generate the attributes.
+     * @param forceOD The force OD that was used to generate the attributes.
+     * @returns The primary keys.
+     */
+    protected constructAttributePrimaryKeys(
+        beatmapId: number,
+        mods: Mod[],
+        oldStatistics: boolean,
+        customSpeedMultiplier: number,
+        forceCS?: number,
+        forceAR?: number,
+        forceOD?: number,
+    ): Pick<
+        typeof this.databaseTable.$inferSelect,
+        DifficultyAttributesPrimaryKey
+    > {
+        return {
+            beatmapId,
+            mods: this.convertMods(mods),
+            oldStatistics,
+            speedMultiplier: customSpeedMultiplier,
+            forceCS: forceCS ?? -1,
+            forceAR: forceAR ?? -1,
+            forceOD: forceOD ?? -1,
+        };
+    }
+
+    /**
      * Removes the primary keys from difficulty attributes that were retrieved from the database, except mods.
      *
      * @param attributes The attributes to remove the primary keys from.
      */
-    protected removePrimaryKeys<
-        T extends
-            | typeof liveDroidDifficultyAttributesTable.$inferSelect
-            | typeof rebalanceDroidDifficultyAttributesTable.$inferSelect
-            | typeof liveOsuDifficultyAttributesTable.$inferSelect
-            | typeof rebalanceOsuDifficultyAttributesTable.$inferSelect,
-    >(
+    protected removePrimaryKeys(
         attribute: Partial<
-            Pick<T, Exclude<DifficultyAttributesPrimaryKey, "mods">>
+            Pick<
+                typeof this.databaseTable.$inferSelect,
+                Exclude<DifficultyAttributesPrimaryKey, "mods">
+            >
         >,
     ) {
         delete attribute.beatmapId;
@@ -261,11 +313,39 @@ export abstract class DifficultyAttributesCacheManager<
                 return null;
             }
 
-            cache = await this.getCacheFromDatabase(beatmap.id);
+            const schema = createSelectSchema(this.databaseTable);
 
-            if (cache) {
-                this.cache.set(beatmapId, cache);
+            const result = await processorDb
+                .select()
+                .from(this.databaseTable)
+                .where(eq(this.databaseTable.beatmapId, beatmapId));
+
+            cache = new Collection();
+
+            for (const row of result) {
+                const parsed = schema.parse(
+                    row,
+                ) as typeof this.databaseTable.$inferSelect;
+
+                this.removePrimaryKeys(parsed);
+
+                cache.set(
+                    this.getAttributeName(
+                        this.convertDatabaseMods(parsed.mods),
+                        parsed.oldStatistics,
+                        parsed.speedMultiplier,
+                        parsed.forceCS,
+                        parsed.forceAR,
+                        parsed.forceOD,
+                    ),
+                    Object.assign(
+                        parsed,
+                        this.convertDatabaseAttributes(parsed),
+                    ) as CacheableDifficultyAttributes<TAttributes>,
+                );
             }
+
+            this.cache.set(beatmapId, cache);
         }
 
         return cache;

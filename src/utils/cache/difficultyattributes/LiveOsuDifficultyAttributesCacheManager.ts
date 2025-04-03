@@ -6,6 +6,10 @@ import {
 import { eq } from "drizzle-orm";
 import { createSelectSchema } from "drizzle-zod";
 import { processorDb } from "../../../database/processor";
+import {
+    baseDifficultyAttributesColumns,
+    DifficultyAttributesPrimaryKey,
+} from "../../../database/processor/columns.helper";
 import { liveOsuDifficultyAttributesTable } from "../../../database/processor/schema";
 import { PPCalculationMethod } from "../../../structures/PPCalculationMethod";
 import { OsuDifficultyAttributesCacheManager } from "./OsuDifficultyAttributesCacheManager";
@@ -15,6 +19,27 @@ import { OsuDifficultyAttributesCacheManager } from "./OsuDifficultyAttributesCa
  */
 export class LiveOsuDifficultyAttributesCacheManager extends OsuDifficultyAttributesCacheManager<OsuDifficultyAttributes> {
     protected override readonly attributeType = PPCalculationMethod.live;
+
+    protected override readonly databaseTable =
+        liveOsuDifficultyAttributesTable;
+
+    protected convertDatabaseAttributes(
+        attributes: typeof this.databaseTable.$inferSelect,
+    ): Omit<
+        OsuDifficultyAttributes,
+        keyof typeof baseDifficultyAttributesColumns
+    > {
+        return attributes;
+    }
+
+    protected convertDifficultyAttributes(
+        attributes: OsuDifficultyAttributes,
+    ): Omit<
+        typeof this.databaseTable.$inferSelect,
+        DifficultyAttributesPrimaryKey
+    > {
+        return attributes;
+    }
 
     protected async insertToDatabase(
         beatmapId: number,
@@ -27,13 +52,15 @@ export class LiveOsuDifficultyAttributesCacheManager extends OsuDifficultyAttrib
     ): Promise<void> {
         await processorDb.insert(liveOsuDifficultyAttributesTable).values({
             ...attributes,
-            beatmapId,
-            oldStatistics,
-            speedMultiplier: customSpeedMultiplier,
-            forceCS: forceCS ?? -1,
-            forceAR: forceAR ?? -1,
-            forceOD: forceOD ?? -1,
-            mods: this.convertMods(attributes.mods),
+            ...this.constructAttributePrimaryKeys(
+                beatmapId,
+                attributes.mods,
+                oldStatistics,
+                customSpeedMultiplier,
+                forceCS,
+                forceAR,
+                forceOD,
+            ),
         });
     }
 

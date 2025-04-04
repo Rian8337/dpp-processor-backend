@@ -1,15 +1,15 @@
-import { Accuracy, Mod, ModUtil } from "@rian8337/osu-base";
-import {
-    ReplayAnalyzer,
-    SliderCheeseInformation,
-} from "@rian8337/osu-droid-replay-analyzer";
-import { RawDifficultyAttributes } from "../../structures/attributes/RawDifficultyAttributes";
-import { CloneablePerformanceCalculationParameters } from "./CloneablePerformanceCalculationParameters";
+import { Accuracy, ModMap, ModUtil } from "@rian8337/osu-base";
 import {
     CacheableDifficultyAttributes,
     PerformanceCalculationOptions,
 } from "@rian8337/osu-difficulty-calculator";
+import {
+    ReplayAnalyzer,
+    SliderCheeseInformation,
+} from "@rian8337/osu-droid-replay-analyzer";
 import { PerformanceCalculationOptions as RebalancePerformanceCalculationOptions } from "@rian8337/osu-rebalance-difficulty-calculator";
+import { RawDifficultyAttributes } from "../../structures/attributes/RawDifficultyAttributes";
+import { CloneablePerformanceCalculationParameters } from "./CloneablePerformanceCalculationParameters";
 import { DifficultyCalculationParameters } from "./DifficultyCalculationParameters";
 
 /**
@@ -19,7 +19,7 @@ export interface PerformanceCalculationParametersInit {
     /**
      * The mods to calculate for.
      */
-    mods?: Mod[];
+    mods?: ModMap;
 
     /**
      * The combo achieved. Defaults to the beatmap's maximum combo.

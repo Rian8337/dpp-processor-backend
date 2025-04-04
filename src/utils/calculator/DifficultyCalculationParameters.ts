@@ -1,6 +1,6 @@
-import { Mod, ModUtil } from "@rian8337/osu-base";
-import { CloneableDifficultyCalculationParameters } from "./CloneableDifficultyCalculationParameters";
+import { ModMap } from "@rian8337/osu-base";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
+import { CloneableDifficultyCalculationParameters } from "./CloneableDifficultyCalculationParameters";
 
 /**
  * Represents a parameter to alter difficulty calculation result.
@@ -9,9 +9,9 @@ export class DifficultyCalculationParameters {
     /**
      * The mods to calculate for.
      */
-    mods: Mod[];
+    mods: ModMap;
 
-    constructor(mods: Mod[] = []) {
+    constructor(mods = new ModMap()) {
         this.mods = mods;
     }
 
@@ -27,7 +27,7 @@ export class DifficultyCalculationParameters {
             return;
         }
 
-        this.mods = data.convertedMods.slice();
+        this.mods = data.convertedMods;
     }
 
     /**
@@ -35,7 +35,7 @@ export class DifficultyCalculationParameters {
      */
     toCloneable(): CloneableDifficultyCalculationParameters {
         return {
-            mods: ModUtil.serializeMods(this.mods),
+            mods: this.mods.serializeMods(),
         };
     }
 }

@@ -20,7 +20,6 @@ import {
     ModSmallCircle,
     ModSuddenDeath,
     ModTraceable,
-    ModUtil,
 } from "@rian8337/osu-base";
 import {
     IDroidDifficultyAttributes,
@@ -100,7 +99,7 @@ export async function submitReplay(
             date: new Date(),
             score: data.score,
             rank: data.rank,
-            mods: ModUtil.serializeMods(data.convertedMods),
+            mods: data.convertedMods.serializeMods(),
             hash: beatmap?.hash ?? data.hash,
             scoreId: replay.scoreID,
         };
@@ -110,9 +109,7 @@ export async function submitReplay(
                 params: droidAttribs.params.toCloneable(),
                 difficulty: {
                     ...droidAttribs.difficultyAttributes,
-                    mods: ModUtil.serializeMods(
-                        droidAttribs.difficultyAttributes.mods,
-                    ),
+                    mods: droidAttribs.difficultyAttributes.mods.serializeMods(),
                 },
                 performance: {
                     total: droidAttribs.result.total,
@@ -149,9 +146,7 @@ export async function submitReplay(
                 params: osuAttribs.params.toCloneable(),
                 difficulty: {
                     ...osuAttribs.difficultyAttributes,
-                    mods: ModUtil.serializeMods(
-                        osuAttribs.difficultyAttributes.mods,
-                    ),
+                    mods: osuAttribs.difficultyAttributes.mods.serializeMods(),
                 },
                 performance: {
                     total: osuAttribs.result.total,
@@ -356,17 +351,9 @@ export function constructModString(data: ReplayV3Data): string {
         modString += "|";
         let extraModString = "";
 
-        const flashlight = data.convertedMods.find(
-            (m) => m instanceof ModFlashlight,
-        );
-
-        const difficultyAdjust = data.convertedMods.find(
-            (m) => m instanceof ModDifficultyAdjust,
-        );
-
-        const customSpeed = data.convertedMods.find(
-            (m) => m instanceof ModCustomSpeed,
-        );
+        const flashlight = data.convertedMods.get(ModFlashlight);
+        const difficultyAdjust = data.convertedMods.get(ModDifficultyAdjust);
+        const customSpeed = data.convertedMods.get(ModCustomSpeed);
 
         if (customSpeed) {
             extraModString += `x${customSpeed.trackRateMultiplier.toFixed(2)}|`;

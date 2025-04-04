@@ -1,11 +1,11 @@
-import "dotenv/config";
 import {
     DroidLegacyModConverter,
-    Mod,
     ModCustomSpeed,
     ModDifficultyAdjust,
+    ModMap,
     ModUtil,
 } from "@rian8337/osu-base";
+import "dotenv/config";
 import { processorPool } from "../..";
 
 void (async () => {
@@ -32,14 +32,14 @@ void (async () => {
             .then((res) => res.rows);
 
         for (const entry of entries) {
-            let newMods: Mod[];
+            let newMods: ModMap;
 
             switch (table) {
                 case "live_droid_difficulty_attributes":
                 case "rebalance_droid_difficulty_attributes":
                     newMods =
                         entry.mods === "-"
-                            ? []
+                            ? new ModMap()
                             : DroidLegacyModConverter.convert(entry.mods);
                     break;
 
@@ -50,7 +50,7 @@ void (async () => {
             }
 
             if (entry.speed_multiplier !== 1) {
-                newMods.push(new ModCustomSpeed(entry.speed_multiplier));
+                newMods.set(new ModCustomSpeed(entry.speed_multiplier));
             }
 
             if (
@@ -58,7 +58,7 @@ void (async () => {
                 entry.force_ar !== -1 ||
                 entry.force_od !== -1
             ) {
-                newMods.push(
+                newMods.set(
                     new ModDifficultyAdjust({
                         cs: entry.force_cs !== -1 ? entry.force_cs : undefined,
                         ar: entry.force_ar !== -1 ? entry.force_ar : undefined,
@@ -67,12 +67,10 @@ void (async () => {
                 );
             }
 
-            const serializedMods = ModUtil.serializeMods(newMods);
-
             await processorPool.query(
                 `UPDATE ${table} SET mods = $1 WHERE beatmap_id = $2 AND mods = $3 AND speed_multiplier = $4 AND force_cs = $5 AND force_ar = $6 AND force_od = $7 AND old_statistics = $8;`,
                 [
-                    JSON.stringify(serializedMods),
+                    JSON.stringify(newMods.serializeMods()),
                     entry.beatmap_id,
                     entry.mods,
                     entry.speed_multiplier,

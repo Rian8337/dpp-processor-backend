@@ -1,22 +1,22 @@
-import { Beatmap, Mod, Modes } from "@rian8337/osu-base";
+import { Beatmap, Modes, ModMap } from "@rian8337/osu-base";
 import {
-    ExtendedDroidDifficultyAttributes,
-    DroidPerformanceCalculator,
-    OsuDifficultyAttributes,
-    OsuPerformanceCalculator,
-    PerformanceCalculationOptions,
     DroidDifficultyCalculator,
-    OsuDifficultyCalculator,
+    DroidPerformanceCalculator,
+    ExtendedDroidDifficultyAttributes,
     IExtendedDroidDifficultyAttributes,
     IOsuDifficultyAttributes,
+    OsuDifficultyAttributes,
+    OsuDifficultyCalculator,
+    OsuPerformanceCalculator,
+    PerformanceCalculationOptions,
     StrainPeaks,
 } from "@rian8337/osu-difficulty-calculator";
 import {
-    DroidDifficultyCalculator as RebalanceDroidDifficultyCalculator,
-    ExtendedDroidDifficultyAttributes as RebalanceExtendedDroidDifficultyAttributes,
     IExtendedDroidDifficultyAttributes as IRebalanceExtendedDroidDifficultyAttributes,
     IOsuDifficultyAttributes as IRebalanceOsuDifficultyAttributes,
+    DroidDifficultyCalculator as RebalanceDroidDifficultyCalculator,
     DroidPerformanceCalculator as RebalanceDroidPerformanceCalculator,
+    ExtendedDroidDifficultyAttributes as RebalanceExtendedDroidDifficultyAttributes,
     OsuDifficultyAttributes as RebalanceOsuDifficultyAttributes,
     OsuDifficultyCalculator as RebalanceOsuDifficultyCalculator,
     OsuPerformanceCalculator as RebalanceOsuPerformanceCalculator,
@@ -35,7 +35,7 @@ import { PerformanceCalculationParameters } from "./PerformanceCalculationParame
  */
 export function calculateLocalBeatmapDifficulty(
     beatmap: Beatmap,
-    mods: Mod[],
+    mods: ModMap,
     mode: Modes.droid,
     method: PPCalculationMethod.live,
 ): ExtendedDroidDifficultyAttributes;
@@ -51,7 +51,7 @@ export function calculateLocalBeatmapDifficulty(
  */
 export function calculateLocalBeatmapDifficulty(
     beatmap: Beatmap,
-    mods: Mod[],
+    mods: ModMap,
     mode: Modes.osu,
     method: PPCalculationMethod.live,
 ): OsuDifficultyAttributes;
@@ -67,7 +67,7 @@ export function calculateLocalBeatmapDifficulty(
  */
 export function calculateLocalBeatmapDifficulty(
     beatmap: Beatmap,
-    mods: Mod[],
+    mods: ModMap,
     mode: Modes.droid,
     method: PPCalculationMethod.rebalance,
 ): RebalanceExtendedDroidDifficultyAttributes;
@@ -83,14 +83,14 @@ export function calculateLocalBeatmapDifficulty(
  */
 export function calculateLocalBeatmapDifficulty(
     beatmap: Beatmap,
-    mods: Mod[],
+    mods: ModMap,
     mode: Modes.osu,
     method: PPCalculationMethod.rebalance,
 ): RebalanceOsuDifficultyAttributes;
 
 export function calculateLocalBeatmapDifficulty(
     beatmap: Beatmap,
-    mods: Mod[],
+    mods: ModMap,
     mode: Modes,
     method: PPCalculationMethod,
 ):
@@ -134,7 +134,7 @@ export function calculateLocalBeatmapDifficulty(
  */
 export function getStrainPeaks(
     beatmap: Beatmap,
-    mods: Mod[],
+    mods: ModMap,
     mode: Modes,
     method: PPCalculationMethod,
 ): StrainPeaks {

@@ -1,8 +1,4 @@
-import {
-    DroidLegacyModConverter,
-    IModApplicableToDroid,
-    Mod,
-} from "@rian8337/osu-base";
+import { DroidLegacyModConverter, ModMap } from "@rian8337/osu-base";
 import { Player, Score } from "@rian8337/osu-droid-utilities";
 import { and, eq, gt } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/mysql-core";
@@ -235,13 +231,9 @@ export function insertBestScore(
  * @param modstring The raw string of mods received from score table.
  * @returns The parsed mods.
  */
-export function parseOfficialScoreMods(
-    modstring: string | null,
-): (Mod & IModApplicableToDroid)[] {
+export function parseOfficialScoreMods(modstring: string | null): ModMap {
     // Some old scores have its mods set to null in the score table.
-    if (modstring === null) {
-        return [];
-    }
-
-    return DroidLegacyModConverter.convert(modstring);
+    return modstring !== null
+        ? DroidLegacyModConverter.convert(modstring)
+        : new ModMap();
 }

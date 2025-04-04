@@ -1,4 +1,3 @@
-import { ModUtil } from "@rian8337/osu-base";
 import {
     CacheableDifficultyAttributes,
     IDifficultyAttributes as IRebalanceDifficultyAttributes,
@@ -17,9 +16,10 @@ export class RebalanceDifficultyCalculationResult<
 
     constructor(attributes: DA) {
         this.attributes = attributes;
+
         this.cachedAttributes = {
             ...attributes,
-            mods: ModUtil.modsToOsuString(attributes.mods),
+            mods: attributes.mods.serializeMods(),
         };
     }
 }

@@ -178,7 +178,7 @@ router.post<
         difficultyAttributes = {
             ...calculationResult.difficultyAttributes,
             // Override mods so that the response retains the originally requested mods.
-            mods: ModUtil.serializeMods(mods),
+            mods: mods.serializeMods(),
         };
         strainChart = calculationResult.strainChart;
     }

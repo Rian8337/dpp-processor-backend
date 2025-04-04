@@ -141,7 +141,7 @@ router.post<
     >;
     let strainChart: Buffer | null = null;
 
-    const requestedMods = ModUtil.serializeMods(mods);
+    const requestedMods = mods.serializeMods();
 
     switch (gamemode) {
         case Modes.droid: {

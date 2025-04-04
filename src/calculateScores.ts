@@ -1,4 +1,4 @@
-import { Accuracy, ModUtil, RankedStatus, ScoreRank } from "@rian8337/osu-base";
+import { Accuracy, RankedStatus, ScoreRank } from "@rian8337/osu-base";
 import {
     ReplayAnalyzer,
     ReplayData,
@@ -95,8 +95,8 @@ function isReplayValid(
         }
 
         // Mods are compared later as they are more costly.
-        const scoreMods = ModUtil.serializeMods(score.mods);
-        const replayMods = ModUtil.serializeMods(replayData.convertedMods);
+        const scoreMods = score.mods.serializeMods();
+        const replayMods = replayData.convertedMods.serializeMods();
 
         if (!isDeepStrictEqual(scoreMods, replayMods)) {
             return false;

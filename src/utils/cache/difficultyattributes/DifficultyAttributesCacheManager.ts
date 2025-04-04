@@ -1,5 +1,5 @@
 import { Collection } from "@discordjs/collection";
-import { Mod, ModUtil, SerializedMod } from "@rian8337/osu-base";
+import { Mod, ModMap, ModUtil, SerializedMod } from "@rian8337/osu-base";
 import { CacheableDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
 import { eq } from "drizzle-orm";
 import { createSelectSchema } from "drizzle-zod";
@@ -70,7 +70,7 @@ export abstract class DifficultyAttributesCacheManager<
      */
     getDifficultyAttributes(
         beatmapId: number,
-        mods: Mod[] = [],
+        mods?: ModMap,
     ): Promise<CacheableDifficultyAttributes<TAttributes> | null> {
         return this.getCache(beatmapId)
             .then(
@@ -98,7 +98,7 @@ export abstract class DifficultyAttributesCacheManager<
         const cacheableAttributes: CacheableDifficultyAttributes<TAttributes> =
             {
                 ...difficultyAttributes,
-                mods: ModUtil.serializeMods(difficultyAttributes.mods),
+                mods: difficultyAttributes.mods.serializeMods(),
             };
 
         cache.set(
@@ -173,7 +173,7 @@ export abstract class DifficultyAttributesCacheManager<
      */
     protected constructAttributePrimaryKeys(
         beatmapId: number,
-        mods: Mod[],
+        mods: ModMap,
     ): Pick<
         typeof this.databaseTable.$inferSelect,
         DifficultyAttributesPrimaryKey
@@ -181,7 +181,7 @@ export abstract class DifficultyAttributesCacheManager<
         return {
             beatmapId,
             mods: ModUtil.serializeMods(
-                this.retainDifficultyAdjustmentMods(mods),
+                this.retainDifficultyAdjustmentMods([...mods.values()]),
             ),
         };
     }
@@ -256,14 +256,10 @@ export abstract class DifficultyAttributesCacheManager<
     }
 
     private convertModsForAttributeCacheKey(
-        mods: Mod[] | SerializedMod[],
+        mods?: ModMap | SerializedMod[],
     ): string {
-        const serializedMods: SerializedMod[] =
-            mods[0] instanceof Mod
-                ? ModUtil.serializeMods(
-                      this.retainDifficultyAdjustmentMods(mods as Mod[]),
-                  )
-                : mods;
+        const serializedMods =
+            mods instanceof ModMap ? mods.serializeMods() : (mods ?? []);
 
         // This sounds SO expensive for an in-memory cache, but it is what it is...
         return sortAlphabet(JSON.stringify(serializedMods.join("")));

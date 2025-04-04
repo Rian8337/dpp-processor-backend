@@ -1,4 +1,4 @@
-import { Accuracy, MathUtils, Modes, ModUtil } from "@rian8337/osu-base";
+import { Accuracy, MathUtils, Modes } from "@rian8337/osu-base";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import { Score } from "@rian8337/osu-droid-utilities";
 import { Router } from "express";
@@ -124,14 +124,14 @@ router.get<
     >;
     let strainChart: Buffer | null = null;
 
-    const requestedMods = ModUtil.serializeMods(
+    const requestedMods = (
         data.isReplayV3()
             ? data.convertedMods
             : (overrideParameters?.mods ??
-                  (score instanceof Score
-                      ? score.mods
-                      : parseOfficialScoreMods(score.mode))),
-    );
+              (score instanceof Score
+                  ? score.mods
+                  : parseOfficialScoreMods(score.mode)))
+    ).serializeMods();
 
     switch (gamemode) {
         case Modes.droid: {

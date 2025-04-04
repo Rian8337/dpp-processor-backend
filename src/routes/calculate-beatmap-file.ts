@@ -4,6 +4,7 @@ import {
     Modes,
     Accuracy,
     BeatmapDecoder,
+    SerializedMod,
 } from "@rian8337/osu-base";
 import {
     DroidDifficultyAttributes,
@@ -25,6 +26,7 @@ import { validatePOSTInternalKey } from "../utils/util";
 import {
     calculateLocalBeatmapDifficulty,
     calculateLocalBeatmapPerformance,
+    getStrainPeaks,
 } from "../utils/calculator/LocalBeatmapDifficultyCalculator";
 import { RawDifficultyAttributes } from "../structures/attributes/RawDifficultyAttributes";
 import { PerformanceAttributes } from "../structures/attributes/PerformanceAttributes";
@@ -42,11 +44,6 @@ router.post<
         gamemode: string;
         calculationmethod: string;
         mods?: string;
-        oldstatistics?: string;
-        customspeedmultiplier?: string;
-        forcecs?: string;
-        forcear?: string;
-        forceod?: string;
         n300?: string;
         n100?: string;
         n50?: string;
@@ -75,40 +72,26 @@ router.post<
 
     const osuFile = (await buffer(fileStream)).toString("utf-8");
 
-    const mods = ModUtil.pcStringToMods(req.body.mods ?? "");
-    const oldStatistics = req.body.oldstatistics !== undefined;
+    let requestMods: SerializedMod[];
 
-    const customSpeedMultiplier = MathUtils.clamp(
-        parseFloat(req.body.customspeedmultiplier ?? "1"),
-        0.5,
-        2,
-    );
-    if (Number.isNaN(customSpeedMultiplier)) {
-        return res
-            .status(400)
-            .json({ error: "Invalid custom speed multiplier" });
+    try {
+        requestMods = JSON.parse(req.body.mods ?? "[]") as SerializedMod[];
+    } catch (e) {
+        return res.status(400).json({ error: "Invalid mods format" });
     }
 
-    const forceCS = req.body.forcecs
-        ? MathUtils.clamp(parseFloat(req.body.forcecs), 0, 12.5)
-        : undefined;
-    if (forceCS !== undefined && Number.isNaN(forceCS)) {
-        return res.status(400).json({ error: "Invalid force CS" });
+    if (!Array.isArray(requestMods)) {
+        return res.status(400).json({ error: "Invalid mods format" });
     }
 
-    const forceAR = req.body.forcear
-        ? MathUtils.clamp(parseFloat(req.body.forcear), 0, 12.5)
-        : undefined;
-    if (forceAR !== undefined && Number.isNaN(forceAR)) {
-        return res.status(400).json({ error: "Invalid force AR" });
+    // Check if mods are valid
+    for (const mod of requestMods) {
+        if (typeof mod !== "object" || !mod.acronym) {
+            return res.status(400).json({ error: "Invalid mods format" });
+        }
     }
 
-    const forceOD = req.body.forceod
-        ? MathUtils.clamp(parseFloat(req.body.forceod), 0, 12.5)
-        : undefined;
-    if (forceOD !== undefined && Number.isNaN(forceOD)) {
-        return res.status(400).json({ error: "Invalid force OD" });
-    }
+    const mods = ModUtil.deserializeMods(requestMods);
 
     const { gamemode, generatestrainchart } = req.body;
     const calculationMethod = parseInt(req.body.calculationmethod);
@@ -130,12 +113,6 @@ router.post<
     const beatmap = new BeatmapDecoder().decode(osuFile, gamemode).result;
 
     const calculationParams = new PerformanceCalculationParameters({
-        mods: mods,
-        customSpeedMultiplier: customSpeedMultiplier,
-        forceCS: forceCS,
-        forceAR: forceAR,
-        forceOD: forceOD,
-        oldStatistics: oldStatistics,
         accuracy: new Accuracy({
             n300: Math.max(-1, parseInt(req.body.n300 ?? "-1")),
             n100: Math.max(0, parseInt(req.body.n100 ?? "0")),
@@ -168,23 +145,30 @@ router.post<
         case Modes.droid: {
             switch (calculationMethod) {
                 case PPCalculationMethod.live: {
-                    const diffCalc = calculateLocalBeatmapDifficulty(
+                    const diffAttribs = calculateLocalBeatmapDifficulty(
                         beatmap,
-                        calculationParams,
+                        mods,
                         gamemode,
                         calculationMethod,
                     );
 
                     const perfCalc = calculateLocalBeatmapPerformance(
-                        diffCalc,
+                        diffAttribs,
                         calculationParams,
+                        gamemode,
+                        calculationMethod,
                     );
 
                     if (generatestrainchart) {
                         strainChart = await generateStrainChart(
                             beatmap,
-                            diffCalc.strainPeaks,
-                            diffCalc.attributes.clockRate,
+                            getStrainPeaks(
+                                beatmap,
+                                mods,
+                                gamemode,
+                                calculationMethod,
+                            ),
+                            diffAttribs.clockRate,
                             undefined,
                             StrainGraphColor.droidLive,
                         );
@@ -192,13 +176,7 @@ router.post<
 
                     attributes = {
                         params: calculationParams.toCloneable(),
-                        difficulty: {
-                            ...perfCalc.difficultyAttributes,
-                            mods: diffCalc.attributes.mods.reduce(
-                                (a, v) => a + v.acronym,
-                                "",
-                            ),
-                        },
+                        difficulty: diffAttribs.toCacheableAttributes(),
                         performance: {
                             total: perfCalc.total,
                             aim: perfCalc.aim,
@@ -223,24 +201,32 @@ router.post<
 
                     break;
                 }
+
                 case PPCalculationMethod.rebalance: {
-                    const diffCalc = calculateLocalBeatmapDifficulty(
+                    const diffAttribs = calculateLocalBeatmapDifficulty(
                         beatmap,
-                        calculationParams,
+                        mods,
                         gamemode,
                         calculationMethod,
                     );
 
                     const perfCalc = calculateLocalBeatmapPerformance(
-                        diffCalc,
+                        diffAttribs,
                         calculationParams,
+                        gamemode,
+                        calculationMethod,
                     );
 
                     if (generatestrainchart) {
                         strainChart = await generateStrainChart(
                             beatmap,
-                            diffCalc.strainPeaks,
-                            diffCalc.attributes.clockRate,
+                            getStrainPeaks(
+                                beatmap,
+                                mods,
+                                gamemode,
+                                calculationMethod,
+                            ),
+                            diffAttribs.clockRate,
                             undefined,
                             StrainGraphColor.droidRebalance,
                         );
@@ -248,13 +234,7 @@ router.post<
 
                     attributes = {
                         params: calculationParams.toCloneable(),
-                        difficulty: {
-                            ...perfCalc.difficultyAttributes,
-                            mods: diffCalc.attributes.mods.reduce(
-                                (a, v) => a + v.acronym,
-                                "",
-                            ),
-                        },
+                        difficulty: diffAttribs.toCacheableAttributes(),
                         performance: {
                             total: perfCalc.total,
                             aim: perfCalc.aim,
@@ -283,26 +263,34 @@ router.post<
 
             break;
         }
+
         case Modes.osu: {
             switch (calculationMethod) {
                 case PPCalculationMethod.live: {
-                    const diffCalc = calculateLocalBeatmapDifficulty(
+                    const diffAttribs = calculateLocalBeatmapDifficulty(
                         beatmap,
-                        calculationParams,
+                        mods,
                         gamemode,
                         calculationMethod,
                     );
 
                     const perfCalc = calculateLocalBeatmapPerformance(
-                        diffCalc,
+                        diffAttribs,
                         calculationParams,
+                        gamemode,
+                        calculationMethod,
                     );
 
                     if (generatestrainchart) {
                         strainChart = await generateStrainChart(
                             beatmap,
-                            diffCalc.strainPeaks,
-                            diffCalc.attributes.clockRate,
+                            getStrainPeaks(
+                                beatmap,
+                                mods,
+                                gamemode,
+                                calculationMethod,
+                            ),
+                            diffAttribs.clockRate,
                             undefined,
                             StrainGraphColor.osuLive,
                         );
@@ -310,13 +298,7 @@ router.post<
 
                     attributes = {
                         params: calculationParams.toCloneable(),
-                        difficulty: {
-                            ...perfCalc.difficultyAttributes,
-                            mods: diffCalc.attributes.mods.reduce(
-                                (a, v) => a + v.acronym,
-                                "",
-                            ),
-                        },
+                        difficulty: diffAttribs.toCacheableAttributes(),
                         performance: {
                             total: perfCalc.total,
                             aim: perfCalc.aim,
@@ -331,36 +313,40 @@ router.post<
 
                     break;
                 }
+
                 case PPCalculationMethod.rebalance: {
-                    const diffCalc = calculateLocalBeatmapDifficulty(
+                    const diffAttribs = calculateLocalBeatmapDifficulty(
                         beatmap,
-                        calculationParams,
+                        mods,
                         gamemode,
                         calculationMethod,
                     );
 
                     const perfCalc = calculateLocalBeatmapPerformance(
-                        diffCalc,
+                        diffAttribs,
                         calculationParams,
+                        gamemode,
+                        calculationMethod,
                     );
 
-                    strainChart = await generateStrainChart(
-                        beatmap,
-                        diffCalc.strainPeaks,
-                        diffCalc.attributes.clockRate,
-                        undefined,
-                        StrainGraphColor.osuRebalance,
-                    );
+                    if (generatestrainchart) {
+                        strainChart = await generateStrainChart(
+                            beatmap,
+                            getStrainPeaks(
+                                beatmap,
+                                mods,
+                                gamemode,
+                                calculationMethod,
+                            ),
+                            diffAttribs.clockRate,
+                            undefined,
+                            StrainGraphColor.osuRebalance,
+                        );
+                    }
 
                     attributes = {
                         params: calculationParams.toCloneable(),
-                        difficulty: {
-                            ...perfCalc.difficultyAttributes,
-                            mods: diffCalc.attributes.mods.reduce(
-                                (a, v) => a + v.acronym,
-                                "",
-                            ),
-                        },
+                        difficulty: diffAttribs.toCacheableAttributes(),
                         performance: {
                             total: perfCalc.total,
                             aim: perfCalc.aim,

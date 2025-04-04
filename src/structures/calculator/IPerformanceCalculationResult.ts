@@ -1,14 +1,14 @@
-import { DifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
+import { If } from "@rian8337/osu-base";
+import { IDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
 import { PerformanceCalculationParameters } from "../../utils/calculator/PerformanceCalculationParameters";
 import { PerformanceAttributes } from "../attributes/PerformanceAttributes";
 import { ReplayAttributes } from "../attributes/ReplayAttributes";
-import { If } from "@rian8337/osu-base";
 
 /**
  * A structure for implementing performance calculation results.
  */
 export interface IPerformanceCalculationResult<
-    TDiffAttributes extends DifficultyAttributes,
+    TDiffAttributes extends IDifficultyAttributes,
     TPerfAttributes extends PerformanceAttributes,
     THasStrainChart extends boolean = boolean,
 > {

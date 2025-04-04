@@ -1,4 +1,4 @@
-import { Accuracy, MathUtils, ModUtil, Modes } from "@rian8337/osu-base";
+import { Accuracy, ModUtil, Modes, SerializedMod } from "@rian8337/osu-base";
 import { CacheableDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
 import { Router } from "express";
 import { RawDifficultyAttributes } from "../structures/attributes/RawDifficultyAttributes";
@@ -17,79 +17,60 @@ import {
 import { BeatmapDroidDifficultyCalculator } from "../utils/calculator/BeatmapDroidDifficultyCalculator";
 import { BeatmapOsuDifficultyCalculator } from "../utils/calculator/BeatmapOsuDifficultyCalculator";
 import { PerformanceCalculationParameters } from "../utils/calculator/PerformanceCalculationParameters";
-import { validateGETInternalKey } from "../utils/util";
+import { validatePOSTInternalKey } from "../utils/util";
 
 const router = Router();
 
-router.get<
+router.post<
     "/",
-    unknown,
     unknown,
     unknown,
     Partial<{
         key: string;
-        beatmapid?: string;
-        beatmaphash?: string;
+        beatmapid: string;
+        beatmaphash: string;
         gamemode: string;
         calculationmethod: string;
         mods?: string;
-        oldstatistics?: string;
-        customspeedmultiplier?: string;
-        forcecs?: string;
-        forcear?: string;
-        forceod?: string;
         generatestrainchart?: string;
     }>
->("/", validateGETInternalKey, async (req, res) => {
-    if (!req.query.beatmapid && !req.query.beatmaphash) {
+>("/", validatePOSTInternalKey, async (req, res) => {
+    console.log(req.body.mods);
+
+    if (!req.body.beatmapid && !req.body.beatmaphash) {
         return res
             .status(400)
             .json({ error: "Neither beatmap ID or hash is specified" });
     }
 
-    if (!req.query.calculationmethod) {
+    if (!req.body.calculationmethod) {
         return res
             .status(400)
             .json({ error: "Calculation method is not specified" });
     }
 
-    const mods = ModUtil.pcStringToMods(req.query.mods ?? "");
-    const oldStatistics = req.query.oldstatistics !== undefined;
+    let requestMods: SerializedMod[];
 
-    const customSpeedMultiplier = MathUtils.clamp(
-        parseFloat(req.query.customspeedmultiplier ?? "1"),
-        0.5,
-        2,
-    );
-    if (Number.isNaN(customSpeedMultiplier)) {
-        return res
-            .status(400)
-            .json({ error: "Invalid custom speed multiplier" });
+    try {
+        requestMods = JSON.parse(req.body.mods ?? "[]") as SerializedMod[];
+    } catch (e) {
+        return res.status(400).json({ error: "Invalid mods format" });
     }
 
-    const forceCS = req.query.forcecs
-        ? MathUtils.clamp(parseFloat(req.query.forcecs), 0, 11)
-        : undefined;
-    if (forceCS !== undefined && Number.isNaN(forceCS)) {
-        return res.status(400).json({ error: "Invalid force CS" });
+    if (!Array.isArray(requestMods)) {
+        return res.status(400).json({ error: "Invalid mods format" });
     }
 
-    const forceAR = req.query.forcear
-        ? MathUtils.clamp(parseFloat(req.query.forcear), 0, 12.5)
-        : undefined;
-    if (forceAR !== undefined && Number.isNaN(forceAR)) {
-        return res.status(400).json({ error: "Invalid force AR" });
+    // Check if mods are valid
+    for (const mod of requestMods) {
+        if (typeof mod !== "object" || !mod.acronym) {
+            return res.status(400).json({ error: "Invalid mods format" });
+        }
     }
 
-    const forceOD = req.query.forceod
-        ? MathUtils.clamp(parseFloat(req.query.forceod), 0, 11)
-        : undefined;
-    if (forceOD !== undefined && Number.isNaN(forceOD)) {
-        return res.status(400).json({ error: "Invalid force OD" });
-    }
-
-    const { beatmapid, beatmaphash, gamemode } = req.query;
-    const calculationMethod = parseInt(req.query.calculationmethod);
+    const mods = ModUtil.deserializeMods(requestMods);
+    const { beatmapid, beatmaphash, gamemode } = req.body;
+    const calculationMethod = parseInt(req.body.calculationmethod);
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     if (gamemode !== Modes.droid && gamemode !== Modes.osu) {
@@ -113,7 +94,7 @@ router.get<
         return res.status(404).json({ error: "Beatmap not found" });
     }
 
-    const generateStrainChart = req.query.generatestrainchart !== undefined;
+    const generateStrainChart = req.body.generatestrainchart !== undefined;
 
     let difficultyAttributes: CacheableDifficultyAttributes<RawDifficultyAttributes> | null;
     let strainChart: Buffer | null = null;
@@ -124,13 +105,8 @@ router.get<
 
     const calculationParams = new PerformanceCalculationParameters({
         mods: mods,
-        customSpeedMultiplier: customSpeedMultiplier,
         combo: beatmap.maxCombo ?? undefined,
         accuracy: new Accuracy({ nobjects: beatmap.objectCount }),
-        forceCS: forceCS,
-        forceAR: forceAR,
-        forceOD: forceOD,
-        oldStatistics: oldStatistics,
     });
 
     switch (calculationMethod) {
@@ -141,6 +117,7 @@ router.get<
                         new BeatmapDroidDifficultyCalculator();
                     difficultyCacheManager = liveDroidDifficultyCache;
                     break;
+
                 case Modes.osu:
                     difficultyCalculator = new BeatmapOsuDifficultyCalculator();
                     difficultyCacheManager = liveOsuDifficultyCache;
@@ -148,6 +125,7 @@ router.get<
             }
             break;
         }
+
         case PPCalculationMethod.rebalance: {
             switch (gamemode) {
                 case Modes.droid:
@@ -155,6 +133,7 @@ router.get<
                         new BeatmapDroidDifficultyCalculator();
                     difficultyCacheManager = rebalanceDroidDifficultyCache;
                     break;
+
                 case Modes.osu:
                     difficultyCalculator = new BeatmapOsuDifficultyCalculator();
                     difficultyCacheManager = rebalanceOsuDifficultyCache;
@@ -166,14 +145,7 @@ router.get<
 
     difficultyAttributes = await difficultyCacheManager.getDifficultyAttributes(
         beatmap.id,
-        difficultyCacheManager.getAttributeName(
-            mods,
-            oldStatistics,
-            customSpeedMultiplier,
-            forceCS,
-            forceAR,
-            forceOD,
-        ),
+        mods,
     );
 
     if (!difficultyAttributes || generateStrainChart) {
@@ -206,7 +178,7 @@ router.get<
         difficultyAttributes = {
             ...calculationResult.difficultyAttributes,
             // Override mods so that the response retains the originally requested mods.
-            mods: ModUtil.modsToOsuString(mods),
+            mods: ModUtil.serializeMods(mods),
         };
         strainChart = calculationResult.strainChart;
     }

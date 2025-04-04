@@ -1,17 +1,17 @@
-import express, { Router } from "express";
-import cors from "cors";
-import formData from "express-form-data";
-import { config } from "dotenv";
-import { DatabaseManager } from "./database/managers/DatabaseManager";
-import calculateBeatmapFile from "./routes/calculate-beatmap-file";
-import getDifficultyAttributes from "./routes/get-difficulty-attributes";
-import getPerformanceAttributes from "./routes/get-performance-attributes";
-import getOnlineScoreAttributes from "./routes/get-online-score-attributes";
-import { initiateReplayProcessing } from "./utils/dppUtil";
 import {
     DroidAPIRequestBuilder,
     OsuAPIRequestBuilder,
 } from "@rian8337/osu-base";
+import cors from "cors";
+import { config } from "dotenv";
+import express, { Router } from "express";
+import formData from "express-form-data";
+import { DatabaseManager } from "./database/managers/DatabaseManager";
+import calculateBeatmapFile from "./routes/calculate-beatmap-file";
+import difficultyAttributes from "./routes/difficulty-attributes";
+import getOnlineScoreAttributes from "./routes/get-online-score-attributes";
+import performanceAttributes from "./routes/performance-attributes";
+import { initiateReplayProcessing } from "./utils/dppUtil";
 
 config();
 
@@ -20,8 +20,8 @@ OsuAPIRequestBuilder.setAPIKey(process.env.OSU_API_KEY!);
 
 const baseRouter = Router()
     .use("/calculate-beatmap-file", calculateBeatmapFile)
-    .use("/get-difficulty-attributes", getDifficultyAttributes)
-    .use("/get-performance-attributes", getPerformanceAttributes)
+    .use("/difficulty-attributes", difficultyAttributes)
+    .use("/performance-attributes", performanceAttributes)
     .use("/get-online-score-attributes", getOnlineScoreAttributes);
 
 const app = express()

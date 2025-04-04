@@ -1,4 +1,8 @@
-import { ExtendedDroidDifficultyAttributes } from "@rian8337/osu-rebalance-difficulty-calculator";
+import { Mod } from "@rian8337/osu-base";
+import {
+    DroidDifficultyCalculator,
+    IExtendedDroidDifficultyAttributes,
+} from "@rian8337/osu-rebalance-difficulty-calculator";
 import {
     baseDifficultyAttributesColumns,
     DifficultyAttributesPrimaryKey,
@@ -10,16 +14,22 @@ import { DroidDifficultyAttributesCacheManager } from "./DroidDifficultyAttribut
 /**
  * A cache manager for osu!droid rebalance calculation difficulty attributes.
  */
-export class RebalanceDroidDifficultyAttributesCacheManager extends DroidDifficultyAttributesCacheManager<ExtendedDroidDifficultyAttributes> {
+export class RebalanceDroidDifficultyAttributesCacheManager extends DroidDifficultyAttributesCacheManager<IExtendedDroidDifficultyAttributes> {
     protected override readonly attributeType = PPCalculationMethod.rebalance;
 
     protected override readonly databaseTable =
         rebalanceDroidDifficultyAttributesTable;
 
+    private readonly calculator = new DroidDifficultyCalculator();
+
+    protected override retainDifficultyAdjustmentMods(mods: Mod[]): Mod[] {
+        return this.calculator.retainDifficultyAdjustmentMods(mods);
+    }
+
     protected convertDatabaseAttributes(
         attributes: typeof this.databaseTable.$inferSelect,
     ): Omit<
-        ExtendedDroidDifficultyAttributes,
+        IExtendedDroidDifficultyAttributes,
         keyof typeof baseDifficultyAttributesColumns
     > {
         return {
@@ -36,7 +46,7 @@ export class RebalanceDroidDifficultyAttributesCacheManager extends DroidDifficu
     }
 
     protected convertDifficultyAttributes(
-        attributes: ExtendedDroidDifficultyAttributes,
+        attributes: IExtendedDroidDifficultyAttributes,
     ): Omit<
         typeof this.databaseTable.$inferSelect,
         DifficultyAttributesPrimaryKey

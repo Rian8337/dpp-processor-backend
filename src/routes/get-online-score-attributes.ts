@@ -1,32 +1,24 @@
-import { Router } from "express";
-import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import { Accuracy, MathUtils, Modes, ModUtil } from "@rian8337/osu-base";
-import { BeatmapDroidDifficultyCalculator } from "../utils/calculator/BeatmapDroidDifficultyCalculator";
-import { DroidPerformanceAttributes } from "../structures/attributes/DroidPerformanceAttributes";
-import { BeatmapOsuDifficultyCalculator } from "../utils/calculator/BeatmapOsuDifficultyCalculator";
-import { OsuPerformanceAttributes } from "../structures/attributes/OsuPerformanceAttributes";
-import { CompleteCalculationAttributes } from "../structures/attributes/CompleteCalculationAttributes";
-import {
-    DroidDifficultyAttributes,
-    OsuDifficultyAttributes,
-} from "@rian8337/osu-difficulty-calculator";
-import {
-    DroidDifficultyAttributes as RebalanceDroidDifficultyAttributes,
-    OsuDifficultyAttributes as RebalanceOsuDifficultyAttributes,
-} from "@rian8337/osu-rebalance-difficulty-calculator";
-import { PPCalculationMethod } from "../structures/PPCalculationMethod";
-import { RebalanceDroidPerformanceAttributes } from "../structures/attributes/RebalanceDroidPerformanceAttributes";
-import { getOfficialBestReplay, getOnlineReplay } from "../utils/replayManager";
-import { validateGETInternalKey } from "../utils/util";
-import { RawDifficultyAttributes } from "../structures/attributes/RawDifficultyAttributes";
-import { PerformanceAttributes } from "../structures/attributes/PerformanceAttributes";
+import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
+import { Score } from "@rian8337/osu-droid-utilities";
+import { Router } from "express";
 import {
     getOfficialBestScore,
     getOfficialScore,
     parseOfficialScoreMods,
 } from "../database/official/officialDatabaseUtil";
-import { Score } from "@rian8337/osu-droid-utilities";
+import { PPCalculationMethod } from "../structures/PPCalculationMethod";
+import { CompleteCalculationAttributes } from "../structures/attributes/CompleteCalculationAttributes";
+import { DroidPerformanceAttributes } from "../structures/attributes/DroidPerformanceAttributes";
+import { OsuPerformanceAttributes } from "../structures/attributes/OsuPerformanceAttributes";
+import { PerformanceAttributes } from "../structures/attributes/PerformanceAttributes";
+import { RawDifficultyAttributes } from "../structures/attributes/RawDifficultyAttributes";
+import { RebalanceDroidPerformanceAttributes } from "../structures/attributes/RebalanceDroidPerformanceAttributes";
+import { BeatmapDroidDifficultyCalculator } from "../utils/calculator/BeatmapDroidDifficultyCalculator";
+import { BeatmapOsuDifficultyCalculator } from "../utils/calculator/BeatmapOsuDifficultyCalculator";
 import { PerformanceCalculationParameters } from "../utils/calculator/PerformanceCalculationParameters";
+import { getOfficialBestReplay, getOnlineReplay } from "../utils/replayManager";
+import { validateGETInternalKey } from "../utils/util";
 
 const router = Router();
 
@@ -111,16 +103,8 @@ router.get<
                 accuracy: score.accuracy,
                 combo: score.combo,
                 mods: score.mods,
-                customSpeedMultiplier: score.speedMultiplier,
-                forceAR: score.forceAR,
-                forceCS: score.forceCS,
-                forceHP: score.forceHP,
-                forceOD: score.forceOD,
-                oldStatistics: score.oldStatistics,
             });
         } else {
-            const parsedMods = parseOfficialScoreMods(score.mode);
-
             overrideParameters = new PerformanceCalculationParameters({
                 accuracy: new Accuracy({
                     n300: score.perfect,
@@ -129,13 +113,7 @@ router.get<
                     nmiss: score.miss,
                 }),
                 combo: score.combo,
-                mods: parsedMods.mods,
-                customSpeedMultiplier: parsedMods.speedMultiplier,
-                forceAR: parsedMods.forceAR,
-                forceCS: parsedMods.forceCS,
-                forceHP: parsedMods.forceHP,
-                forceOD: parsedMods.forceOD,
-                oldStatistics: parsedMods.oldStatistics,
+                mods: parseOfficialScoreMods(score.mode),
             });
         }
     }
@@ -146,13 +124,13 @@ router.get<
     >;
     let strainChart: Buffer | null = null;
 
-    const requestedMods = ModUtil.modsToOsuString(
+    const requestedMods = ModUtil.serializeMods(
         data.isReplayV3()
             ? data.convertedMods
             : (overrideParameters?.mods ??
                   (score instanceof Score
                       ? score.mods
-                      : parseOfficialScoreMods(score.mode).mods)),
+                      : parseOfficialScoreMods(score.mode))),
     );
 
     switch (gamemode) {
@@ -212,17 +190,15 @@ router.get<
                                 result.flashlightSliderCheesePenalty,
                             visualSliderCheesePenalty:
                                 result.visualSliderCheesePenalty,
-                        },
+                        } as DroidPerformanceAttributes,
                         replay: calculationResult.replay,
-                    } as CompleteCalculationAttributes<
-                        DroidDifficultyAttributes,
-                        DroidPerformanceAttributes
-                    >;
+                    };
 
                     strainChart = calculationResult.strainChart;
 
                     break;
                 }
+
                 case PPCalculationMethod.rebalance: {
                     const calculationResult = await difficultyCalculator
                         .calculateReplayRebalancePerformance(
@@ -285,12 +261,9 @@ router.get<
                                 result.tapDeviation * 10,
                                 2,
                             ),
-                        },
+                        } as RebalanceDroidPerformanceAttributes,
                         replay: calculationResult.replay,
-                    } as CompleteCalculationAttributes<
-                        RebalanceDroidDifficultyAttributes,
-                        RebalanceDroidPerformanceAttributes
-                    >;
+                    };
 
                     strainChart = calculationResult.strainChart;
 
@@ -300,6 +273,7 @@ router.get<
 
             break;
         }
+
         case Modes.osu: {
             const difficultyCalculator = new BeatmapOsuDifficultyCalculator();
 
@@ -346,16 +320,14 @@ router.get<
                             speed: result.speed,
                             accuracy: result.accuracy,
                             flashlight: result.flashlight,
-                        },
-                    } as CompleteCalculationAttributes<
-                        OsuDifficultyAttributes,
-                        OsuPerformanceAttributes
-                    >;
+                        } as OsuPerformanceAttributes,
+                    };
 
                     strainChart = calculationResult.strainChart;
 
                     break;
                 }
+
                 case PPCalculationMethod.rebalance: {
                     const calculationResult = await difficultyCalculator
                         .calculateReplayRebalancePerformance(
@@ -398,11 +370,8 @@ router.get<
                             speed: result.speed,
                             accuracy: result.accuracy,
                             flashlight: result.flashlight,
-                        },
-                    } as CompleteCalculationAttributes<
-                        RebalanceOsuDifficultyAttributes,
-                        OsuPerformanceAttributes
-                    >;
+                        } as OsuPerformanceAttributes,
+                    };
 
                     strainChart = calculationResult.strainChart;
 

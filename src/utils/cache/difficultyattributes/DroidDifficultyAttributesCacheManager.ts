@@ -1,16 +1,9 @@
-import { Mod, Modes, ModUtil } from "@rian8337/osu-base";
 import {
     DifficultSlider,
-    DroidDifficultyAttributes,
-    DroidDifficultyCalculator,
     HighStrainSection,
+    IDroidDifficultyAttributes,
 } from "@rian8337/osu-difficulty-calculator";
-import {
-    DroidDifficultyAttributes as RebalanceDroidDifficultyAttributes,
-    DroidDifficultyCalculator as RebalanceDroidDifficultyCalculator,
-} from "@rian8337/osu-rebalance-difficulty-calculator";
-import { PPCalculationMethod } from "../../../structures/PPCalculationMethod";
-import { sortAlphabet } from "../../util";
+import { IDroidDifficultyAttributes as IRebalanceDroidDifficultyAttributes } from "@rian8337/osu-rebalance-difficulty-calculator";
 import { DifficultyAttributesCacheManager } from "./DifficultyAttributesCacheManager";
 
 /**
@@ -18,38 +11,9 @@ import { DifficultyAttributesCacheManager } from "./DifficultyAttributesCacheMan
  */
 export abstract class DroidDifficultyAttributesCacheManager<
     TAttributes extends
-        | DroidDifficultyAttributes
-        | RebalanceDroidDifficultyAttributes,
+        | IDroidDifficultyAttributes
+        | IRebalanceDroidDifficultyAttributes,
 > extends DifficultyAttributesCacheManager<TAttributes> {
-    protected override readonly mode = Modes.droid;
-
-    protected override convertMods(mods: Mod[]): string {
-        return (
-            sortAlphabet(
-                (this.attributeType === PPCalculationMethod.live
-                    ? DroidDifficultyCalculator
-                    : RebalanceDroidDifficultyCalculator
-                )
-                    .retainDifficultyAdjustmentMods(mods)
-                    .reduce(
-                        (a, m) =>
-                            a + (m.isApplicableToDroid() ? m.droidString : ""),
-                        "",
-                    ),
-            ) || "-"
-        );
-    }
-
-    /**
-     * Converts mods received from the database to a {@link Mod} array.
-     *
-     * @param mods The mods from the database.
-     * @returns The converted mods.
-     */
-    protected convertDatabaseMods(mods: string): Mod[] {
-        return ModUtil.droidStringToMods(mods);
-    }
-
     /**
      * Converts difficult sliders from the database to an array of `DifficultSlider`.
      *

@@ -1,7 +1,7 @@
 import { Accuracy, Modes } from "@rian8337/osu-base";
-import { DifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
+import { IDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
-import { DifficultyAttributes as RebalanceDifficultyAttributes } from "@rian8337/osu-rebalance-difficulty-calculator";
+import { IDifficultyAttributes as IRebalanceDifficultyAttributes } from "@rian8337/osu-rebalance-difficulty-calculator";
 import { ProcessorDatabaseBeatmap } from "../../database/processor/schema/ProcessorDatabaseBeatmap";
 import { getBeatmapFile } from "../../services/beatmapService";
 import { PPCalculationMethod } from "../../structures/PPCalculationMethod";
@@ -18,8 +18,8 @@ import { RebalancePerformanceCalculationResult } from "./RebalancePerformanceCal
  * A helper class for calculating difficulty and performance of beatmaps or replays.
  */
 export abstract class BeatmapDifficultyCalculator<
-    DA extends DifficultyAttributes,
-    RDA extends RebalanceDifficultyAttributes,
+    DA extends IDifficultyAttributes,
+    RDA extends IRebalanceDifficultyAttributes,
     PA extends PerformanceAttributes,
     RPA extends PerformanceAttributes = PA,
 > {
@@ -367,22 +367,9 @@ export abstract class BeatmapDifficultyCalculator<
             throw new Error("Beatmap not found");
         }
 
-        const forceCS = calculationParams?.forceCS;
-        const forceAR = calculationParams?.forceAR;
-        const forceOD = calculationParams?.forceOD;
-
-        const attributeName = cacheManager.getAttributeName(
-            calculationParams?.mods,
-            calculationParams?.oldStatistics,
-            calculationParams?.customSpeedMultiplier,
-            forceCS,
-            forceAR,
-            forceOD,
-        );
-
         const cachedAttributes = await cacheManager.getDifficultyAttributes(
             beatmap.id,
-            attributeName,
+            calculationParams?.mods,
         );
 
         const data: CalculationWorkerData = {
@@ -421,11 +408,6 @@ export abstract class BeatmapDifficultyCalculator<
                         await cacheManager.addAttribute(
                             beatmap.id,
                             diffAttribs,
-                            calculationParams.oldStatistics,
-                            calculationParams.customSpeedMultiplier,
-                            forceCS,
-                            forceAR,
-                            forceOD,
                         );
                     }
 

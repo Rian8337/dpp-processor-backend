@@ -1,9 +1,12 @@
-import { ModUtil } from "@rian8337/osu-base";
+import {
+    DroidLegacyModConverter,
+    IModApplicableToDroid,
+    Mod,
+} from "@rian8337/osu-base";
 import { Player, Score } from "@rian8337/osu-droid-utilities";
 import { and, eq, gt } from "drizzle-orm";
 import { SelectedFields } from "drizzle-orm/mysql-core";
 import { officialDb } from ".";
-import { OfficialDatabaseScoreMods } from "../../structures/OfficialDatabaseScoreMods";
 import { isDebug } from "../../utils/util";
 import { bestScoresTable, scoresTable, usersTable } from "./schema";
 import { OfficialDatabaseBestScore } from "./schema/OfficialDatabaseBestScore";
@@ -234,72 +237,11 @@ export function insertBestScore(
  */
 export function parseOfficialScoreMods(
     modstring: string | null,
-): OfficialDatabaseScoreMods {
+): (Mod & IModApplicableToDroid)[] {
     // Some old scores have its mods set to null in the score table.
     if (modstring === null) {
-        return {
-            mods: [],
-            speedMultiplier: 1,
-            oldStatistics: true,
-        };
+        return [];
     }
 
-    // Taken directly from osu! core module.
-    const modstrings = modstring.split("|");
-    let actualMods = "";
-    let speedMultiplier = 1;
-    let forceCS: number | undefined;
-    let forceAR: number | undefined;
-    let forceOD: number | undefined;
-    let forceHP: number | undefined;
-    let flashlightFollowDelay: number | undefined;
-
-    for (const str of modstrings) {
-        if (!str) {
-            continue;
-        }
-
-        switch (true) {
-            // Forced stats
-            case str.startsWith("CS"):
-                forceCS = parseFloat(str.replace("CS", ""));
-                break;
-
-            case str.startsWith("AR"):
-                forceAR = parseFloat(str.replace("AR", ""));
-                break;
-
-            case str.startsWith("OD"):
-                forceOD = parseFloat(str.replace("OD", ""));
-                break;
-
-            case str.startsWith("HP"):
-                forceHP = parseFloat(str.replace("HP", ""));
-                break;
-
-            // FL follow delay
-            case str.startsWith("FLD"):
-                flashlightFollowDelay = parseFloat(str.replace("FLD", ""));
-                break;
-
-            // Speed multiplier
-            case str.startsWith("x"):
-                speedMultiplier = parseFloat(str.replace("x", ""));
-                break;
-
-            default:
-                actualMods += str;
-        }
-    }
-
-    return {
-        mods: ModUtil.droidStringToMods(actualMods),
-        speedMultiplier,
-        forceCS,
-        forceAR,
-        forceOD,
-        forceHP,
-        flashlightFollowDelay,
-        oldStatistics: !modstring.includes("|"),
-    };
+    return DroidLegacyModConverter.convert(modstring);
 }

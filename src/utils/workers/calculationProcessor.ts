@@ -1,5 +1,3 @@
-import { parentPort } from "worker_threads";
-import { CalculationWorkerData } from "../../structures/workers/CalculationWorkerData";
 import {
     Accuracy,
     Beatmap,
@@ -10,40 +8,45 @@ import {
     SliderTail,
     SliderTick,
 } from "@rian8337/osu-base";
-import { PerformanceCalculationParameters } from "../calculator/PerformanceCalculationParameters";
-import {
-    HitResult,
-    ReplayAnalyzer,
-    ReplayData,
-} from "@rian8337/osu-droid-replay-analyzer";
-import { PPCalculationMethod } from "../../structures/PPCalculationMethod";
 import {
     CacheableDifficultyAttributes,
     DroidPerformanceCalculator,
-    ExtendedDroidDifficultyAttributes,
+    IExtendedDroidDifficultyAttributes,
     OsuDifficultyAttributes,
     OsuPerformanceCalculator,
     PerformanceCalculationOptions,
 } from "@rian8337/osu-difficulty-calculator";
 import {
+    HitResult,
+    ReplayAnalyzer,
+    ReplayData,
+} from "@rian8337/osu-droid-replay-analyzer";
+import {
+    IExtendedDroidDifficultyAttributes as IRebalanceExtendedDroidDifficultyAttributes,
     DroidPerformanceCalculator as RebalanceDroidPerformanceCalculator,
-    ExtendedDroidDifficultyAttributes as RebalanceExtendedDroidDifficultyAttributes,
     OsuDifficultyAttributes as RebalanceOsuDifficultyAttributes,
     OsuPerformanceCalculator as RebalanceOsuPerformanceCalculator,
 } from "@rian8337/osu-rebalance-difficulty-calculator";
 import generateChart from "@rian8337/osu-strain-graph-generator";
-import { BeatmapDroidDifficultyCalculator } from "../calculator/BeatmapDroidDifficultyCalculator";
+import { createHash } from "crypto";
+import { parentPort } from "worker_threads";
+import { StrainGraphColor } from "../../enums/StrainGraphColor";
 import { CompleteCalculationAttributes } from "../../structures/attributes/CompleteCalculationAttributes";
 import { DroidPerformanceAttributes } from "../../structures/attributes/DroidPerformanceAttributes";
-import { RebalanceDroidPerformanceAttributes } from "../../structures/attributes/RebalanceDroidPerformanceAttributes";
 import { OsuPerformanceAttributes } from "../../structures/attributes/OsuPerformanceAttributes";
-import { SliderTickInformation } from "../../structures/SliderTickInformation";
-import { createHash } from "crypto";
-import { LimitedCapacityCollection } from "../LimitedCapacityCollection";
-import { calculateLocalBeatmapDifficulty } from "../calculator/LocalBeatmapDifficultyCalculator";
-import { RawDifficultyAttributes } from "../../structures/attributes/RawDifficultyAttributes";
 import { PerformanceAttributes } from "../../structures/attributes/PerformanceAttributes";
-import { StrainGraphColor } from "../../enums/StrainGraphColor";
+import { RawDifficultyAttributes } from "../../structures/attributes/RawDifficultyAttributes";
+import { RebalanceDroidPerformanceAttributes } from "../../structures/attributes/RebalanceDroidPerformanceAttributes";
+import { PPCalculationMethod } from "../../structures/PPCalculationMethod";
+import { SliderTickInformation } from "../../structures/SliderTickInformation";
+import { CalculationWorkerData } from "../../structures/workers/CalculationWorkerData";
+import { BeatmapDroidDifficultyCalculator } from "../calculator/BeatmapDroidDifficultyCalculator";
+import {
+    calculateLocalBeatmapDifficulty,
+    getStrainPeaks,
+} from "../calculator/LocalBeatmapDifficultyCalculator";
+import { PerformanceCalculationParameters } from "../calculator/PerformanceCalculationParameters";
+import { LimitedCapacityCollection } from "../LimitedCapacityCollection";
 
 const beatmapCache = new LimitedCapacityCollection<string, Beatmap>(
     250,
@@ -148,50 +151,38 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
         case Modes.droid: {
             switch (calculationMethod) {
                 case PPCalculationMethod.live: {
-                    let difficultyAttributes: CacheableDifficultyAttributes<ExtendedDroidDifficultyAttributes>;
+                    const difficultyAttributes: CacheableDifficultyAttributes<IExtendedDroidDifficultyAttributes> =
+                        (data.difficultyAttributes as CacheableDifficultyAttributes<IExtendedDroidDifficultyAttributes> | null) ??
+                        calculateLocalBeatmapDifficulty(
+                            beatmap,
+                            calculationParams.mods,
+                            gamemode,
+                            calculationMethod,
+                        ).toCacheableAttributes();
 
                     if (generateStrainChart) {
-                        const difficultyCalculator =
-                            calculateLocalBeatmapDifficulty(
-                                beatmap,
-                                calculationParams,
-                                gamemode,
-                                calculationMethod,
-                            );
-
-                        difficultyAttributes = {
-                            ...difficultyCalculator.attributes,
-                            mods: parameters?.mods ?? "",
-                        };
-
                         strainChart = await generateChart(
                             beatmap,
-                            difficultyCalculator.strainPeaks,
-                            difficultyCalculator.attributes.clockRate,
+                            getStrainPeaks(
+                                beatmap,
+                                calculationParams.mods,
+                                gamemode,
+                                calculationMethod,
+                            ),
+                            difficultyAttributes.clockRate,
                             undefined,
                             StrainGraphColor.droidLive,
                         );
-                    } else {
-                        difficultyAttributes =
-                            (data.difficultyAttributes as CacheableDifficultyAttributes<ExtendedDroidDifficultyAttributes> | null) ?? {
-                                ...calculateLocalBeatmapDifficulty(
-                                    beatmap,
-                                    calculationParams,
-                                    gamemode,
-                                    calculationMethod,
-                                ).attributes,
-                                mods: parameters?.mods ?? "",
-                            };
                     }
 
-                    // Also overwrite mods here in case it was not overridden above (due to cache).
+                    // Overwrite mods here with the ones that are requested.
                     difficultyAttributes.mods =
                         parameters?.mods ?? difficultyAttributes.mods;
 
                     calculationParams.applyFromAttributes(difficultyAttributes);
 
                     if (analyzer.data) {
-                        const extendedDifficultyAttributes: ExtendedDroidDifficultyAttributes =
+                        const extendedDifficultyAttributes: IExtendedDroidDifficultyAttributes =
                             {
                                 ...difficultyAttributes,
                                 mods: calculationParams.mods,
@@ -269,7 +260,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                 perfCalc.flashlightSliderCheesePenalty,
                             visualSliderCheesePenalty:
                                 perfCalc.visualSliderCheesePenalty,
-                        },
+                        } as DroidPerformanceAttributes,
                         replay: analyzer.data
                             ? {
                                   hitError:
@@ -278,48 +269,34 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                   sliderEndInformation: sliderEndInformation,
                               }
                             : undefined,
-                    } as CompleteCalculationAttributes<
-                        ExtendedDroidDifficultyAttributes,
-                        DroidPerformanceAttributes
-                    >;
+                    };
 
                     break;
                 }
+
                 case PPCalculationMethod.rebalance: {
-                    let difficultyAttributes: CacheableDifficultyAttributes<RebalanceExtendedDroidDifficultyAttributes>;
+                    const difficultyAttributes: CacheableDifficultyAttributes<IRebalanceExtendedDroidDifficultyAttributes> =
+                        (data.difficultyAttributes as CacheableDifficultyAttributes<IRebalanceExtendedDroidDifficultyAttributes> | null) ??
+                        calculateLocalBeatmapDifficulty(
+                            beatmap,
+                            calculationParams.mods,
+                            gamemode,
+                            calculationMethod,
+                        ).toCacheableAttributes();
 
                     if (generateStrainChart) {
-                        const difficultyCalculator =
-                            calculateLocalBeatmapDifficulty(
-                                beatmap,
-                                calculationParams,
-                                gamemode,
-                                calculationMethod,
-                            );
-
-                        difficultyAttributes = {
-                            ...difficultyCalculator.attributes,
-                            mods: parameters?.mods ?? "",
-                        };
-
                         strainChart = await generateChart(
                             beatmap,
-                            difficultyCalculator.strainPeaks,
-                            difficultyCalculator.attributes.clockRate,
+                            getStrainPeaks(
+                                beatmap,
+                                calculationParams.mods,
+                                gamemode,
+                                calculationMethod,
+                            ),
+                            difficultyAttributes.clockRate,
                             undefined,
                             StrainGraphColor.droidRebalance,
                         );
-                    } else {
-                        difficultyAttributes =
-                            (data.difficultyAttributes as CacheableDifficultyAttributes<RebalanceExtendedDroidDifficultyAttributes> | null) ?? {
-                                ...calculateLocalBeatmapDifficulty(
-                                    beatmap,
-                                    calculationParams,
-                                    gamemode,
-                                    calculationMethod,
-                                ).attributes,
-                                mods: parameters?.mods ?? "",
-                            };
                     }
 
                     // Also overwrite mods here in case it was not overridden above (due to cache).
@@ -329,7 +306,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                     calculationParams.applyFromAttributes(difficultyAttributes);
 
                     if (analyzer.data) {
-                        const extendedDifficultyAttributes: RebalanceExtendedDroidDifficultyAttributes =
+                        const extendedDifficultyAttributes: IRebalanceExtendedDroidDifficultyAttributes =
                             {
                                 ...difficultyAttributes,
                                 mods: calculationParams.mods,
@@ -420,7 +397,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                 perfCalc.tapDeviation * 10,
                                 2,
                             ),
-                        },
+                        } as RebalanceDroidPerformanceAttributes,
                         replay: analyzer.data
                             ? {
                                   hitError: hitError ?? undefined,
@@ -428,10 +405,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                   sliderEndInformation: sliderEndInformation,
                               }
                             : undefined,
-                    } as CompleteCalculationAttributes<
-                        RebalanceExtendedDroidDifficultyAttributes,
-                        RebalanceDroidPerformanceAttributes
-                    >;
+                    };
 
                     break;
                 }
@@ -439,44 +413,35 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
 
             break;
         }
+
         case Modes.osu: {
             switch (calculationMethod) {
                 case PPCalculationMethod.live: {
-                    let difficultyAttributes: CacheableDifficultyAttributes<OsuDifficultyAttributes>;
+                    const difficultyAttributes: CacheableDifficultyAttributes<OsuDifficultyAttributes> =
+                        (data.difficultyAttributes as CacheableDifficultyAttributes<OsuDifficultyAttributes> | null) ??
+                        calculateLocalBeatmapDifficulty(
+                            beatmap,
+                            calculationParams.mods,
+                            gamemode,
+                            calculationMethod,
+                        ).toCacheableAttributes();
 
                     if (generateStrainChart) {
-                        const difficultyCalculator =
-                            calculateLocalBeatmapDifficulty(
-                                beatmap,
-                                calculationParams,
-                                gamemode,
-                                calculationMethod,
-                            );
-
-                        difficultyAttributes = {
-                            ...difficultyCalculator.attributes,
-                            mods: parameters?.mods ?? "",
-                        };
-
                         strainChart = await generateChart(
                             beatmap,
-                            difficultyCalculator.strainPeaks,
-                            difficultyCalculator.attributes.clockRate,
+                            getStrainPeaks(
+                                beatmap,
+                                calculationParams.mods,
+                                gamemode,
+                                calculationMethod,
+                            ),
+                            difficultyAttributes.clockRate,
                             undefined,
                             StrainGraphColor.osuLive,
                         );
-                    } else {
-                        difficultyAttributes =
-                            (data.difficultyAttributes as CacheableDifficultyAttributes<OsuDifficultyAttributes> | null) ??
-                            calculateLocalBeatmapDifficulty(
-                                beatmap,
-                                calculationParams,
-                                gamemode,
-                                calculationMethod,
-                            ).cacheableAttributes;
                     }
 
-                    // Also overwrite mods here in case it was not overridden above (due to cache).
+                    // Overwrite mods here with the ones that are requested.
                     difficultyAttributes.mods =
                         parameters?.mods ?? difficultyAttributes.mods;
 
@@ -495,50 +460,38 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                             speed: perfCalc.speed,
                             accuracy: perfCalc.accuracy,
                             flashlight: perfCalc.flashlight,
-                        },
-                    } as CompleteCalculationAttributes<
-                        OsuDifficultyAttributes,
-                        OsuPerformanceAttributes
-                    >;
+                        } as OsuPerformanceAttributes,
+                    };
 
                     break;
                 }
+
                 case PPCalculationMethod.rebalance: {
-                    let difficultyAttributes: CacheableDifficultyAttributes<RebalanceOsuDifficultyAttributes>;
+                    const difficultyAttributes: CacheableDifficultyAttributes<RebalanceOsuDifficultyAttributes> =
+                        (data.difficultyAttributes as CacheableDifficultyAttributes<RebalanceOsuDifficultyAttributes> | null) ??
+                        calculateLocalBeatmapDifficulty(
+                            beatmap,
+                            calculationParams.mods,
+                            gamemode,
+                            calculationMethod,
+                        ).toCacheableAttributes();
 
                     if (generateStrainChart) {
-                        const difficultyCalculator =
-                            calculateLocalBeatmapDifficulty(
-                                beatmap,
-                                calculationParams,
-                                gamemode,
-                                calculationMethod,
-                            );
-
-                        difficultyAttributes = {
-                            ...difficultyCalculator.attributes,
-                            mods: parameters?.mods ?? "",
-                        };
-
                         strainChart = await generateChart(
                             beatmap,
-                            difficultyCalculator.strainPeaks,
-                            difficultyCalculator.attributes.clockRate,
-                            undefined,
-                            StrainGraphColor.osuRebalance,
-                        );
-                    } else {
-                        difficultyAttributes =
-                            (data.difficultyAttributes as CacheableDifficultyAttributes<RebalanceOsuDifficultyAttributes> | null) ??
-                            calculateLocalBeatmapDifficulty(
+                            getStrainPeaks(
                                 beatmap,
-                                calculationParams,
+                                calculationParams.mods,
                                 gamemode,
                                 calculationMethod,
-                            ).cacheableAttributes;
+                            ),
+                            difficultyAttributes.clockRate,
+                            undefined,
+                            StrainGraphColor.osuLive,
+                        );
                     }
 
-                    // Also overwrite mods here in case it was not overridden above (due to cache).
+                    // Overwrite mods here with the ones that are requested.
                     difficultyAttributes.mods =
                         parameters?.mods ?? difficultyAttributes.mods;
 
@@ -557,11 +510,8 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                             speed: perfCalc.speed,
                             accuracy: perfCalc.accuracy,
                             flashlight: perfCalc.flashlight,
-                        },
-                    } as CompleteCalculationAttributes<
-                        RebalanceOsuDifficultyAttributes,
-                        OsuPerformanceAttributes
-                    >;
+                        } as OsuPerformanceAttributes,
+                    };
 
                     break;
                 }

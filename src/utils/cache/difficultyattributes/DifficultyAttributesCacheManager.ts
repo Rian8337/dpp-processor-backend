@@ -1,22 +1,23 @@
 import { Collection } from "@discordjs/collection";
-import { Mod, Modes, ModUtil } from "@rian8337/osu-base";
+import { Mod, ModUtil, SerializedMod } from "@rian8337/osu-base";
 import { CacheableDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
-import { PPCalculationMethod } from "../../../structures/PPCalculationMethod";
-import { RawDifficultyAttributes } from "../../../structures/attributes/RawDifficultyAttributes";
-import { getBeatmap } from "../beatmapStorage";
+import { eq } from "drizzle-orm";
+import { createSelectSchema } from "drizzle-zod";
+import { processorDb } from "../../../database/processor";
+import {
+    baseDifficultyAttributesColumns,
+    DifficultyAttributesPrimaryKey,
+} from "../../../database/processor/columns.helper";
 import {
     liveDroidDifficultyAttributesTable,
     liveOsuDifficultyAttributesTable,
     rebalanceDroidDifficultyAttributesTable,
     rebalanceOsuDifficultyAttributesTable,
 } from "../../../database/processor/schema";
-import {
-    baseDifficultyAttributesColumns,
-    DifficultyAttributesPrimaryKey,
-} from "../../../database/processor/columns.helper";
-import { processorDb } from "../../../database/processor";
-import { eq } from "drizzle-orm";
-import { createSelectSchema } from "drizzle-zod";
+import { PPCalculationMethod } from "../../../structures/PPCalculationMethod";
+import { RawDifficultyAttributes } from "../../../structures/attributes/RawDifficultyAttributes";
+import { sortAlphabet } from "../../util";
+import { getBeatmap } from "../beatmapStorage";
 
 /**
  * A cache manager for difficulty attributes.
@@ -28,11 +29,6 @@ export abstract class DifficultyAttributesCacheManager<
      * The type of the attribute.
      */
     protected abstract readonly attributeType: PPCalculationMethod;
-
-    /**
-     * The gamemode at which the difficulty attribute is stored for.
-     */
-    protected abstract readonly mode: Modes;
 
     /**
      * The database table that stores the difficulty attributes.
@@ -69,14 +65,19 @@ export abstract class DifficultyAttributesCacheManager<
      * Gets a specific difficulty attributes cache of a beatmap.
      *
      * @param beatmapId The ID of the beatmap.
-     * @param attributeName The name of the attribute.
+     * @param mods The mods to get the attributes for. Defaults to No Mod.
+     * @returns The difficulty attributes cache, `null` if not found.
      */
     getDifficultyAttributes(
         beatmapId: number,
-        attributeName: string,
+        mods: Mod[] = [],
     ): Promise<CacheableDifficultyAttributes<TAttributes> | null> {
         return this.getCache(beatmapId)
-            .then((cache) => cache?.get(attributeName) ?? null)
+            .then(
+                (cache) =>
+                    cache?.get(this.convertModsForAttributeCacheKey(mods)) ??
+                    null,
+            )
             .catch(() => null);
     }
 
@@ -85,41 +86,25 @@ export abstract class DifficultyAttributesCacheManager<
      *
      * @param beatmapId The ID of the beatmap.
      * @param difficultyAttributes The difficulty attributes to add.
-     * @param oldStatistics Whether the difficulty attributes uses old statistics (pre-1.6.8 pre-release).
-     * @param customSpeedMultiplier The custom speed multiplier that was used to generate the attributes.
-     * @param forceCS The force CS that was used to generate the attributes.
-     * @param forceAR The force AR that was used to generate the attributes.
-     * @param forceOD The force OD that was used to generate the attributes.
      * @returns The difficulty attributes that were cached.
      */
     async addAttribute(
         beatmapId: number,
         difficultyAttributes: TAttributes,
-        oldStatistics = false,
-        customSpeedMultiplier = 1,
-        forceCS?: number,
-        forceAR?: number,
-        forceOD?: number,
     ): Promise<CacheableDifficultyAttributes<TAttributes>> {
         const cache =
             (await this.getBeatmapAttributes(beatmapId)) ?? new Collection();
 
-        const attributeName = this.getAttributeName(
-            difficultyAttributes.mods,
-            oldStatistics,
-            customSpeedMultiplier,
-            forceCS,
-            forceAR,
-            forceOD,
-        );
-
         const cacheableAttributes: CacheableDifficultyAttributes<TAttributes> =
             {
                 ...difficultyAttributes,
-                mods: ModUtil.modsToOsuString(difficultyAttributes.mods),
+                mods: ModUtil.serializeMods(difficultyAttributes.mods),
             };
 
-        cache.set(attributeName, cacheableAttributes);
+        cache.set(
+            this.convertModsForAttributeCacheKey(cacheableAttributes.mods),
+            cacheableAttributes,
+        );
 
         this.cache.set(beatmapId, cache);
 
@@ -129,60 +114,12 @@ export abstract class DifficultyAttributesCacheManager<
             ...this.constructAttributePrimaryKeys(
                 beatmapId,
                 difficultyAttributes.mods,
-                oldStatistics,
-                customSpeedMultiplier,
-                forceCS,
-                forceAR,
-                forceOD,
             ),
         } as typeof this.databaseTable.$inferInsert;
 
         await processorDb.insert(this.databaseTable).values(databaseAttributes);
 
         return cacheableAttributes;
-    }
-
-    /**
-     * Constructs an attribute name based on the given parameters.
-     *
-     * @param mods The mods to construct with.
-     * @param oldStatistics Whether the attribute uses old statistics (pre-1.6.8 pre-release).
-     * @param customSpeedMultiplier The custom speed multiplier to construct with.
-     * @param forceAR The force CS to construct with.
-     * @param forceAR The force AR to construct with.
-     * @param forceOD The force OD to construct with.
-     */
-    getAttributeName(
-        mods: Mod[] = [],
-        oldStatistics = false,
-        customSpeedMultiplier = 1,
-        forceCS?: number,
-        forceAR?: number,
-        forceOD?: number,
-    ): string {
-        let attributeName = this.convertMods(mods);
-
-        if (customSpeedMultiplier !== 1) {
-            attributeName += `|${customSpeedMultiplier.toFixed(2)}x`;
-        }
-
-        if (forceCS !== undefined && forceCS !== -1) {
-            attributeName += `|CS${forceCS.toString()}`;
-        }
-
-        if (forceAR !== undefined && forceAR !== -1) {
-            attributeName += `|AR${forceAR.toString()}`;
-        }
-
-        if (forceOD !== undefined && forceOD !== -1) {
-            attributeName += `|OD${forceOD.toString()}`;
-        }
-
-        if (oldStatistics) {
-            attributeName += "|oldStats";
-        }
-
-        return attributeName;
     }
 
     /**
@@ -193,22 +130,6 @@ export abstract class DifficultyAttributesCacheManager<
     invalidateCache(beatmapId: number) {
         this.cache.delete(beatmapId);
     }
-
-    /**
-     * Converts an array of {@link Mod}s to a string that will be stored in the database.
-     *
-     * @param mods The mods to convert.
-     * @returns The converted mods.
-     */
-    protected abstract convertMods(mods: Mod[]): string;
-
-    /**
-     * Converts mods received from the database to a {@link Mod} array.
-     *
-     * @param mods The mods from the database.
-     * @returns The converted mods.
-     */
-    protected abstract convertDatabaseMods(mods: string): Mod[];
 
     /**
      * Converts a database attributes to a difficulty attributes, but only accounts for the attributes that
@@ -236,37 +157,32 @@ export abstract class DifficultyAttributesCacheManager<
     >;
 
     /**
+     * Retains `Mod`s that adjust a beatmap's difficulty from the specified mods.
+     *
+     * @param mods The mods to retain the difficulty adjustment mods from.
+     * @returns The retained difficulty adjustment mods.
+     */
+    protected abstract retainDifficultyAdjustmentMods(mods: Mod[]): Mod[];
+
+    /**
      * Constructs the primary keys for difficulty attributes.
      *
      * @param beatmapId The ID of the beatmap.
      * @param mods The mods that were used to generate the attributes.
-     * @param oldStatistics Whether the difficulty attributes uses old statistics (pre-1.6.8 pre-release).
-     * @param customSpeedMultiplier The custom speed multiplier that was used to generate the attributes.
-     * @param forceCS The force CS that was used to generate the attributes.
-     * @param forceAR The force AR that was used to generate the attributes.
-     * @param forceOD The force OD that was used to generate the attributes.
      * @returns The primary keys.
      */
     protected constructAttributePrimaryKeys(
         beatmapId: number,
         mods: Mod[],
-        oldStatistics: boolean,
-        customSpeedMultiplier: number,
-        forceCS?: number,
-        forceAR?: number,
-        forceOD?: number,
     ): Pick<
         typeof this.databaseTable.$inferSelect,
         DifficultyAttributesPrimaryKey
     > {
         return {
             beatmapId,
-            mods: this.convertMods(mods),
-            oldStatistics,
-            speedMultiplier: customSpeedMultiplier,
-            forceCS: forceCS ?? -1,
-            forceAR: forceAR ?? -1,
-            forceOD: forceOD ?? -1,
+            mods: ModUtil.serializeMods(
+                this.retainDifficultyAdjustmentMods(mods),
+            ),
         };
     }
 
@@ -284,11 +200,6 @@ export abstract class DifficultyAttributesCacheManager<
         >,
     ) {
         delete attribute.beatmapId;
-        delete attribute.forceAR;
-        delete attribute.forceCS;
-        delete attribute.forceOD;
-        delete attribute.oldStatistics;
-        delete attribute.speedMultiplier;
     }
 
     /**
@@ -330,14 +241,7 @@ export abstract class DifficultyAttributesCacheManager<
                 this.removePrimaryKeys(parsed);
 
                 cache.set(
-                    this.getAttributeName(
-                        this.convertDatabaseMods(parsed.mods),
-                        parsed.oldStatistics,
-                        parsed.speedMultiplier,
-                        parsed.forceCS,
-                        parsed.forceAR,
-                        parsed.forceOD,
-                    ),
+                    this.convertModsForAttributeCacheKey(parsed.mods),
                     Object.assign(
                         parsed,
                         this.convertDatabaseAttributes(parsed),
@@ -349,5 +253,19 @@ export abstract class DifficultyAttributesCacheManager<
         }
 
         return cache;
+    }
+
+    private convertModsForAttributeCacheKey(
+        mods: Mod[] | SerializedMod[],
+    ): string {
+        const serializedMods: SerializedMod[] =
+            mods[0] instanceof Mod
+                ? ModUtil.serializeMods(
+                      this.retainDifficultyAdjustmentMods(mods as Mod[]),
+                  )
+                : mods;
+
+        // This sounds SO expensive for an in-memory cache, but it is what it is...
+        return sortAlphabet(JSON.stringify(serializedMods.join("")));
     }
 }

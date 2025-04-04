@@ -1,10 +1,5 @@
-import {
-    boolean,
-    doublePrecision,
-    integer,
-    real,
-    text,
-} from "drizzle-orm/pg-core";
+import { SerializedMod } from "@rian8337/osu-base";
+import { doublePrecision, integer, jsonb, text } from "drizzle-orm/pg-core";
 
 /**
  * The base columns for difficulty attributes.
@@ -18,38 +13,7 @@ export const baseDifficultyAttributesColumns = {
     /**
      * The mods which were applied to the beatmap.
      */
-    mods: text().notNull(),
-
-    /**
-     * The speed multiplier of the difficulty attributes.
-     */
-    speedMultiplier: real().notNull(),
-
-    /**
-     * The force CS used in the beatmap.
-     *
-     * If -1, no force CS is used.
-     */
-    forceCS: real("force_cs").notNull(),
-
-    /**
-     * The force AR used in the beatmap.
-     *
-     * If -1, no force AR is used.
-     */
-    forceAR: real("force_ar").notNull(),
-
-    /**
-     * The force OD used in the beatmap.
-     *
-     * If -1, no force OD is used.
-     */
-    forceOD: real("force_od").notNull(),
-
-    /**
-     * Whether the difficulty attributes uses old statistics (pre-1.6.8 pre-release).
-     */
-    oldStatistics: boolean().notNull(),
+    mods: jsonb().$type<SerializedMod[]>().notNull(),
 
     /**
      * The combined star rating of all skills.
@@ -245,11 +209,5 @@ export const baseOsuDifficultyAttributesColumns = {
  */
 export type DifficultyAttributesPrimaryKey = keyof Pick<
     typeof baseDifficultyAttributesColumns,
-    | "beatmapId"
-    | "mods"
-    | "speedMultiplier"
-    | "forceCS"
-    | "forceAR"
-    | "forceOD"
-    | "oldStatistics"
+    "beatmapId" | "mods"
 >;

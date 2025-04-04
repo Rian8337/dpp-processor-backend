@@ -1,4 +1,8 @@
-import { ExtendedDroidDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
+import { Mod } from "@rian8337/osu-base";
+import {
+    DroidDifficultyCalculator,
+    IExtendedDroidDifficultyAttributes,
+} from "@rian8337/osu-difficulty-calculator";
 import {
     baseDifficultyAttributesColumns,
     DifficultyAttributesPrimaryKey,
@@ -10,16 +14,22 @@ import { DroidDifficultyAttributesCacheManager } from "./DroidDifficultyAttribut
 /**
  * A cache manager for osu!droid live calculation difficulty attributes.
  */
-export class LiveDroidDifficultyAttributesCacheManager extends DroidDifficultyAttributesCacheManager<ExtendedDroidDifficultyAttributes> {
+export class LiveDroidDifficultyAttributesCacheManager extends DroidDifficultyAttributesCacheManager<IExtendedDroidDifficultyAttributes> {
     protected override readonly attributeType = PPCalculationMethod.live;
 
     protected override readonly databaseTable =
         liveDroidDifficultyAttributesTable;
 
-    protected convertDatabaseAttributes(
+    private readonly calculator = new DroidDifficultyCalculator();
+
+    protected override retainDifficultyAdjustmentMods(mods: Mod[]): Mod[] {
+        return this.calculator.retainDifficultyAdjustmentMods(mods);
+    }
+
+    protected override convertDatabaseAttributes(
         attributes: typeof this.databaseTable.$inferSelect,
     ): Omit<
-        ExtendedDroidDifficultyAttributes,
+        IExtendedDroidDifficultyAttributes,
         keyof typeof baseDifficultyAttributesColumns
     > {
         return {
@@ -35,8 +45,8 @@ export class LiveDroidDifficultyAttributesCacheManager extends DroidDifficultyAt
         };
     }
 
-    protected convertDifficultyAttributes(
-        attributes: ExtendedDroidDifficultyAttributes,
+    protected override convertDifficultyAttributes(
+        attributes: IExtendedDroidDifficultyAttributes,
     ): Omit<
         typeof this.databaseTable.$inferSelect,
         DifficultyAttributesPrimaryKey

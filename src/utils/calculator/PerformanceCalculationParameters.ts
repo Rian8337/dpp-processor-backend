@@ -1,4 +1,4 @@
-import { Accuracy, ModUtil } from "@rian8337/osu-base";
+import { Accuracy, Mod, ModUtil } from "@rian8337/osu-base";
 import {
     ReplayAnalyzer,
     SliderCheeseInformation,
@@ -10,16 +10,17 @@ import {
     PerformanceCalculationOptions,
 } from "@rian8337/osu-difficulty-calculator";
 import { PerformanceCalculationOptions as RebalancePerformanceCalculationOptions } from "@rian8337/osu-rebalance-difficulty-calculator";
-import {
-    DifficultyCalculationParameters,
-    DifficultyCalculationParametersInit,
-} from "./DifficultyCalculationParameters";
+import { DifficultyCalculationParameters } from "./DifficultyCalculationParameters";
 
 /**
  * Represents a parameter to alter performance calculation result.
  */
-export interface PerformanceCalculationParametersInit
-    extends DifficultyCalculationParametersInit {
+export interface PerformanceCalculationParametersInit {
+    /**
+     * The mods to calculate for.
+     */
+    mods?: Mod[];
+
     /**
      * The combo achieved. Defaults to the beatmap's maximum combo.
      */
@@ -56,7 +57,7 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
         return new this({
             ...data,
             accuracy: new Accuracy(data.accuracy),
-            mods: ModUtil.pcStringToMods(data.mods),
+            mods: ModUtil.deserializeMods(data.mods),
         });
     }
 
@@ -81,7 +82,7 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
     sliderCheesePenalty?: SliderCheeseInformation;
 
     constructor(values: PerformanceCalculationParametersInit) {
-        super(values);
+        super(values.mods);
 
         this.combo = values.combo;
         this.accuracy = values.accuracy;
@@ -160,7 +161,7 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
     /**
      * Returns a cloneable form of this parameter.
      */
-    toCloneable(): CloneablePerformanceCalculationParameters {
+    override toCloneable(): CloneablePerformanceCalculationParameters {
         return {
             ...super.toCloneable(),
             accuracy: {

@@ -1,4 +1,4 @@
-import { Accuracy, RankedStatus, ScoreRank } from "@rian8337/osu-base";
+import { Accuracy, ModUtil, RankedStatus, ScoreRank } from "@rian8337/osu-base";
 import {
     ReplayAnalyzer,
     ReplayData,
@@ -8,6 +8,7 @@ import "dotenv/config";
 import { eq } from "drizzle-orm";
 import { readFile, unlink } from "fs/promises";
 import { join } from "path";
+import { isDeepStrictEqual } from "util";
 import { officialDb } from "./database/official";
 import {
     insertBestScore,
@@ -28,7 +29,6 @@ import {
     onlineReplayDirectory,
     saveReplayToOfficialPP,
 } from "./utils/replayManager";
-import { sortAlphabet } from "./utils/util";
 
 function obtainOfficialScore(
     scoreId: number,
@@ -95,39 +95,15 @@ function isReplayValid(
         }
 
         // Mods are compared later as they are more costly.
-        const scoreMods = sortAlphabet(
-            score.mods.reduce((a, v) => a + v.droidString, ""),
-        );
+        const scoreMods = ModUtil.serializeMods(score.mods);
+        const replayMods = ModUtil.serializeMods(replayData.convertedMods);
 
-        const replayMods = sortAlphabet(
-            replayData.convertedMods.reduce((a, v) => a + v.droidString, ""),
-        );
-
-        if (scoreMods !== replayMods) {
+        if (!isDeepStrictEqual(scoreMods, replayMods)) {
             return false;
         }
     }
 
-    // Replay v4 only has speed multiplier.
-    if (
-        replayData.isReplayV4() &&
-        score.speedMultiplier !== replayData.speedMultiplier
-    ) {
-        return false;
-    }
-
-    // Replay v5 has forced statistics.
-    if (
-        replayData.isReplayV5() &&
-        (score.forceCS !== replayData.forceCS ||
-            score.forceAR !== replayData.forceAR ||
-            score.forceOD !== replayData.forceOD ||
-            score.forceHP !== replayData.forceHP)
-    ) {
-        return false;
-    }
-
-    // Replay v6? Well... nothing new to check there, so let's end it here.
+    // Replay v4? Well... nothing new to check there, so let's end it here.
     return true;
 }
 
@@ -156,8 +132,6 @@ function obtainOverrideParameters(
         return null;
     }
 
-    const parsedMods = parseOfficialScoreMods(score.mode);
-
     return new PerformanceCalculationParameters({
         accuracy: new Accuracy({
             n300: score.perfect,
@@ -166,13 +140,7 @@ function obtainOverrideParameters(
             nmiss: score.miss,
         }),
         combo: score.combo,
-        mods: parsedMods.mods,
-        customSpeedMultiplier: parsedMods.speedMultiplier,
-        forceAR: parsedMods.forceAR,
-        forceCS: parsedMods.forceCS,
-        forceHP: parsedMods.forceHP,
-        forceOD: parsedMods.forceOD,
-        oldStatistics: parsedMods.oldStatistics,
+        mods: parseOfficialScoreMods(score.mode),
     });
 }
 

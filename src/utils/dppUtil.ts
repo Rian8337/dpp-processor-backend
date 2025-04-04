@@ -1,17 +1,9 @@
 import {
-    ReplayAnalyzer,
-    ReplayV3Data,
-} from "@rian8337/osu-droid-replay-analyzer";
-import {
-    DroidDifficultyAttributes,
-    OsuDifficultyAttributes,
-} from "@rian8337/osu-difficulty-calculator";
-import { getBeatmap } from "./cache/beatmapStorage";
-import { DatabaseManager } from "../database/managers/DatabaseManager";
-import { BeatmapDroidDifficultyCalculator } from "./calculator/BeatmapDroidDifficultyCalculator";
-import {
+    Mod,
     ModAuto,
     ModAutopilot,
+    ModCustomSpeed,
+    ModDifficultyAdjust,
     ModDoubleTime,
     ModEasy,
     ModFlashlight,
@@ -28,21 +20,33 @@ import {
     ModSmallCircle,
     ModSuddenDeath,
     ModTraceable,
+    ModUtil,
 } from "@rian8337/osu-base";
+import {
+    IDroidDifficultyAttributes,
+    IOsuDifficultyAttributes,
+} from "@rian8337/osu-difficulty-calculator";
+import {
+    ReplayAnalyzer,
+    ReplayV3Data,
+} from "@rian8337/osu-droid-replay-analyzer";
+import { watch } from "chokidar";
+import { readFile, readdir } from "fs/promises";
+import { basename, join } from "path";
+import { DatabaseManager } from "../database/managers/DatabaseManager";
+import { getPlayerFromUsername } from "../database/official/officialDatabaseUtil";
+import { ProcessorDatabaseBeatmap } from "../database/processor/schema/ProcessorDatabaseBeatmap";
+import { IRecentPlay } from "../database/structures/aliceDb/IRecentPlay";
+import { DroidPerformanceAttributes } from "../structures/attributes/DroidPerformanceAttributes";
+import { OsuPerformanceAttributes } from "../structures/attributes/OsuPerformanceAttributes";
+import { getBeatmap } from "./cache/beatmapStorage";
+import { BeatmapDroidDifficultyCalculator } from "./calculator/BeatmapDroidDifficultyCalculator";
+import { BeatmapOsuDifficultyCalculator } from "./calculator/BeatmapOsuDifficultyCalculator";
 import { PerformanceCalculationResult } from "./calculator/PerformanceCalculationResult";
 import {
     deleteUnprocessedReplay,
     unprocessedReplayDirectory,
 } from "./replayManager";
-import { DroidPerformanceAttributes } from "../structures/attributes/DroidPerformanceAttributes";
-import { BeatmapOsuDifficultyCalculator } from "./calculator/BeatmapOsuDifficultyCalculator";
-import { IRecentPlay } from "../database/structures/aliceDb/IRecentPlay";
-import { OsuPerformanceAttributes } from "../structures/attributes/OsuPerformanceAttributes";
-import { readFile, readdir } from "fs/promises";
-import { basename, join } from "path";
-import { watch } from "chokidar";
-import { ProcessorDatabaseBeatmap } from "../database/processor/schema/ProcessorDatabaseBeatmap";
-import { getPlayerFromUsername } from "../database/official/officialDatabaseUtil";
 import { isDebug } from "./util";
 
 const droidDifficultyCalculator = new BeatmapDroidDifficultyCalculator();
@@ -72,11 +76,11 @@ export async function submitReplay(
         replay: ReplayAnalyzer,
         beatmap?: ProcessorDatabaseBeatmap,
         droidAttribs?: PerformanceCalculationResult<
-            DroidDifficultyAttributes,
+            IDroidDifficultyAttributes,
             DroidPerformanceAttributes
         > | null,
         osuAttribs?: PerformanceCalculationResult<
-            OsuDifficultyAttributes,
+            IOsuDifficultyAttributes,
             OsuPerformanceAttributes
         > | null,
     ) => {
@@ -96,7 +100,7 @@ export async function submitReplay(
             date: new Date(),
             score: data.score,
             rank: data.rank,
-            mods: data.convertedMods.reduce((a, v) => a + v.acronym, ""),
+            mods: ModUtil.serializeMods(data.convertedMods),
             hash: beatmap?.hash ?? data.hash,
             scoreId: replay.scoreID,
         };
@@ -106,9 +110,8 @@ export async function submitReplay(
                 params: droidAttribs.params.toCloneable(),
                 difficulty: {
                     ...droidAttribs.difficultyAttributes,
-                    mods: droidAttribs.difficultyAttributes.mods.reduce(
-                        (a, v) => a + v.acronym,
-                        "",
+                    mods: ModUtil.serializeMods(
+                        droidAttribs.difficultyAttributes.mods,
                     ),
                 },
                 performance: {
@@ -146,9 +149,8 @@ export async function submitReplay(
                 params: osuAttribs.params.toCloneable(),
                 difficulty: {
                     ...osuAttribs.difficultyAttributes,
-                    mods: osuAttribs.difficultyAttributes.mods.reduce(
-                        (a, v) => a + v.acronym,
-                        "",
+                    mods: ModUtil.serializeMods(
+                        osuAttribs.difficultyAttributes.mods,
                     ),
                 },
                 performance: {
@@ -159,25 +161,6 @@ export async function submitReplay(
                     flashlight: osuAttribs.result.flashlight,
                 },
             };
-        }
-
-        if (data.isReplayV4() && data.speedMultiplier !== 1) {
-            recentPlay.speedMultiplier = data.speedMultiplier;
-        }
-
-        if (data.isReplayV5()) {
-            if (data.forceCS !== undefined) {
-                recentPlay.forceCS = data.forceCS;
-            }
-            if (data.forceAR !== undefined) {
-                recentPlay.forceAR = data.forceAR;
-            }
-            if (data.forceOD !== undefined) {
-                recentPlay.forceOD = data.forceOD;
-            }
-            if (data.forceHP !== undefined) {
-                recentPlay.forceHP = data.forceHP;
-            }
         }
 
         // Re-set date to update to current date
@@ -331,26 +314,26 @@ export async function initiateReplayProcessing(): Promise<void> {
     console.log("Unprocessed replay file(s) processing complete");
 }
 
-const replayModsConstants = {
-    MOD_AUTO: new ModAuto().droidString,
-    MOD_AUTOPILOT: new ModAutopilot().droidString,
-    MOD_NOFAIL: new ModNoFail().droidString,
-    MOD_EASY: new ModEasy().droidString,
-    MOD_HIDDEN: new ModHidden().droidString,
-    MOD_TRACEABLE: new ModTraceable().droidString,
-    MOD_HARDROCK: new ModHardRock().droidString,
-    MOD_DOUBLETIME: new ModDoubleTime().droidString,
-    MOD_HALFTIME: new ModHalfTime().droidString,
-    MOD_NIGHTCORE: new ModNightCore().droidString,
-    MOD_PRECISE: new ModPrecise().droidString,
-    MOD_SMALLCIRCLE: new ModSmallCircle().droidString,
-    MOD_REALLYEASY: new ModReallyEasy().droidString,
-    MOD_RELAX: new ModRelax().droidString,
-    MOD_PERFECT: new ModPerfect().droidString,
-    MOD_SUDDENDEATH: new ModSuddenDeath().droidString,
-    MOD_SCOREV2: new ModScoreV2().droidString,
-    MOD_FLASHLIGHT: new ModFlashlight().droidString,
-} as const;
+const replayModConstants = new Map<typeof Mod, string>([
+    [ModAuto, "a"],
+    [ModAutopilot, "p"],
+    [ModNoFail, "n"],
+    [ModEasy, "e"],
+    [ModHidden, "h"],
+    [ModTraceable, "b"],
+    [ModHardRock, "r"],
+    [ModDoubleTime, "d"],
+    [ModHalfTime, "t"],
+    [ModNightCore, "c"],
+    [ModPrecise, "s"],
+    [ModSmallCircle, "m"],
+    [ModReallyEasy, "l"],
+    [ModRelax, "x"],
+    [ModPerfect, "f"],
+    [ModSuddenDeath, "u"],
+    [ModScoreV2, "v"],
+    [ModFlashlight, "i"],
+]);
 
 /**
  * Constructs a mod string from a replay data.
@@ -361,48 +344,57 @@ const replayModsConstants = {
 export function constructModString(data: ReplayV3Data): string {
     let modString = "";
 
-    for (const mod of data.rawMods) {
-        for (const property in replayModsConstants) {
-            if (!mod.includes(property)) {
-                continue;
-            }
+    for (const mod of data.convertedMods) {
+        const constant = replayModConstants.get(mod.constructor as typeof Mod);
 
-            modString +=
-                replayModsConstants[
-                    property as keyof typeof replayModsConstants
-                ];
-            break;
+        if (constant) {
+            modString += constant;
         }
     }
 
-    if (data.isReplayV4()) {
+    if (data.replayVersion >= 4) {
         modString += "|";
         let extraModString = "";
 
-        if (data.speedMultiplier !== 1) {
-            extraModString += `x${data.speedMultiplier.toFixed(2)}|`;
+        const flashlight = data.convertedMods.find(
+            (m) => m instanceof ModFlashlight,
+        );
+
+        const difficultyAdjust = data.convertedMods.find(
+            (m) => m instanceof ModDifficultyAdjust,
+        );
+
+        const customSpeed = data.convertedMods.find(
+            (m) => m instanceof ModCustomSpeed,
+        );
+
+        if (customSpeed) {
+            extraModString += `x${customSpeed.trackRateMultiplier.toFixed(2)}|`;
         }
 
-        if (data.forceAR !== undefined) {
-            extraModString += `AR${data.forceAR.toFixed(1)}|`;
+        if (difficultyAdjust) {
+            if (difficultyAdjust.ar !== undefined) {
+                extraModString += `AR${difficultyAdjust.ar.toFixed(1)}|`;
+            }
+
+            if (difficultyAdjust.od !== undefined) {
+                extraModString += `OD${difficultyAdjust.od.toFixed(1)}|`;
+            }
+
+            if (difficultyAdjust.cs !== undefined) {
+                extraModString += `CS${difficultyAdjust.cs.toFixed(1)}|`;
+            }
+
+            if (difficultyAdjust.hp !== undefined) {
+                extraModString += `HP${difficultyAdjust.hp.toFixed(1)}|`;
+            }
         }
 
-        if (data.isReplayV5()) {
-            if (data.forceOD !== undefined) {
-                extraModString += `OD${data.forceOD.toFixed(1)}|`;
-            }
-
-            if (data.forceCS !== undefined) {
-                extraModString += `CS${data.forceCS.toFixed(1)}|`;
-            }
-
-            if (data.forceHP !== undefined) {
-                extraModString += `HP${data.forceHP.toFixed(1)}|`;
-            }
-        }
-
-        if (data.flashlightFollowDelay !== 0.12) {
-            extraModString += `FLD${data.flashlightFollowDelay.toFixed(2)}|`;
+        if (
+            flashlight &&
+            flashlight.followDelay !== ModFlashlight.defaultFollowDelay
+        ) {
+            extraModString += `FLD${flashlight.followDelay.toFixed(2)}|`;
         }
 
         if (extraModString) {

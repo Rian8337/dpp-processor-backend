@@ -44,15 +44,7 @@ export const liveDroidDifficultyAttributesTable = pgTable(
     baseDroidDifficultyAttributesColumns,
     (table) => [
         primaryKey({
-            columns: [
-                table.beatmapId,
-                table.mods,
-                table.speedMultiplier,
-                table.forceCS,
-                table.forceAR,
-                table.forceOD,
-                table.oldStatistics,
-            ],
+            columns: [table.beatmapId, table.mods],
         }),
         foreignKey({
             name: "fk_live_droid_difficulty_attributes_beatmap_id",
@@ -62,10 +54,6 @@ export const liveDroidDifficultyAttributesTable = pgTable(
         index("live_droid_difficulty_attributes_main_idx").on(
             table.beatmapId,
             table.mods,
-            table.speedMultiplier,
-            table.forceCS,
-            table.forceAR,
-            table.forceOD,
         ),
         index("live_droid_difficulty_attributes_beatmap_idx").on(
             table.beatmapId,
@@ -81,15 +69,7 @@ export const rebalanceDroidDifficultyAttributesTable = pgTable(
     baseDroidDifficultyAttributesColumns,
     (table) => [
         primaryKey({
-            columns: [
-                table.beatmapId,
-                table.mods,
-                table.speedMultiplier,
-                table.forceCS,
-                table.forceAR,
-                table.forceOD,
-                table.oldStatistics,
-            ],
+            columns: [table.beatmapId, table.mods],
         }),
         foreignKey({
             name: "fk_rebalance_droid_difficulty_attributes_beatmap_id",
@@ -99,10 +79,6 @@ export const rebalanceDroidDifficultyAttributesTable = pgTable(
         index("rebalance_droid_difficulty_attributes_main_idx").on(
             table.beatmapId,
             table.mods,
-            table.speedMultiplier,
-            table.forceCS,
-            table.forceAR,
-            table.forceOD,
         ),
         index("rebalance_droid_difficulty_attributes_beatmap_idx").on(
             table.beatmapId,
@@ -118,15 +94,7 @@ export const liveOsuDifficultyAttributesTable = pgTable(
     baseOsuDifficultyAttributesColumns,
     (table) => [
         primaryKey({
-            columns: [
-                table.beatmapId,
-                table.mods,
-                table.speedMultiplier,
-                table.forceCS,
-                table.forceAR,
-                table.forceOD,
-                table.oldStatistics,
-            ],
+            columns: [table.beatmapId, table.mods],
         }),
         foreignKey({
             name: "fk_live_osu_difficulty_attributes_beatmap_id",
@@ -136,10 +104,6 @@ export const liveOsuDifficultyAttributesTable = pgTable(
         index("live_osu_difficulty_attributes_main_idx").on(
             table.beatmapId,
             table.mods,
-            table.speedMultiplier,
-            table.forceCS,
-            table.forceAR,
-            table.forceOD,
         ),
         index("live_osu_difficulty_attributes_beatmap_idx").on(table.beatmapId),
     ],
@@ -153,15 +117,7 @@ export const rebalanceOsuDifficultyAttributesTable = pgTable(
     baseOsuDifficultyAttributesColumns,
     (table) => [
         primaryKey({
-            columns: [
-                table.beatmapId,
-                table.mods,
-                table.speedMultiplier,
-                table.forceCS,
-                table.forceAR,
-                table.forceOD,
-                table.oldStatistics,
-            ],
+            columns: [table.beatmapId, table.mods],
         }),
         foreignKey({
             name: "fk_rebalance_osu_difficulty_attributes_beatmap_id",
@@ -171,10 +127,6 @@ export const rebalanceOsuDifficultyAttributesTable = pgTable(
         index("rebalance_osu_difficulty_attributes_main_idx").on(
             table.beatmapId,
             table.mods,
-            table.speedMultiplier,
-            table.forceCS,
-            table.forceAR,
-            table.forceOD,
         ),
         index("rebalance_osu_difficulty_attributes_beatmap_idx").on(
             table.beatmapId,

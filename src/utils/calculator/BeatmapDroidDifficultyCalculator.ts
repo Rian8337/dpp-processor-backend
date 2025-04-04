@@ -1,10 +1,10 @@
 import { Beatmap, Modes } from "@rian8337/osu-base";
-import { ExtendedDroidDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
+import { IExtendedDroidDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
 import {
     ReplayAnalyzer,
     ThreeFingerChecker,
 } from "@rian8337/osu-droid-replay-analyzer";
-import { ExtendedDroidDifficultyAttributes as RebalanceExtendedDroidDifficultyAttributes } from "@rian8337/osu-rebalance-difficulty-calculator";
+import { IExtendedDroidDifficultyAttributes as IRebalanceExtendedDroidDifficultyAttributes } from "@rian8337/osu-rebalance-difficulty-calculator";
 import { DroidPerformanceAttributes } from "../../structures/attributes/DroidPerformanceAttributes";
 import { RebalanceDroidPerformanceAttributes } from "../../structures/attributes/RebalanceDroidPerformanceAttributes";
 import {
@@ -18,8 +18,8 @@ import { PerformanceCalculationParameters } from "./PerformanceCalculationParame
  * A helper class for calculating osu!droid difficulty and performance of beatmaps or scores.
  */
 export class BeatmapDroidDifficultyCalculator extends BeatmapDifficultyCalculator<
-    ExtendedDroidDifficultyAttributes,
-    RebalanceExtendedDroidDifficultyAttributes,
+    IExtendedDroidDifficultyAttributes,
+    IRebalanceExtendedDroidDifficultyAttributes,
     DroidPerformanceAttributes,
     RebalanceDroidPerformanceAttributes
 > {
@@ -43,8 +43,8 @@ export class BeatmapDroidDifficultyCalculator extends BeatmapDifficultyCalculato
         beatmap: Beatmap,
         replay: ReplayAnalyzer,
         difficultyAttributes:
-            | ExtendedDroidDifficultyAttributes
-            | RebalanceExtendedDroidDifficultyAttributes,
+            | IExtendedDroidDifficultyAttributes
+            | IRebalanceExtendedDroidDifficultyAttributes,
     ): boolean {
         if (!replay.data) {
             return false;
@@ -79,8 +79,8 @@ export class BeatmapDroidDifficultyCalculator extends BeatmapDifficultyCalculato
         beatmap: Beatmap,
         replay: ReplayAnalyzer,
         difficultyAttributes:
-            | ExtendedDroidDifficultyAttributes
-            | RebalanceExtendedDroidDifficultyAttributes,
+            | IExtendedDroidDifficultyAttributes
+            | IRebalanceExtendedDroidDifficultyAttributes,
     ): boolean {
         if (difficultyAttributes.difficultSliders.length === 0) {
             return true;

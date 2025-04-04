@@ -16,7 +16,7 @@ export class RecentPlaysCollectionManager extends DatabaseCollectionManager<IRec
             combo: 0,
             date: new Date(),
             hash: "",
-            mods: "",
+            mods: [],
             rank: "",
             score: 0,
             uid: 0,

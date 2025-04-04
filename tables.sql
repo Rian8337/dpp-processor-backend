@@ -17,12 +17,7 @@ CREATE INDEX IF NOT EXISTS beatmap_hash_idx ON beatmap(hash);
 
 CREATE TABLE IF NOT EXISTS live_droid_difficulty_attributes (
     beatmap_id                              int             NOT NULL,
-    mods                                    text            NOT NULL,
-    speed_multiplier                        real            NOT NULL,
-    force_cs                                real            NOT NULL,
-    force_ar                                real            NOT NULL,
-    force_od                                real            NOT NULL,
-    old_statistics                          boolean         NOT NULL,
+    mods                                    jsonb           NOT NULL,
     tap_difficulty                          float           NOT NULL,
     rhythm_difficulty                       float           NOT NULL,
     visual_difficulty                       float           NOT NULL,
@@ -50,21 +45,15 @@ CREATE TABLE IF NOT EXISTS live_droid_difficulty_attributes (
     average_speed_delta_time                float           NOT NULL,
     vibro_factor                            float           NOT NULL,
 
-    PRIMARY KEY (beatmap_id, mods, speed_multiplier, force_cs, force_ar, force_od, old_statistics),
+    PRIMARY KEY (beatmap_id, mods),
     CONSTRAINT fk_live_droid_difficulty_attributes_beatmap_id FOREIGN KEY (beatmap_id) REFERENCES beatmap(id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS live_droid_difficulty_attributes_main_idx ON live_droid_difficulty_attributes(beatmap_id, mods, speed_multiplier, force_cs, force_ar, force_od, old_statistics);
 CREATE INDEX IF NOT EXISTS live_droid_difficulty_attributes_beatmap_idx ON live_droid_difficulty_attributes(beatmap_id);
 
 CREATE TABLE IF NOT EXISTS rebalance_droid_difficulty_attributes (
     beatmap_id                              int             NOT NULL,
-    mods                                    text            NOT NULL,
-    speed_multiplier                        real            NOT NULL,
-    force_cs                                real            NOT NULL,
-    force_ar                                real            NOT NULL,
-    force_od                                real            NOT NULL,
-    old_statistics                          boolean         NOT NULL,
+    mods                                    jsonb           NOT NULL,
     tap_difficulty                          float           NOT NULL,
     rhythm_difficulty                       float           NOT NULL,
     visual_difficulty                       float           NOT NULL,
@@ -92,21 +81,15 @@ CREATE TABLE IF NOT EXISTS rebalance_droid_difficulty_attributes (
     average_speed_delta_time                float           NOT NULL,
     vibro_factor                            float           NOT NULL,
 
-    PRIMARY KEY (beatmap_id, mods, speed_multiplier, force_cs, force_ar, force_od, old_statistics),
+    PRIMARY KEY (beatmap_id, mods),
     CONSTRAINT fk_rebalance_droid_difficulty_attributes_beatmap_id FOREIGN KEY (beatmap_id) REFERENCES beatmap(id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS rebalance_droid_difficulty_attributes_main_idx ON rebalance_droid_difficulty_attributes(beatmap_id, mods, speed_multiplier, force_cs, force_ar, force_od, old_statistics);
 CREATE INDEX IF NOT EXISTS rebalance_droid_difficulty_attributes_beatmap_idx ON rebalance_droid_difficulty_attributes(beatmap_id);
 
 CREATE TABLE IF NOT EXISTS live_osu_difficulty_attributes (
     beatmap_id                              int             NOT NULL,
-    mods                                    text            NOT NULL,
-    speed_multiplier                        real            NOT NULL,
-    force_cs                                real            NOT NULL,
-    force_ar                                real            NOT NULL,
-    force_od                                real            NOT NULL,
-    old_statistics                          boolean         NOT NULL,
+    mods                                    jsonb           NOT NULL,
     star_rating                             float           NOT NULL,
     max_combo                               int             NOT NULL,
     aim_difficulty                          float           NOT NULL,
@@ -124,21 +107,15 @@ CREATE TABLE IF NOT EXISTS live_osu_difficulty_attributes (
     aim_difficult_strain_count              float           NOT NULL,
     speed_difficult_strain_count            float           NOT NULL,
 
-    PRIMARY KEY (beatmap_id, mods, speed_multiplier, force_cs, force_ar, force_od, old_statistics),
+    PRIMARY KEY (beatmap_id, mods),
     CONSTRAINT fk_live_osu_difficulty_attributes_beatmap_id FOREIGN KEY (beatmap_id) REFERENCES beatmap(id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS live_osu_difficulty_attributes_main_idx ON live_osu_difficulty_attributes(beatmap_id, mods, speed_multiplier, force_cs, force_ar, force_od, old_statistics);
 CREATE INDEX IF NOT EXISTS live_osu_difficulty_attributes_beatmap_idx ON live_osu_difficulty_attributes(beatmap_id);
 
 CREATE TABLE IF NOT EXISTS rebalance_osu_difficulty_attributes (
     beatmap_id                              int             NOT NULL,
-    mods                                    text            NOT NULL,
-    speed_multiplier                        real            NOT NULL,
-    force_cs                                real            NOT NULL,
-    force_ar                                real            NOT NULL,
-    force_od                                real            NOT NULL,
-    old_statistics                          boolean         NOT NULL,
+    mods                                    jsonb           NOT NULL,
     star_rating                             float           NOT NULL,
     max_combo                               int             NOT NULL,
     aim_difficulty                          float           NOT NULL,
@@ -156,11 +133,10 @@ CREATE TABLE IF NOT EXISTS rebalance_osu_difficulty_attributes (
     aim_difficult_strain_count              float           NOT NULL,
     speed_difficult_strain_count            float           NOT NULL,
 
-    PRIMARY KEY (beatmap_id, mods, speed_multiplier, force_cs, force_ar, force_od, old_statistics),
+    PRIMARY KEY (beatmap_id, mods),
     CONSTRAINT fk_rebalance_osu_difficulty_attributes_beatmap_id FOREIGN KEY (beatmap_id) REFERENCES beatmap(id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS rebalance_osu_difficulty_attributes_main_idx ON rebalance_osu_difficulty_attributes(beatmap_id, mods, speed_multiplier, force_cs, force_ar, force_od, old_statistics);
 CREATE INDEX IF NOT EXISTS rebalance_osu_difficulty_attributes_beatmap_idx ON rebalance_osu_difficulty_attributes(beatmap_id);
 
 CREATE TABLE IF NOT EXISTS score_calculation (

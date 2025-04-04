@@ -1,15 +1,15 @@
-import { PerformanceCalculationParameters } from "./PerformanceCalculationParameters";
-import { IPerformanceCalculationResult } from "../../structures/calculator/IPerformanceCalculationResult";
-import { PerformanceAttributes } from "../../structures/attributes/PerformanceAttributes";
-import { DifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
-import { ReplayAttributes } from "../../structures/attributes/ReplayAttributes";
 import { If } from "@rian8337/osu-base";
+import { IDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
+import { PerformanceAttributes } from "../../structures/attributes/PerformanceAttributes";
+import { ReplayAttributes } from "../../structures/attributes/ReplayAttributes";
+import { IPerformanceCalculationResult } from "../../structures/calculator/IPerformanceCalculationResult";
+import { PerformanceCalculationParameters } from "./PerformanceCalculationParameters";
 
 /**
  * Represents a beatmap's performance calculation result.
  */
 export class PerformanceCalculationResult<
-    TDiffAttributes extends DifficultyAttributes,
+    TDiffAttributes extends IDifficultyAttributes,
     TPerfAttributes extends PerformanceAttributes,
     THasStrainChart extends boolean = boolean,
 > implements

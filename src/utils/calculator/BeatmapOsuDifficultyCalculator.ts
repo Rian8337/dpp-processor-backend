@@ -1,6 +1,6 @@
 import { Modes } from "@rian8337/osu-base";
-import { OsuDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
-import { OsuDifficultyAttributes as RebalanceOsuDifficultyAttributes } from "@rian8337/osu-rebalance-difficulty-calculator";
+import { IOsuDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
+import { IOsuDifficultyAttributes as IRebalanceOsuDifficultyAttributes } from "@rian8337/osu-rebalance-difficulty-calculator";
 import { OsuPerformanceAttributes } from "../../structures/attributes/OsuPerformanceAttributes";
 import {
     liveOsuDifficultyCache,
@@ -12,8 +12,8 @@ import { BeatmapDifficultyCalculator } from "./BeatmapDifficultyCalculator";
  * A helper class for calculating osu!standard difficulty and performance of beatmaps or scores.
  */
 export class BeatmapOsuDifficultyCalculator extends BeatmapDifficultyCalculator<
-    OsuDifficultyAttributes,
-    RebalanceOsuDifficultyAttributes,
+    IOsuDifficultyAttributes,
+    IRebalanceOsuDifficultyAttributes,
     OsuPerformanceAttributes
 > {
     protected override readonly mode = Modes.osu;

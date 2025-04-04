@@ -1,48 +1,40 @@
-import { ModUtil, MathUtils, Modes, Accuracy } from "@rian8337/osu-base";
+import {
+    Accuracy,
+    MathUtils,
+    Modes,
+    ModUtil,
+    SerializedMod,
+} from "@rian8337/osu-base";
 import { Router } from "express";
+import { CompleteCalculationAttributes } from "../structures/attributes/CompleteCalculationAttributes";
+import { DroidPerformanceAttributes } from "../structures/attributes/DroidPerformanceAttributes";
+import { OsuPerformanceAttributes } from "../structures/attributes/OsuPerformanceAttributes";
+import { PerformanceAttributes } from "../structures/attributes/PerformanceAttributes";
+import { RawDifficultyAttributes } from "../structures/attributes/RawDifficultyAttributes";
+import { RebalanceDroidPerformanceAttributes } from "../structures/attributes/RebalanceDroidPerformanceAttributes";
 import { PPCalculationMethod } from "../structures/PPCalculationMethod";
 import {
     getBeatmap,
     updateBeatmapMaxCombo,
 } from "../utils/cache/beatmapStorage";
-import { BeatmapOsuDifficultyCalculator } from "../utils/calculator/BeatmapOsuDifficultyCalculator";
 import { BeatmapDroidDifficultyCalculator } from "../utils/calculator/BeatmapDroidDifficultyCalculator";
+import { BeatmapOsuDifficultyCalculator } from "../utils/calculator/BeatmapOsuDifficultyCalculator";
 import { PerformanceCalculationParameters } from "../utils/calculator/PerformanceCalculationParameters";
-import { DroidPerformanceAttributes } from "../structures/attributes/DroidPerformanceAttributes";
-import {
-    DroidDifficultyAttributes,
-    OsuDifficultyAttributes,
-} from "@rian8337/osu-difficulty-calculator";
-import {
-    DroidDifficultyAttributes as RebalanceDroidDifficultyAttributes,
-    OsuDifficultyAttributes as RebalanceOsuDifficultyAttributes,
-} from "@rian8337/osu-rebalance-difficulty-calculator";
-import { OsuPerformanceAttributes } from "../structures/attributes/OsuPerformanceAttributes";
-import { CompleteCalculationAttributes } from "../structures/attributes/CompleteCalculationAttributes";
-import { RebalanceDroidPerformanceAttributes } from "../structures/attributes/RebalanceDroidPerformanceAttributes";
-import { validateGETInternalKey } from "../utils/util";
-import { RawDifficultyAttributes } from "../structures/attributes/RawDifficultyAttributes";
-import { PerformanceAttributes } from "../structures/attributes/PerformanceAttributes";
+import { validatePOSTInternalKey } from "../utils/util";
 
 const router = Router();
 
-router.get<
+router.post<
     "/",
-    unknown,
     unknown,
     unknown,
     Partial<{
         key: string;
-        beatmapid?: string;
-        beatmaphash?: string;
+        beatmapid: string;
+        beatmaphash: string;
         gamemode: string;
         calculationmethod: string;
         mods?: string;
-        oldstatistics?: string;
-        customspeedmultiplier?: string;
-        forcecs?: string;
-        forcear?: string;
-        forceod?: string;
         n300?: string;
         n100?: string;
         n50?: string;
@@ -54,57 +46,44 @@ router.get<
         visualslidercheesepenalty?: string;
         generatestrainchart?: string;
     }>
->("/", validateGETInternalKey, async (req, res) => {
-    if (!req.query.beatmapid && !req.query.beatmaphash) {
+>("/", validatePOSTInternalKey, async (req, res) => {
+    if (!req.body.beatmapid && !req.body.beatmaphash) {
         return res
             .status(400)
             .json({ error: "Neither beatmap ID or hash is specified" });
     }
 
-    if (!req.query.calculationmethod) {
+    if (!req.body.calculationmethod) {
         return res
             .status(400)
             .json({ error: "Calculation method is not specified" });
     }
 
-    const generateStrainChart = req.query.generatestrainchart !== undefined;
-    const mods = ModUtil.pcStringToMods(req.query.mods ?? "");
-    const oldStatistics = req.query.oldstatistics !== undefined;
+    const generateStrainChart = req.body.generatestrainchart !== undefined;
 
-    const customSpeedMultiplier = MathUtils.clamp(
-        parseFloat(req.query.customspeedmultiplier ?? "1"),
-        0.5,
-        2,
-    );
-    if (Number.isNaN(customSpeedMultiplier)) {
-        return res
-            .status(400)
-            .json({ error: "Invalid custom speed multiplier" });
+    let requestMods: SerializedMod[];
+
+    try {
+        requestMods = JSON.parse(req.body.mods ?? "[]") as SerializedMod[];
+    } catch (e) {
+        return res.status(400).json({ error: "Invalid mods format" });
     }
 
-    const forceCS = req.query.forcecs
-        ? MathUtils.clamp(parseFloat(req.query.forcecs), 0, 11)
-        : undefined;
-    if (forceCS !== undefined && Number.isNaN(forceCS)) {
-        return res.status(400).json({ error: "Invalid force CS" });
+    if (!Array.isArray(requestMods)) {
+        return res.status(400).json({ error: "Invalid mods format" });
     }
 
-    const forceAR = req.query.forcear
-        ? MathUtils.clamp(parseFloat(req.query.forcear), 0, 12.5)
-        : undefined;
-    if (forceAR !== undefined && Number.isNaN(forceAR)) {
-        return res.status(400).json({ error: "Invalid force AR" });
+    // Check if mods are valid
+    for (const mod of requestMods) {
+        if (typeof mod !== "object" || !mod.acronym) {
+            return res.status(400).json({ error: "Invalid mods format" });
+        }
     }
 
-    const forceOD = req.query.forceod
-        ? MathUtils.clamp(parseFloat(req.query.forceod), 0, 11)
-        : undefined;
-    if (forceOD !== undefined && Number.isNaN(forceOD)) {
-        return res.status(400).json({ error: "Invalid force OD" });
-    }
+    const mods = ModUtil.deserializeMods(requestMods);
 
-    const { beatmapid, beatmaphash, gamemode } = req.query;
-    const calculationMethod = parseInt(req.query.calculationmethod);
+    const { beatmapid, beatmaphash, gamemode } = req.body;
+    const calculationMethod = parseInt(req.body.calculationmethod);
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     if (gamemode !== Modes.droid && gamemode !== Modes.osu) {
@@ -130,34 +109,29 @@ router.get<
 
     const calculationParams = new PerformanceCalculationParameters({
         mods: mods,
-        customSpeedMultiplier: customSpeedMultiplier,
-        forceCS: forceCS,
-        forceAR: forceAR,
-        forceOD: forceOD,
-        oldStatistics: oldStatistics,
         accuracy: new Accuracy({
-            n300: Math.max(0, parseInt(req.query.n300 ?? "-1")),
-            n100: Math.max(0, parseInt(req.query.n100 ?? "0")),
-            n50: Math.max(0, parseInt(req.query.n50 ?? "0")),
-            nmiss: Math.max(0, parseInt(req.query.nmiss ?? "0")),
+            n300: Math.max(0, parseInt(req.body.n300 ?? "-1")),
+            n100: Math.max(0, parseInt(req.body.n100 ?? "0")),
+            n50: Math.max(0, parseInt(req.body.n50 ?? "0")),
+            nmiss: Math.max(0, parseInt(req.body.nmiss ?? "0")),
             nobjects: apiBeatmap.objectCount,
         }),
         combo:
-            typeof req.query.maxcombo === "string" &&
+            typeof req.body.maxcombo === "string" &&
             apiBeatmap.maxCombo !== null
                 ? MathUtils.clamp(
-                      parseInt(req.query.maxcombo),
+                      parseInt(req.body.maxcombo),
                       0,
                       apiBeatmap.maxCombo,
                   )
                 : (apiBeatmap.maxCombo ?? undefined),
-        tapPenalty: parseInt(req.query.tappenalty ?? "1"),
+        tapPenalty: parseInt(req.body.tappenalty ?? "1"),
         sliderCheesePenalty: {
-            aimPenalty: parseInt(req.query.aimslidercheesepenalty ?? "1"),
+            aimPenalty: parseInt(req.body.aimslidercheesepenalty ?? "1"),
             flashlightPenalty: parseInt(
-                req.query.flashlightslidercheesepenalty ?? "1",
+                req.body.flashlightslidercheesepenalty ?? "1",
             ),
-            visualPenalty: parseInt(req.query.visualslidercheesepenalty ?? "1"),
+            visualPenalty: parseInt(req.body.visualslidercheesepenalty ?? "1"),
         },
     });
 
@@ -167,7 +141,7 @@ router.get<
     >;
     let strainChart: Buffer | null = null;
 
-    const requestedMods = ModUtil.modsToOsuString(mods);
+    const requestedMods = ModUtil.serializeMods(mods);
 
     switch (gamemode) {
         case Modes.droid: {
@@ -226,17 +200,15 @@ router.get<
                                 result.flashlightSliderCheesePenalty,
                             visualSliderCheesePenalty:
                                 result.visualSliderCheesePenalty,
-                        },
+                        } as DroidPerformanceAttributes,
                         replay: calculationResult.replay,
-                    } as CompleteCalculationAttributes<
-                        DroidDifficultyAttributes,
-                        DroidPerformanceAttributes
-                    >;
+                    };
 
                     strainChart = calculationResult.strainChart;
 
                     break;
                 }
+
                 case PPCalculationMethod.rebalance: {
                     const calculationResult = await difficultyCalculator
                         .calculateBeatmapRebalancePerformance(
@@ -298,12 +270,9 @@ router.get<
                                 result.tapDeviation * 10,
                                 2,
                             ),
-                        },
+                        } as RebalanceDroidPerformanceAttributes,
                         replay: calculationResult.replay,
-                    } as CompleteCalculationAttributes<
-                        RebalanceDroidDifficultyAttributes,
-                        RebalanceDroidPerformanceAttributes
-                    >;
+                    };
 
                     strainChart = calculationResult.strainChart;
 
@@ -313,6 +282,7 @@ router.get<
 
             break;
         }
+
         case Modes.osu: {
             const difficultyCalculator = new BeatmapOsuDifficultyCalculator();
 
@@ -359,16 +329,14 @@ router.get<
                             speed: result.speed,
                             accuracy: result.accuracy,
                             flashlight: result.flashlight,
-                        },
-                    } as CompleteCalculationAttributes<
-                        OsuDifficultyAttributes,
-                        OsuPerformanceAttributes
-                    >;
+                        } as OsuPerformanceAttributes,
+                    };
 
                     strainChart = calculationResult.strainChart;
 
                     break;
                 }
+
                 case PPCalculationMethod.rebalance: {
                     const calculationResult = await difficultyCalculator
                         .calculateBeatmapRebalancePerformance(
@@ -411,11 +379,8 @@ router.get<
                             speed: result.speed,
                             accuracy: result.accuracy,
                             flashlight: result.flashlight,
-                        },
-                    } as CompleteCalculationAttributes<
-                        RebalanceOsuDifficultyAttributes,
-                        OsuPerformanceAttributes
-                    >;
+                        } as OsuPerformanceAttributes,
+                    };
 
                     strainChart = calculationResult.strainChart;
 

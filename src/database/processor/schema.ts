@@ -13,6 +13,7 @@ import {
     baseDroidDifficultyAttributesColumns,
     baseOsuDifficultyAttributesColumns,
 } from "./columns.helper";
+import { RankedStatus } from "@rian8337/osu-base";
 
 /**
  * The beatmap table.
@@ -27,7 +28,7 @@ export const beatmapTable = pgTable(
         totalLength: integer().notNull(),
         maxCombo: integer(),
         objectCount: integer().notNull(),
-        rankedStatus: smallint().notNull(),
+        rankedStatus: smallint().$type<RankedStatus>().notNull(),
         lastChecked: timestamp().notNull(),
     },
     (table) => [

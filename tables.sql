@@ -40,8 +40,8 @@ CREATE TABLE IF NOT EXISTS live_droid_difficulty_attributes (
     visual_difficult_strain_count           float           NOT NULL,
     flashlight_slider_factor                float           NOT NULL,
     visual_slider_factor                    float           NOT NULL,
-    possible_three_fingered_sections        text            NOT NULL,
-    difficult_sliders                       text            NOT NULL,
+    possible_three_fingered_sections        jsonb           NOT NULL,
+    difficult_sliders                       jsonb           NOT NULL,
     average_speed_delta_time                float           NOT NULL,
     vibro_factor                            float           NOT NULL,
 
@@ -76,8 +76,8 @@ CREATE TABLE IF NOT EXISTS rebalance_droid_difficulty_attributes (
     visual_difficult_strain_count           float           NOT NULL,
     flashlight_slider_factor                float           NOT NULL,
     visual_slider_factor                    float           NOT NULL,
-    possible_three_fingered_sections        text            NOT NULL,
-    difficult_sliders                       text            NOT NULL,
+    possible_three_fingered_sections        jsonb           NOT NULL,
+    difficult_sliders                       jsonb           NOT NULL,
     average_speed_delta_time                float           NOT NULL,
     vibro_factor                            float           NOT NULL,
 

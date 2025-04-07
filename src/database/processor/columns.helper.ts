@@ -1,5 +1,9 @@
 import { SerializedMod } from "@rian8337/osu-base";
-import { doublePrecision, integer, jsonb, text } from "drizzle-orm/pg-core";
+import {
+    DifficultSlider,
+    HighStrainSection,
+} from "@rian8337/osu-difficulty-calculator";
+import { doublePrecision, integer, jsonb } from "drizzle-orm/pg-core";
 
 /**
  * The base columns for difficulty attributes.
@@ -151,19 +155,15 @@ export const baseDroidDifficultyAttributesColumns = {
 
     /**
      * Possible sections at which the player can use three fingers on.
-     *
-     * The sections are divided by whitespace, where each section is separated in such structure:
-     * `{firstObjectIndex} {lastObjectIndex} {sumStrain}`.
      */
-    possibleThreeFingeredSections: text().notNull(),
+    possibleThreeFingeredSections: jsonb()
+        .$type<HighStrainSection[]>()
+        .notNull(),
 
     /**
      * Sliders that are considered difficult.
-     *
-     * The sliders are divided by whitespace, where each slider is separated in such structure:
-     * `{index} {difficultyRating}`.
      */
-    difficultSliders: text().notNull(),
+    difficultSliders: jsonb().$type<DifficultSlider[]>().notNull(),
 
     /**
      * The amount of strains that are considered difficult with respect to the visual skill.

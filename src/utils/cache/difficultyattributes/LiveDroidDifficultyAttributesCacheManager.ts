@@ -35,13 +35,6 @@ export class LiveDroidDifficultyAttributesCacheManager extends DroidDifficultyAt
         return {
             ...attributes,
             mode: "live",
-            difficultSliders: this.convertDifficultSlidersFromDatabase(
-                attributes.difficultSliders,
-            ),
-            possibleThreeFingeredSections:
-                this.convertHighStrainSectionsFromDatabase(
-                    attributes.possibleThreeFingeredSections,
-                ),
         };
     }
 
@@ -53,13 +46,6 @@ export class LiveDroidDifficultyAttributesCacheManager extends DroidDifficultyAt
     > {
         const databaseAttributes = {
             ...attributes,
-            difficultSliders: this.convertDifficultSlidersToDatabase(
-                attributes.difficultSliders,
-            ),
-            possibleThreeFingeredSections:
-                this.convertHighStrainSectionsToDatabase(
-                    attributes.possibleThreeFingeredSections,
-                ),
             // Overwrite mode to undefined to prevent it from being inserted into the database.
             mode: undefined,
         };

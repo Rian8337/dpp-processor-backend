@@ -117,7 +117,10 @@ export abstract class DifficultyAttributesCacheManager<
             ),
         } as typeof this.databaseTable.$inferInsert;
 
-        await processorDb.insert(this.databaseTable).values(databaseAttributes);
+        await processorDb
+            .insert(this.databaseTable)
+            .values(databaseAttributes)
+            .onConflictDoNothing();
 
         return cacheableAttributes;
     }

@@ -230,6 +230,8 @@ void (async () => {
 
             await client.query("COMMIT");
         } catch (e) {
+            console.log(e);
+
             await client.query("ROLLBACK");
         } finally {
             client.release();

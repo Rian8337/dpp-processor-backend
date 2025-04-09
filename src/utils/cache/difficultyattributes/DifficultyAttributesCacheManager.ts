@@ -262,6 +262,6 @@ export abstract class DifficultyAttributesCacheManager<
             mods instanceof ModMap ? mods.serializeMods() : (mods ?? []);
 
         // This sounds SO expensive for an in-memory cache, but it is what it is...
-        return sortAlphabet(JSON.stringify(serializedMods.join("")));
+        return sortAlphabet(JSON.stringify(serializedMods));
     }
 }

@@ -88,6 +88,25 @@ export async function getOfficialScore<K extends keyof OfficialDatabaseScore>(
         return forceDatabaseQuery ? null : Score.getFromHash(uid, hash);
     }
 
+    if (databaseColumns.length === 0) {
+        return officialDb
+            .select()
+            .from(scoresTable)
+            .where(
+                and(
+                    eq(scoresTable.uid, uid),
+                    eq(scoresTable.hash, hash),
+                    gt(scoresTable.score, 0),
+                ),
+            )
+            .then((res) => res.at(0) as Pick<OfficialDatabaseScore, K> | null)
+            .catch((e: unknown) => {
+                console.error(e);
+
+                return null;
+            });
+    }
+
     const columns: SelectedFields = {};
 
     for (const column of databaseColumns) {
@@ -130,6 +149,26 @@ export async function getOfficialBestScore<
     if (isDebug) {
         // Debug does not have access to official database.
         return null;
+    }
+
+    if (databaseColumns.length === 0) {
+        return officialDb
+            .select()
+            .from(bestScoresTable)
+            .where(
+                and(
+                    eq(bestScoresTable.uid, uid),
+                    eq(bestScoresTable.hash, hash),
+                ),
+            )
+            .then(
+                (res) => res.at(0) as Pick<OfficialDatabaseBestScore, K> | null,
+            )
+            .catch((e: unknown) => {
+                console.error(e);
+
+                return null;
+            });
     }
 
     const columns: SelectedFields = {};

@@ -35,8 +35,6 @@ router.post<
         generatestrainchart?: string;
     }>
 >("/", validatePOSTInternalKey, async (req, res) => {
-    console.log(req.body.mods);
-
     if (!req.body.beatmapid && !req.body.beatmaphash) {
         return res
             .status(400)

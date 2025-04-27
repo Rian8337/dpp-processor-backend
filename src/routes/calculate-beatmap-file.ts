@@ -169,8 +169,7 @@ router.post<
                                 calculationMethod,
                             ),
                             diffAttribs.clockRate,
-                            undefined,
-                            StrainGraphColor.droidLive,
+                            { color: StrainGraphColor.droidLive },
                         );
                     }
 
@@ -227,8 +226,7 @@ router.post<
                                 calculationMethod,
                             ),
                             diffAttribs.clockRate,
-                            undefined,
-                            StrainGraphColor.droidRebalance,
+                            { color: StrainGraphColor.droidRebalance },
                         );
                     }
 
@@ -291,8 +289,7 @@ router.post<
                                 calculationMethod,
                             ),
                             diffAttribs.clockRate,
-                            undefined,
-                            StrainGraphColor.osuLive,
+                            { color: StrainGraphColor.osuLive },
                         );
                     }
 
@@ -339,8 +336,7 @@ router.post<
                                 calculationMethod,
                             ),
                             diffAttribs.clockRate,
-                            undefined,
-                            StrainGraphColor.osuRebalance,
+                            { color: StrainGraphColor.osuRebalance },
                         );
                     }
 

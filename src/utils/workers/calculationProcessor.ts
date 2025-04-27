@@ -170,8 +170,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                 calculationMethod,
                             ),
                             difficultyAttributes.clockRate,
-                            undefined,
-                            StrainGraphColor.droidLive,
+                            { color: StrainGraphColor.droidLive },
                         );
                     }
 
@@ -294,8 +293,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                 calculationMethod,
                             ),
                             difficultyAttributes.clockRate,
-                            undefined,
-                            StrainGraphColor.droidRebalance,
+                            { color: StrainGraphColor.droidRebalance },
                         );
                     }
 
@@ -436,8 +434,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                 calculationMethod,
                             ),
                             difficultyAttributes.clockRate,
-                            undefined,
-                            StrainGraphColor.osuLive,
+                            { color: StrainGraphColor.osuLive },
                         );
                     }
 
@@ -486,8 +483,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                 calculationMethod,
                             ),
                             difficultyAttributes.clockRate,
-                            undefined,
-                            StrainGraphColor.osuLive,
+                            { color: StrainGraphColor.osuLive },
                         );
                     }
 

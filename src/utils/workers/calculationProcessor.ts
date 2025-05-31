@@ -92,11 +92,18 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
         data;
 
     const beatmapMD5 = createHash("md5").update(data.beatmapFile).digest("hex");
-    const beatmap =
-        beatmapCache.get(beatmapMD5) ??
-        new BeatmapDecoder().decode(data.beatmapFile, gamemode).result;
 
-    if (!beatmapCache.has(beatmapMD5)) {
+    let beatmap = beatmapCache.get(beatmapMD5);
+
+    if (!beatmap) {
+        beatmap = new BeatmapDecoder().decode(
+            data.beatmapFile,
+            gamemode,
+        ).result;
+
+        // Temporary because this is bugged - remove after updating module.
+        beatmap.mode = gamemode;
+
         beatmapCache.set(beatmapMD5, beatmap);
     }
 

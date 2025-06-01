@@ -10,10 +10,7 @@ import { CalculationWorkerTaskHandler } from "./CalculationWorkerTaskHandler";
  * A worker pool for handling difficulty calculations.
  */
 export class CalculationWorkerPool extends EventEmitter {
-    /**
-     * The amount of threads this worker pool has.
-     */
-    readonly threadAmount = availableParallelism();
+    private readonly threadAmount: number;
 
     private readonly workers: CalculationWorker[] = [];
     private readonly freeWorkers: CalculationWorker[] = [];
@@ -23,11 +20,15 @@ export class CalculationWorkerPool extends EventEmitter {
     constructor() {
         super();
 
+        this.threadAmount = process.argv.at(-1)?.includes("calculateScores")
+            ? 1
+            : availableParallelism();
+
         if (!isMainThread) {
             return;
         }
 
-        console.log("Creating", this.threadAmount, "worker threads");
+        console.log("Creating", this.threadAmount, "worker thread(s)");
 
         for (let i = 0; i < this.threadAmount; ++i) {
             this.addNewWorker();

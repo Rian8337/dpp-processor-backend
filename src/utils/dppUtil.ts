@@ -356,32 +356,29 @@ export function constructModString(data: ReplayV3Data): string {
         const customSpeed = data.convertedMods.get(ModCustomSpeed);
 
         if (customSpeed) {
-            extraModString += `x${customSpeed.trackRateMultiplier.toFixed(2)}|`;
+            extraModString += `x${customSpeed.trackRateMultiplier.value.toFixed(2)}|`;
         }
 
         if (difficultyAdjust) {
-            if (difficultyAdjust.ar !== undefined) {
-                extraModString += `AR${difficultyAdjust.ar.toFixed(1)}|`;
+            if (difficultyAdjust.ar.value !== null) {
+                extraModString += `AR${difficultyAdjust.ar.value.toFixed(1)}|`;
             }
 
-            if (difficultyAdjust.od !== undefined) {
-                extraModString += `OD${difficultyAdjust.od.toFixed(1)}|`;
+            if (difficultyAdjust.od.value !== null) {
+                extraModString += `OD${difficultyAdjust.od.value.toFixed(1)}|`;
             }
 
-            if (difficultyAdjust.cs !== undefined) {
-                extraModString += `CS${difficultyAdjust.cs.toFixed(1)}|`;
+            if (difficultyAdjust.cs.value !== null) {
+                extraModString += `CS${difficultyAdjust.cs.value.toFixed(1)}|`;
             }
 
-            if (difficultyAdjust.hp !== undefined) {
-                extraModString += `HP${difficultyAdjust.hp.toFixed(1)}|`;
+            if (difficultyAdjust.hp.value !== null) {
+                extraModString += `HP${difficultyAdjust.hp.value.toFixed(1)}|`;
             }
         }
 
-        if (
-            flashlight &&
-            flashlight.followDelay !== ModFlashlight.defaultFollowDelay
-        ) {
-            extraModString += `FLD${flashlight.followDelay.toFixed(2)}|`;
+        if (flashlight && !flashlight.followDelay.isDefault) {
+            extraModString += `FLD${flashlight.followDelay.value.toFixed(2)}|`;
         }
 
         if (extraModString) {

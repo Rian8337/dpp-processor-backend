@@ -348,15 +348,11 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                         calculationParams.applyToOptions(calculationOptions);
                     }
 
-                    const perfCalc = new RebalanceDroidPerformanceCalculator(
-                        difficultyAttributes,
-                    ).calculate(calculationOptions);
-                    const hitError = analyzer.calculateHitError();
-
                     const sliderTickInformation: SliderTickInformation = {
                         obtained: 0,
                         total: beatmap.hitObjects.sliderTicks,
                     };
+
                     const sliderEndInformation: SliderTickInformation = {
                         obtained: 0,
                         total: beatmap.hitObjects.sliderEnds,
@@ -370,6 +366,22 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                             sliderEndInformation,
                         );
                     }
+
+                    const perfCalc = new RebalanceDroidPerformanceCalculator(
+                        difficultyAttributes,
+                    ).calculate({
+                        ...calculationOptions,
+                        sliderTicksMissed: analyzer.data
+                            ? sliderTickInformation.total -
+                              sliderTickInformation.obtained
+                            : undefined,
+                        sliderEndsDropped: analyzer.data
+                            ? sliderEndInformation.total -
+                              sliderEndInformation.obtained
+                            : undefined,
+                    });
+
+                    const hitError = analyzer.calculateHitError();
 
                     attributes = {
                         params: calculationParams.toCloneable(),

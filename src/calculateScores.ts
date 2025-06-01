@@ -194,9 +194,8 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
 
         if (
             !beatmap ||
-            ((beatmap.rankedStatus as RankedStatus) !== RankedStatus.ranked &&
-                (beatmap.rankedStatus as RankedStatus) !==
-                    RankedStatus.approved)
+            (beatmap.rankedStatus !== RankedStatus.ranked &&
+                beatmap.rankedStatus !== RankedStatus.approved)
         ) {
             console.log("Score ID", scoreId, "has an unranked beatmap");
 

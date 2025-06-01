@@ -71,7 +71,7 @@ router.get<
 
     const generateStrainChart = req.query.generatestrainchart !== undefined;
     const score = usebestpp
-        ? await getOfficialBestScore(parseInt(uid), hash)
+        ? await getOfficialBestScore(parseInt(uid), hash, false)
         : await getOfficialScore(parseInt(uid), hash, false);
 
     if (!score) {

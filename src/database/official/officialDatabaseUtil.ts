@@ -136,7 +136,8 @@ export async function getOfficialScore<K extends keyof OfficialDatabaseScore>(
  *
  * @param uid The uid of the player.
  * @param hash The MD5 hash of the beatmap.
- * @param databaseColumns The columns to retrieve from the database.
+ * @param forceDatabaseQuery Whether to force the database to be queried. In debug mode, setting this to `true` will make this function always return `null`.
+ * @param databaseColumns The columns to retrieve from the database if the database is queried.
  * @returns The best score, `null` if not found.
  */
 export async function getOfficialBestScore<
@@ -144,11 +145,38 @@ export async function getOfficialBestScore<
 >(
     uid: number,
     hash: string,
+    forceDatabaseQuery: true,
     ...databaseColumns: K[]
-): Promise<Pick<OfficialDatabaseBestScore, K> | null> {
+): Promise<Pick<OfficialDatabaseBestScore, K> | null>;
+
+/**
+ * Gets the best score of a player on a beatmap.
+ *
+ * @param uid The uid of the player.
+ * @param hash The MD5 hash of the beatmap.
+ * @param forceDatabaseQuery Whether to force the database to be queried. In debug mode, setting this to `true` will make this function always return `null`.
+ * @param databaseColumns The columns to retrieve from the database if the database is queried.
+ * @returns The best score, `null` if not found.
+ */
+export async function getOfficialBestScore<
+    K extends keyof OfficialDatabaseBestScore,
+>(
+    uid: number,
+    hash: string,
+    forceDatabaseQuery: false,
+    ...databaseColumns: K[]
+): Promise<Pick<OfficialDatabaseBestScore, K> | Score | null>;
+
+export async function getOfficialBestScore<
+    K extends keyof OfficialDatabaseBestScore,
+>(
+    uid: number,
+    hash: string,
+    forceDatabaseQuery: boolean,
+    ...databaseColumns: K[]
+): Promise<Pick<OfficialDatabaseBestScore, K> | Score | null> {
     if (isDebug) {
-        // Debug does not have access to official database.
-        return null;
+        return forceDatabaseQuery ? null : Score.getFromHash(uid, hash, true);
     }
 
     if (databaseColumns.length === 0) {

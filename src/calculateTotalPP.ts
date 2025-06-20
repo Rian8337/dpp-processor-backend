@@ -22,6 +22,8 @@ import { totalPPCalculationTable } from "./database/processor/schema";
         await processorDb.insert(totalPPCalculationTable).values({ id });
     }
 
+    const timeLimit = Date.now() - 3 * 30 * 24 * 60 * 60 * 1000;
+
     while (id <= 500000) {
         // Update progress.
         await processorDb.update(totalPPCalculationTable).set({ id });
@@ -44,11 +46,7 @@ import { totalPPCalculationTable } from "./database/processor/schema";
         }
 
         // Skip users who have not logged in for 3 months.
-        if (
-            user.lastLoginTime &&
-            user.lastLoginTime.getTime() <
-                Date.now() - 3 * 30 * 24 * 60 * 60 * 1000
-        ) {
+        if (user.lastLoginTime && user.lastLoginTime.getTime() < timeLimit) {
             console.log("User", id++, "has not logged in for 3 months");
 
             await officialDb

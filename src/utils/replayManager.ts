@@ -1,20 +1,12 @@
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
-import {
-    chmod,
-    mkdir,
-    readFile,
-    rm,
-    stat,
-    unlink,
-    writeFile,
-} from "fs/promises";
+import { chmod, readFile, unlink, writeFile } from "fs/promises";
 import { join } from "path";
 import { isDebug } from "./util";
 
 /**
  * The directory of local replays.
  */
-export const localReplayDirectory = "/data/dpp-replays";
+export const localReplayDirectory = "/hdd/rian/replays";
 
 /**
  * The directory of replays that have not been processed.
@@ -24,12 +16,12 @@ export const unprocessedReplayDirectory = `${localReplayDirectory}/unprocessed`;
 /**
  * The directory of online replays.
  */
-export const onlineReplayDirectory = "/DroidData/osudroid/zip/upload";
+export const onlineReplayDirectory = "/hdd/osudroid/replay";
 
 /**
  * The directory of official replays.
  */
-export const officialReplayDirectory = "/data/osudroid/bestpp";
+export const officialReplayDirectory = "/hdd/osudroid/bestpp";
 
 /**
  * Saves a replay to the official replay folder.
@@ -49,8 +41,7 @@ export async function saveReplayToOfficialPP(
     const filePath = join(officialReplayDirectory, `${scoreID.toString()}.odr`);
 
     return (
-        ensureReplayDirectoryExists(filePath)
-            .then(() => writeFile(filePath, originalODR, { mode: 0o777 }))
+        writeFile(filePath, originalODR, { mode: 0o777 })
             // For some reason, the file permission is not set correctly in the call above, so we have to set it again.
             .then(() => chmod(filePath, 0o777))
             .then(() => true)
@@ -108,70 +99,4 @@ export function getOfficialBestReplay(
         : readFile(
               join(officialReplayDirectory, `${scoreId.toString()}.odr`),
           ).catch(() => null);
-}
-
-/**
- * Deletes all replays of a player from a beatmap.
- *
- * @param uid The uid of the player.
- * @param hash The MD5 hash of the beatmap.
- */
-export async function deleteReplays(
-    uid: number | string,
-    hash: string,
-): Promise<boolean> {
-    if (isDebug) {
-        // Debug should not have access to local replays.
-        return false;
-    }
-
-    return rm(join(localReplayDirectory, uid.toString(), hash), {
-        recursive: true,
-    })
-        .then(() => true)
-        .catch(() => false);
-}
-
-/**
- * Checks if a score was submitted by looking at the replay directory.
- *
- * @param uid The uid of the player.
- * @param hash The MD5 hash of the beatmap.
- */
-export async function wasBeatmapSubmitted(
-    uid: number,
-    hash: string,
-): Promise<boolean> {
-    if (isDebug) {
-        // Debug should not have access to local replays.
-        return false;
-    }
-
-    const dirStat = await stat(
-        join(localReplayDirectory, uid.toString(), hash),
-    ).catch(() => null);
-
-    return dirStat?.isDirectory() ?? false;
-}
-
-/**
- * Ensures the directory for a replay exists.
- *
- * @param filePath The path to the replay file.
- * @returns The created path from `mkdir`.
- */
-async function ensureReplayDirectoryExists(
-    filePath: string,
-): Promise<string | undefined> {
-    if (isDebug) {
-        // Debug should not have access to local replays.
-        return;
-    }
-
-    const beatmapDirectory = filePath.split("/");
-    beatmapDirectory.pop();
-
-    return mkdir(join(localReplayDirectory, ...beatmapDirectory), {
-        recursive: true,
-    });
 }

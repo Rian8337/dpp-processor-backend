@@ -1,4 +1,4 @@
-import { Accuracy, Modes } from "@rian8337/osu-base";
+import { Modes } from "@rian8337/osu-base";
 import { IDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import { IDifficultyAttributes as IRebalanceDifficultyAttributes } from "@rian8337/osu-rebalance-difficulty-calculator";
@@ -13,6 +13,8 @@ import { CalculationWorkerPool } from "../workers/CalculationWorkerPool";
 import { PerformanceCalculationParameters } from "./PerformanceCalculationParameters";
 import { PerformanceCalculationResult } from "./PerformanceCalculationResult";
 import { RebalancePerformanceCalculationResult } from "./RebalancePerformanceCalculationResult";
+import { Score } from "@rian8337/osu-droid-utilities";
+import { scoresTable } from "../../database/official/schema";
 
 /**
  * A helper class for calculating difficulty and performance of beatmaps or replays.
@@ -44,27 +46,128 @@ export abstract class BeatmapDifficultyCalculator<
     static readonly calculatorPool = new CalculationWorkerPool();
 
     /**
-     * Gets the calculation parameters of a replay.
+     * Gets the calculation parameters of a score or replay.
      *
-     * @param replay The replay.
+     * @param scoreOrReplay The score or replay.
+     * @returns The calculation parameters.
      */
     static getCalculationParameters(
-        replay: ReplayAnalyzer,
+        scoreOrReplay:
+            | Score
+            | ReplayAnalyzer
+            | Pick<
+                  typeof scoresTable.$inferSelect,
+                  "mode" | "combo" | "perfect" | "good" | "bad" | "miss"
+              >,
     ): PerformanceCalculationParameters {
-        const { data } = replay;
+        const params = new PerformanceCalculationParameters();
 
-        if (!data) {
-            throw new Error("Replay must be analyzed first");
+        if (scoreOrReplay instanceof ReplayAnalyzer) {
+            params.applyReplay(scoreOrReplay);
+        } else {
+            params.applyScore(scoreOrReplay);
         }
 
-        const params = new PerformanceCalculationParameters({
-            accuracy: new Accuracy(data.accuracy),
-            combo: data.isReplayV3() ? data.maxCombo : undefined,
-        });
-
-        params.applyReplay(replay);
-
         return params;
+    }
+
+    /**
+     * Calculates the difficulty and performance value of a score.
+     *
+     * @param score The score.
+     * @param generateStrainChart Whether to generate strain chart.
+     * @returns The result of the calculation. Errors will be thrown whenever necessary.
+     */
+    async calculateScorePerformance(
+        score:
+            | Score
+            | Pick<
+                  typeof scoresTable.$inferSelect,
+                  | "mode"
+                  | "combo"
+                  | "perfect"
+                  | "good"
+                  | "bad"
+                  | "miss"
+                  | "hash"
+              >,
+        generateStrainChart: true,
+    ): Promise<PerformanceCalculationResult<DA, PA, true>>;
+
+    /**
+     * Calculates the difficulty and performance value of a score.
+     *
+     * @param score The score.
+     * @param generateStrainChart Whether to generate strain chart.
+     * @returns The result of the calculation. Errors will be thrown whenever necessary.
+     */
+    async calculateScorePerformance(
+        score:
+            | Score
+            | Pick<
+                  typeof scoresTable.$inferSelect,
+                  | "mode"
+                  | "combo"
+                  | "perfect"
+                  | "good"
+                  | "bad"
+                  | "miss"
+                  | "hash"
+              >,
+        generateStrainChart: false,
+    ): Promise<PerformanceCalculationResult<DA, PA, false>>;
+
+    /**
+     * Calculates the difficulty and performance value of a score.
+     *
+     * @param score The score.
+     * @param generateStrainChart Whether to generate strain chart.
+     * @returns The result of the calculation. Errors will be thrown whenever necessary.
+     */
+    async calculateScorePerformance(
+        score:
+            | Score
+            | Pick<
+                  typeof scoresTable.$inferSelect,
+                  | "mode"
+                  | "combo"
+                  | "perfect"
+                  | "good"
+                  | "bad"
+                  | "miss"
+                  | "hash"
+              >,
+        generateStrainChart?: boolean,
+    ): Promise<PerformanceCalculationResult<DA, PA>>;
+
+    async calculateScorePerformance(
+        score:
+            | Score
+            | Pick<
+                  typeof scoresTable.$inferSelect,
+                  | "mode"
+                  | "combo"
+                  | "perfect"
+                  | "good"
+                  | "bad"
+                  | "miss"
+                  | "hash"
+              >,
+        generateStrainChart?: boolean,
+    ): Promise<PerformanceCalculationResult<DA, PA>> {
+        const apiBeatmap = await getBeatmap(score.hash);
+
+        if (!apiBeatmap) {
+            throw new Error("Beatmap not found");
+        }
+
+        return this.calculatePerformance(
+            apiBeatmap,
+            PPCalculationMethod.live,
+            BeatmapDifficultyCalculator.getCalculationParameters(score),
+            undefined,
+            generateStrainChart,
+        );
     }
 
     /**
@@ -132,6 +235,105 @@ export abstract class BeatmapDifficultyCalculator<
             PPCalculationMethod.live,
             calcParams,
             replay,
+            generateStrainChart,
+        );
+    }
+
+    /**
+     * Calculates the rebalance difficulty and performance value of a score.
+     *
+     * @param score The score.
+     * @param generateStrainChart Whether to generate strain chart.
+     * @returns The result of the calculation. Errors will be thrown whenever necessary.
+     */
+    async calculateScoreRebalancePerformance(
+        score:
+            | Score
+            | Pick<
+                  typeof scoresTable.$inferSelect,
+                  | "mode"
+                  | "combo"
+                  | "perfect"
+                  | "good"
+                  | "bad"
+                  | "miss"
+                  | "hash"
+              >,
+        generateStrainChart: true,
+    ): Promise<RebalancePerformanceCalculationResult<RDA, RPA, true>>;
+
+    /**
+     * Calculates the rebalance difficulty and performance value of a score.
+     *
+     * @param score The score.
+     * @param generateStrainChart Whether to generate strain chart.
+     * @returns The result of the calculation. Errors will be thrown whenever necessary.
+     */
+    async calculateScoreRebalancePerformance(
+        score:
+            | Score
+            | Pick<
+                  typeof scoresTable.$inferSelect,
+                  | "mode"
+                  | "combo"
+                  | "perfect"
+                  | "good"
+                  | "bad"
+                  | "miss"
+                  | "hash"
+              >,
+        generateStrainChart: false,
+    ): Promise<RebalancePerformanceCalculationResult<RDA, RPA, false>>;
+
+    /**
+     * Calculates the rebalance difficulty and performance value of a score.
+     *
+     * @param score The score.
+     * @param generateStrainChart Whether to generate strain chart.
+     * @returns The result of the calculation. Errors will be thrown whenever necessary.
+     */
+    async calculateScoreRebalancePerformance(
+        score:
+            | Score
+            | Pick<
+                  typeof scoresTable.$inferSelect,
+                  | "mode"
+                  | "combo"
+                  | "perfect"
+                  | "good"
+                  | "bad"
+                  | "miss"
+                  | "hash"
+              >,
+        generateStrainChart?: boolean,
+    ): Promise<RebalancePerformanceCalculationResult<RDA, RPA>>;
+
+    async calculateScoreRebalancePerformance(
+        score:
+            | Score
+            | Pick<
+                  typeof scoresTable.$inferSelect,
+                  | "mode"
+                  | "combo"
+                  | "perfect"
+                  | "good"
+                  | "bad"
+                  | "miss"
+                  | "hash"
+              >,
+        generateStrainChart?: boolean,
+    ): Promise<RebalancePerformanceCalculationResult<RDA, RPA>> {
+        const apiBeatmap = await getBeatmap(score.hash);
+
+        if (!apiBeatmap) {
+            throw new Error("Beatmap not found");
+        }
+
+        return this.calculatePerformance(
+            apiBeatmap,
+            PPCalculationMethod.rebalance,
+            BeatmapDifficultyCalculator.getCalculationParameters(score),
+            undefined,
             generateStrainChart,
         );
     }

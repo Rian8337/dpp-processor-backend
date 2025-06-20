@@ -11,6 +11,8 @@ import { PerformanceCalculationOptions as RebalancePerformanceCalculationOptions
 import { RawDifficultyAttributes } from "../../structures/attributes/RawDifficultyAttributes";
 import { CloneablePerformanceCalculationParameters } from "./CloneablePerformanceCalculationParameters";
 import { DifficultyCalculationParameters } from "./DifficultyCalculationParameters";
+import { Score } from "@rian8337/osu-droid-utilities";
+import { scoresTable } from "../../database/official/schema";
 
 /**
  * Represents a parameter to alter performance calculation result.
@@ -81,13 +83,22 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
      */
     sliderCheesePenalty?: SliderCheeseInformation;
 
-    constructor(values: PerformanceCalculationParametersInit) {
-        super(values.mods);
+    constructor(values?: PerformanceCalculationParametersInit) {
+        super(values?.mods);
 
-        this.combo = values.combo;
-        this.accuracy = values.accuracy;
-        this.tapPenalty = values.tapPenalty;
-        this.sliderCheesePenalty = values.sliderCheesePenalty;
+        this.combo = values?.combo;
+
+        this.accuracy =
+            values?.accuracy ??
+            new Accuracy({
+                n300: 1,
+                n100: 0,
+                n50: 0,
+                nmiss: 0,
+            });
+
+        this.tapPenalty = values?.tapPenalty;
+        this.sliderCheesePenalty = values?.sliderCheesePenalty;
     }
 
     /**
@@ -135,6 +146,30 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
 
         this.tapPenalty = replay.tapPenalty;
         this.sliderCheesePenalty = replay.sliderCheesePenalty;
+    }
+
+    override applyScore(
+        score:
+            | Score
+            | Pick<
+                  typeof scoresTable.$inferSelect,
+                  "mode" | "combo" | "perfect" | "good" | "bad" | "miss"
+              >,
+    ) {
+        super.applyScore(score);
+
+        this.combo = score.combo;
+
+        this.accuracy = new Accuracy(
+            score instanceof Score
+                ? score.accuracy
+                : {
+                      n300: score.perfect,
+                      n100: score.good,
+                      n50: score.bad,
+                      nmiss: score.miss,
+                  },
+        );
     }
 
     /**

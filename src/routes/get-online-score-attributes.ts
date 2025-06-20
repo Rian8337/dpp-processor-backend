@@ -90,13 +90,10 @@ router.get<
     });
 
     const { data } = analyzer;
-    if (!data) {
-        return res.status(404).json({ error: "Replay not found" });
-    }
 
     let overrideParameters: PerformanceCalculationParameters | undefined;
 
-    if (data.replayVersion < 3) {
+    if (data !== null && data.replayVersion < 3) {
         // Old replay version - fill in missing data.
         if (score instanceof Score) {
             overrideParameters = new PerformanceCalculationParameters({
@@ -125,7 +122,7 @@ router.get<
     let strainChart: Buffer | null = null;
 
     const requestedMods = (
-        data.isReplayV3()
+        data?.isReplayV3()
             ? data.convertedMods
             : (overrideParameters?.mods ??
               (score instanceof Score
@@ -139,26 +136,31 @@ router.get<
 
             switch (calculationMethod) {
                 case PPCalculationMethod.live: {
-                    const calculationResult = await difficultyCalculator
-                        .calculateReplayPerformance(
-                            analyzer,
-                            generateStrainChart,
-                            overrideParameters,
-                        )
-                        .catch((e: unknown) => {
-                            console.log(
-                                "Calculation failed for URL:",
-                                req.url.replace(
-                                    process.env.DROID_SERVER_INTERNAL_KEY!,
-                                    "",
-                                ),
-                            );
-                            console.error(e);
+                    const calculationResult = await (
+                        data != null
+                            ? difficultyCalculator.calculateReplayPerformance(
+                                  analyzer,
+                                  generateStrainChart,
+                                  overrideParameters,
+                              )
+                            : difficultyCalculator.calculateScorePerformance(
+                                  score,
+                                  generateStrainChart,
+                              )
+                    ).catch((e: unknown) => {
+                        console.log(
+                            "Calculation failed for URL:",
+                            req.url.replace(
+                                process.env.DROID_SERVER_INTERNAL_KEY!,
+                                "",
+                            ),
+                        );
+                        console.error(e);
 
-                            return e instanceof Error
-                                ? e.message
-                                : "Calculation failed";
-                        });
+                        return e instanceof Error
+                            ? e.message
+                            : "Calculation failed";
+                    });
 
                     if (typeof calculationResult === "string") {
                         return res
@@ -200,26 +202,31 @@ router.get<
                 }
 
                 case PPCalculationMethod.rebalance: {
-                    const calculationResult = await difficultyCalculator
-                        .calculateReplayRebalancePerformance(
-                            analyzer,
-                            generateStrainChart,
-                            overrideParameters,
-                        )
-                        .catch((e: unknown) => {
-                            console.log(
-                                "Calculation failed for URL:",
-                                req.url.replace(
-                                    process.env.DROID_SERVER_INTERNAL_KEY!,
-                                    "",
-                                ),
-                            );
-                            console.error(e);
+                    const calculationResult = await (
+                        data !== null
+                            ? difficultyCalculator.calculateReplayRebalancePerformance(
+                                  analyzer,
+                                  generateStrainChart,
+                                  overrideParameters,
+                              )
+                            : difficultyCalculator.calculateScoreRebalancePerformance(
+                                  score,
+                                  generateStrainChart,
+                              )
+                    ).catch((e: unknown) => {
+                        console.log(
+                            "Calculation failed for URL:",
+                            req.url.replace(
+                                process.env.DROID_SERVER_INTERNAL_KEY!,
+                                "",
+                            ),
+                        );
+                        console.error(e);
 
-                            return e instanceof Error
-                                ? e.message
-                                : "Calculation failed";
-                        });
+                        return e instanceof Error
+                            ? e.message
+                            : "Calculation failed";
+                    });
 
                     if (typeof calculationResult === "string") {
                         return res
@@ -279,26 +286,31 @@ router.get<
 
             switch (calculationMethod) {
                 case PPCalculationMethod.live: {
-                    const calculationResult = await difficultyCalculator
-                        .calculateReplayPerformance(
-                            analyzer,
-                            generateStrainChart,
-                            overrideParameters,
-                        )
-                        .catch((e: unknown) => {
-                            console.log(
-                                "Calculation failed for URL:",
-                                req.url.replace(
-                                    process.env.DROID_SERVER_INTERNAL_KEY!,
-                                    "",
-                                ),
-                            );
-                            console.error(e);
+                    const calculationResult = await (
+                        data !== null
+                            ? difficultyCalculator.calculateReplayPerformance(
+                                  analyzer,
+                                  generateStrainChart,
+                                  overrideParameters,
+                              )
+                            : difficultyCalculator.calculateScorePerformance(
+                                  score,
+                                  generateStrainChart,
+                              )
+                    ).catch((e: unknown) => {
+                        console.log(
+                            "Calculation failed for URL:",
+                            req.url.replace(
+                                process.env.DROID_SERVER_INTERNAL_KEY!,
+                                "",
+                            ),
+                        );
+                        console.error(e);
 
-                            return e instanceof Error
-                                ? e.message
-                                : "Calculation failed";
-                        });
+                        return e instanceof Error
+                            ? e.message
+                            : "Calculation failed";
+                    });
 
                     if (typeof calculationResult === "string") {
                         return res
@@ -329,26 +341,31 @@ router.get<
                 }
 
                 case PPCalculationMethod.rebalance: {
-                    const calculationResult = await difficultyCalculator
-                        .calculateReplayRebalancePerformance(
-                            analyzer,
-                            generateStrainChart,
-                            overrideParameters,
-                        )
-                        .catch((e: unknown) => {
-                            console.log(
-                                "Calculation failed for URL:",
-                                req.url.replace(
-                                    process.env.DROID_SERVER_INTERNAL_KEY!,
-                                    "",
-                                ),
-                            );
-                            console.error(e);
+                    const calculationResult = await (
+                        data !== null
+                            ? difficultyCalculator.calculateReplayRebalancePerformance(
+                                  analyzer,
+                                  generateStrainChart,
+                                  overrideParameters,
+                              )
+                            : difficultyCalculator.calculateScoreRebalancePerformance(
+                                  score,
+                                  generateStrainChart,
+                              )
+                    ).catch((e: unknown) => {
+                        console.log(
+                            "Calculation failed for URL:",
+                            req.url.replace(
+                                process.env.DROID_SERVER_INTERNAL_KEY!,
+                                "",
+                            ),
+                        );
+                        console.error(e);
 
-                            return e instanceof Error
-                                ? e.message
-                                : "Calculation failed";
-                        });
+                        return e instanceof Error
+                            ? e.message
+                            : "Calculation failed";
+                    });
 
                     if (typeof calculationResult === "string") {
                         return res

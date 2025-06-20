@@ -26,6 +26,37 @@ import { totalPPCalculationTable } from "./database/processor/schema";
         // Update progress.
         await processorDb.update(totalPPCalculationTable).set({ id });
 
+        const user = await officialDb
+            .select({ lastLoginTime: usersTable.lastLoginTime })
+            .from(usersTable)
+            .where(eq(usersTable.id, id))
+            .limit(1)
+            .then((res) => res.at(0) ?? null)
+            .catch((e: unknown) => {
+                console.error(e);
+                return null;
+            });
+
+        if (!user) {
+            continue;
+        }
+
+        // Skip users who have not logged in for 3 months.
+        if (
+            user.lastLoginTime &&
+            user.lastLoginTime.getTime() <
+                Date.now() - 3 * 30 * 24 * 60 * 60 * 1000
+        ) {
+            console.log("User", id++, "has not logged in for 3 months");
+
+            await officialDb
+                .update(usersTable)
+                .set({ pp: 0, accuracy: 1 })
+                .where(eq(usersTable.id, id));
+
+            continue;
+        }
+
         // Get user top scores.
         const topScores = await officialDb
             .select({

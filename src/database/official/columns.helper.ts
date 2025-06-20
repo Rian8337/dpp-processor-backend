@@ -15,7 +15,7 @@ export const scoreColumns = {
     uid: mediumint().notNull(),
     filename: varchar({ length: 255 }).notNull(),
     hash: varchar({ length: 36 }).notNull(),
-    mode: varchar({ length: 16 }).notNull(),
+    mode: varchar({ length: 16 }),
     score: int().notNull().default(0),
     combo: int().notNull().default(0),
     mark: varchar({ length: 2 }),

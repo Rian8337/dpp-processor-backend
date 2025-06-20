@@ -38,6 +38,8 @@ import { totalPPCalculationTable } from "./database/processor/schema";
             });
 
         if (!user) {
+            console.log("User", id++, "does not exist");
+
             continue;
         }
 

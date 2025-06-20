@@ -70,6 +70,7 @@ function isReplayValid(
         username: "",
         mark: databaseScore.mark as ScoreRank,
         date: databaseScore.date.getTime(),
+        mode: databaseScore.mode ?? "",
     });
 
     // For replay v1 and v2, there is not that much information - just check the accuracy and hash.

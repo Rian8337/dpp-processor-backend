@@ -1,4 +1,4 @@
-import { ModMap } from "@rian8337/osu-base";
+import { ModMap, ModReplayV6 } from "@rian8337/osu-base";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import { Score } from "@rian8337/osu-droid-utilities";
 import { parseOfficialScoreMods } from "../../database/official/officialDatabaseUtil";
@@ -43,6 +43,9 @@ export class DifficultyCalculationParameters {
             score instanceof Score
                 ? score.mods
                 : parseOfficialScoreMods(score.mode);
+
+        // TODO: this is temporary until there is a cutoff for replay v6.
+        this.mods.set(ModReplayV6);
     }
 
     /**

@@ -52,8 +52,6 @@ export class DifficultyCalculationParameters {
      * Returns a cloneable form of this parameter.
      */
     toCloneable(): CloneableDifficultyCalculationParameters {
-        return {
-            mods: this.mods.serializeMods(),
-        };
+        return { mods: this.mods.serializeMods() };
     }
 }

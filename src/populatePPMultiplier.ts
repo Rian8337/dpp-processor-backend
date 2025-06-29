@@ -69,10 +69,21 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
             continue;
         }
 
-        const calcResult = await difficultyCalculator.calculateScorePerformance(
-            score,
-            false,
-        );
+        const calcResult = await difficultyCalculator
+            .calculateScorePerformance(score, false)
+            .catch((e: unknown) => {
+                console.error(
+                    "Failed to calculate score performance for score",
+                    id!++,
+                    e,
+                );
+
+                return null;
+            });
+
+        if (!calcResult) {
+            continue;
+        }
 
         await officialDb
             .update(scoresTable)

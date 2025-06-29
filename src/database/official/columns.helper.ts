@@ -28,7 +28,7 @@ export const scoreColumns = {
     good: mediumint().notNull().default(0),
     bad: mediumint().notNull().default(0),
     miss: mediumint().notNull().default(0),
-    date: timestamp().notNull().notNull().defaultNow(),
+    date: timestamp().notNull().defaultNow(),
     accuracy: float().notNull().default(0),
     pp: float(),
     ppMultiplier: float(),

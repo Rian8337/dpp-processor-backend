@@ -371,6 +371,7 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
         }
 
         const replayData = highestPPReplay!.data!;
+        const sliderPenalty = highestPPReplay!.sliderCheesePenalty;
 
         // New best pp obtained - insert to the database.
         const newBestScore: OfficialDatabaseBestScore = {
@@ -381,6 +382,9 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
             mode: replayData.isReplayV3()
                 ? constructModString(replayData)
                 : score.mode,
+            mods: replayData.isReplayV3()
+                ? replayData.convertedMods.serializeMods()
+                : score.mods,
             score: replayData.isReplayV3() ? replayData.score : score.score,
             combo: replayData.isReplayV3() ? replayData.maxCombo : score.combo,
             mark: replayData.isReplayV3() ? replayData.rank : score.mark,
@@ -393,6 +397,11 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
             date: replayData.isReplayV3() ? replayData.time : score.date,
             accuracy: replayData.accuracy.value(),
             pp: highestPP!,
+            ppMultiplier:
+                highestPPReplay!.tapPenalty *
+                sliderPenalty.aimPenalty *
+                sliderPenalty.flashlightPenalty *
+                sliderPenalty.visualPenalty,
         };
 
         highestPPReplay!.scoreID = newBestScore.id;

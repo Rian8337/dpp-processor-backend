@@ -65,7 +65,7 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
         }
 
         if (score.pp === null) {
-            console.log("Score", id, "has no pp, skipping");
+            console.log("Score", id++, "has no pp, skipping");
             continue;
         }
 

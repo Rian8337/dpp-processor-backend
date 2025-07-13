@@ -589,9 +589,14 @@ export abstract class BeatmapDifficultyCalculator<
         return new Promise((resolve, reject) => {
             BeatmapDifficultyCalculator.calculatorPool.runTask({
                 data,
-                callback: async (err, result) => {
-                    if (err) {
-                        reject(err);
+                callback: async (result) => {
+                    if (result === null || result instanceof Error) {
+                        reject(
+                            result ??
+                                new Error(
+                                    "Calculation failed with an unknown error",
+                                ),
+                        );
 
                         return;
                     }

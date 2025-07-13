@@ -22,11 +22,10 @@ export class CalculationWorkerTaskHandler extends AsyncResource {
     /**
      * Emits the callback associated with the calculation worker.
      *
-     * @param err The error that resulted from the calculation worker.
-     * @param result The result of the task. `null` if {@link err} is defined.
+     * @param result The result of the task.
      */
-    done(err: Error | null, result: unknown) {
-        this.runInAsyncScope(this.callback, null, err, result);
+    done(result: unknown) {
+        this.runInAsyncScope(this.callback, null, result);
         this.emitDestroy(); // `TaskInfo`s are used only once.
     }
 }

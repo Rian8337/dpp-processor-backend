@@ -41,4 +41,4 @@ export const bestScoreColumns = {
     ...scoreColumns,
     pp: float().notNull(),
     ppMultiplier: float().notNull(),
-};
+} as const;

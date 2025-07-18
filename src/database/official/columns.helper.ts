@@ -6,6 +6,7 @@ import {
     mediumint,
     serial,
     timestamp,
+    tinyint,
     varchar,
 } from "drizzle-orm/mysql-core";
 
@@ -17,7 +18,6 @@ export const scoreColumns = {
     uid: mediumint().notNull(),
     filename: varchar({ length: 255 }).notNull(),
     hash: varchar({ length: 36 }).notNull(),
-    mode: varchar({ length: 16 }),
     mods: json().$type<SerializedMod[]>().notNull().default([]),
     score: int().notNull().default(0),
     combo: int().notNull().default(0),
@@ -29,6 +29,8 @@ export const scoreColumns = {
     bad: mediumint().notNull().default(0),
     miss: mediumint().notNull().default(0),
     date: timestamp().notNull().defaultNow(),
+    sliderTickHit: tinyint(),
+    sliderEndHit: tinyint(),
     accuracy: float().notNull().default(0),
     pp: float(),
     ppMultiplier: float(),

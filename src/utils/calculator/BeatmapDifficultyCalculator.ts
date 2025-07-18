@@ -57,7 +57,7 @@ export abstract class BeatmapDifficultyCalculator<
             | ReplayAnalyzer
             | Pick<
                   typeof scoresTable.$inferSelect,
-                  "mode" | "combo" | "perfect" | "good" | "bad" | "miss"
+                  "mods" | "combo" | "perfect" | "good" | "bad" | "miss"
               >,
     ): PerformanceCalculationParameters {
         const params = new PerformanceCalculationParameters();
@@ -83,7 +83,7 @@ export abstract class BeatmapDifficultyCalculator<
             | Score
             | Pick<
                   typeof scoresTable.$inferSelect,
-                  | "mode"
+                  | "mods"
                   | "combo"
                   | "perfect"
                   | "good"
@@ -106,7 +106,7 @@ export abstract class BeatmapDifficultyCalculator<
             | Score
             | Pick<
                   typeof scoresTable.$inferSelect,
-                  | "mode"
+                  | "mods"
                   | "combo"
                   | "perfect"
                   | "good"
@@ -129,7 +129,7 @@ export abstract class BeatmapDifficultyCalculator<
             | Score
             | Pick<
                   typeof scoresTable.$inferSelect,
-                  | "mode"
+                  | "mods"
                   | "combo"
                   | "perfect"
                   | "good"
@@ -145,7 +145,7 @@ export abstract class BeatmapDifficultyCalculator<
             | Score
             | Pick<
                   typeof scoresTable.$inferSelect,
-                  | "mode"
+                  | "mods"
                   | "combo"
                   | "perfect"
                   | "good"
@@ -251,7 +251,7 @@ export abstract class BeatmapDifficultyCalculator<
             | Score
             | Pick<
                   typeof scoresTable.$inferSelect,
-                  | "mode"
+                  | "mods"
                   | "combo"
                   | "perfect"
                   | "good"
@@ -274,7 +274,7 @@ export abstract class BeatmapDifficultyCalculator<
             | Score
             | Pick<
                   typeof scoresTable.$inferSelect,
-                  | "mode"
+                  | "mods"
                   | "combo"
                   | "perfect"
                   | "good"
@@ -297,7 +297,7 @@ export abstract class BeatmapDifficultyCalculator<
             | Score
             | Pick<
                   typeof scoresTable.$inferSelect,
-                  | "mode"
+                  | "mods"
                   | "combo"
                   | "perfect"
                   | "good"
@@ -313,7 +313,7 @@ export abstract class BeatmapDifficultyCalculator<
             | Score
             | Pick<
                   typeof scoresTable.$inferSelect,
-                  | "mode"
+                  | "mods"
                   | "combo"
                   | "perfect"
                   | "good"

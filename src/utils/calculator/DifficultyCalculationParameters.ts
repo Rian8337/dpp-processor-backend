@@ -1,7 +1,6 @@
-import { ModMap, ModReplayV6 } from "@rian8337/osu-base";
+import { ModMap, ModUtil } from "@rian8337/osu-base";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import { Score } from "@rian8337/osu-droid-utilities";
-import { parseOfficialScoreMods } from "../../database/official/officialDatabaseUtil";
 import { scoresTable } from "../../database/official/schema";
 import { CloneableDifficultyCalculationParameters } from "./CloneableDifficultyCalculationParameters";
 
@@ -38,14 +37,11 @@ export class DifficultyCalculationParameters {
      *
      * @param score The score.
      */
-    applyScore(score: Score | Pick<typeof scoresTable.$inferSelect, "mode">) {
+    applyScore(score: Score | Pick<typeof scoresTable.$inferSelect, "mods">) {
         this.mods =
             score instanceof Score
                 ? score.mods
-                : parseOfficialScoreMods(score.mode);
-
-        // TODO: this is temporary until there is a cutoff for replay v6.
-        this.mods.set(ModReplayV6);
+                : ModUtil.deserializeMods(score.mods);
     }
 
     /**

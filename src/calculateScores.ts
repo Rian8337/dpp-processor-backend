@@ -1,4 +1,4 @@
-import { Accuracy, RankedStatus, ScoreRank } from "@rian8337/osu-base";
+import { Accuracy, ModUtil, RankedStatus, ScoreRank } from "@rian8337/osu-base";
 import {
     ReplayAnalyzer,
     ReplayData,
@@ -10,10 +10,7 @@ import { readFile, unlink } from "fs/promises";
 import { join } from "path";
 import { isDeepStrictEqual } from "util";
 import { officialDb } from "./database/official";
-import {
-    insertBestScore,
-    parseOfficialScoreMods,
-} from "./database/official/officialDatabaseUtil";
+import { insertBestScore } from "./database/official/officialDatabaseUtil";
 import { bestScoresTable, scoresTable } from "./database/official/schema";
 import { OfficialDatabaseBestScore } from "./database/official/schema/OfficialDatabaseBestScore";
 import { OfficialDatabaseScore } from "./database/official/schema/OfficialDatabaseScore";
@@ -22,7 +19,6 @@ import { scoreCalculationTable } from "./database/processor/schema";
 import { getBeatmap } from "./utils/cache/beatmapStorage";
 import { BeatmapDroidDifficultyCalculator } from "./utils/calculator/BeatmapDroidDifficultyCalculator";
 import { PerformanceCalculationParameters } from "./utils/calculator/PerformanceCalculationParameters";
-import { constructModString } from "./utils/dppUtil";
 import {
     getOfficialBestReplay,
     officialReplayDirectory,
@@ -70,7 +66,8 @@ function isReplayValid(
         username: "",
         mark: databaseScore.mark as ScoreRank,
         date: databaseScore.date.getTime(),
-        mode: databaseScore.mode ?? "",
+        slider_tick_hit: databaseScore.sliderTickHit,
+        slider_end_hit: databaseScore.sliderEndHit,
     });
 
     // For replay v1 and v2, there is not that much information - just check the accuracy and hash.
@@ -141,7 +138,7 @@ function obtainOverrideParameters(
             nmiss: score.miss,
         }),
         combo: score.combo,
-        mods: parseOfficialScoreMods(score.mode),
+        mods: ModUtil.deserializeMods(score.mods),
     });
 }
 
@@ -379,9 +376,6 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
             uid: score.uid,
             filename: beatmap.title,
             hash: score.hash,
-            mode: replayData.isReplayV3()
-                ? constructModString(replayData)
-                : score.mode,
             mods: replayData.isReplayV3()
                 ? replayData.convertedMods.serializeMods()
                 : score.mods,
@@ -396,6 +390,8 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
             miss: replayData.accuracy.nmiss,
             date: replayData.isReplayV3() ? replayData.time : score.date,
             accuracy: replayData.accuracy.value(),
+            sliderTickHit: score.sliderTickHit,
+            sliderEndHit: score.sliderEndHit,
             pp: highestPP!,
             ppMultiplier:
                 highestPPReplay!.tapPenalty *

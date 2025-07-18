@@ -1,80 +1,38 @@
-import { eq } from "drizzle-orm";
-import { processorDb } from "./database/processor";
-import { scoreCalculationTable } from "./database/processor/schema";
-import { scoresTable } from "./database/official/schema";
+import { eq, isNull } from "drizzle-orm";
 import { officialDb } from "./database/official";
+import { bestScoresTable } from "./database/official/schema";
 import { BeatmapDroidDifficultyCalculator } from "./utils/calculator/BeatmapDroidDifficultyCalculator";
 
 const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
 
 (async () => {
-    const processId = 0;
+    const table = bestScoresTable;
 
-    let id = await processorDb
-        .select()
-        .from(scoreCalculationTable)
-        .where(eq(scoreCalculationTable.process_id, processId))
-        .then((res) => res.at(0)?.score_id ?? null)
-        .catch((e: unknown) => {
-            console.error("Failed to fetch calculation progress", e);
+    const scores = await officialDb
+        .select({
+            id: table.id,
+            mods: table.mods,
+            combo: table.combo,
+            perfect: table.perfect,
+            good: table.good,
+            bad: table.bad,
+            miss: table.miss,
+            hash: table.hash,
+            pp: table.pp,
+        })
+        .from(table)
+        .where(isNull(table.ppMultiplier));
 
-            process.exit(1);
-        });
-
-    if (!id) {
-        // Modify this for starting point
-        id = 207695;
-
-        await processorDb.insert(scoreCalculationTable).values({
-            process_id: processId,
-            score_id: id,
-        });
-    }
-
-    while (id <= 26000000) {
-        // Update progress.
-        await processorDb
-            .update(scoreCalculationTable)
-            .set({ score_id: id })
-            .where(eq(scoreCalculationTable.process_id, processId));
-
-        // Fetch the next score to process.
-        const score = await officialDb
-            .select({
-                mode: scoresTable.mode,
-                combo: scoresTable.combo,
-                perfect: scoresTable.perfect,
-                good: scoresTable.good,
-                bad: scoresTable.bad,
-                miss: scoresTable.miss,
-                hash: scoresTable.hash,
-                pp: scoresTable.pp,
-            })
-            .from(scoresTable)
-            .where(eq(scoresTable.id, id))
-            .limit(1)
-            .then((res) => res.at(0) ?? null)
-            .catch((e: unknown) => {
-                console.error("Failed to fetch score", e);
-                return null;
-            });
-
-        if (!score) {
-            console.log("Score", id++, "does not exist");
-            continue;
-        }
-
-        if (score.pp === null) {
-            console.log("Score", id++, "has no pp, skipping");
-            continue;
-        }
+    for (let i = 0; i < scores.length; ++i) {
+        const score = scores[i];
 
         const calcResult = await difficultyCalculator
             .calculateScorePerformance(score, false)
             .catch((e: unknown) => {
                 console.error(
                     "Failed to calculate score performance for score",
-                    id!++,
+                    score.id,
+                    `(${(i + 1).toString()}/${scores.length.toString()})`,
                     e,
                 );
 
@@ -86,17 +44,21 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
         }
 
         await officialDb
-            .update(scoresTable)
+            .update(table)
             .set({
                 ppMultiplier:
                     calcResult.result.total === 0
                         ? 1
-                        : score.pp / calcResult.result.total,
+                        : Math.min(1, score.pp / calcResult.result.total),
             })
-            .where(eq(scoresTable.id, id));
+            .where(eq(table.id, score.id));
 
         // Increment ID for the next iteration.
-        console.log("Processed score", id++);
+        console.log(
+            "Processed score",
+            score.id,
+            `(${(i + 1).toString()}/${scores.length.toString()})`,
+        );
     }
 })()
     .catch((e: unknown) => {

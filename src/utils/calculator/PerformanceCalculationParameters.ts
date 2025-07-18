@@ -153,7 +153,7 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
             | Score
             | Pick<
                   typeof scoresTable.$inferSelect,
-                  "mode" | "combo" | "perfect" | "good" | "bad" | "miss"
+                  "mods" | "combo" | "perfect" | "good" | "bad" | "miss"
               >,
     ) {
         super.applyScore(score);

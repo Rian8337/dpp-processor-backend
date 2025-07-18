@@ -1,11 +1,10 @@
-import { Accuracy, MathUtils, Modes } from "@rian8337/osu-base";
+import { Accuracy, MathUtils, Modes, ModUtil } from "@rian8337/osu-base";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import { Score } from "@rian8337/osu-droid-utilities";
 import { Router } from "express";
 import {
     getOfficialBestScore,
     getOfficialScore,
-    parseOfficialScoreMods,
 } from "../database/official/officialDatabaseUtil";
 import { PPCalculationMethod } from "../structures/PPCalculationMethod";
 import { CompleteCalculationAttributes } from "../structures/attributes/CompleteCalculationAttributes";
@@ -110,7 +109,7 @@ router.get<
                     nmiss: score.miss,
                 }),
                 combo: score.combo,
-                mods: parseOfficialScoreMods(score.mode),
+                mods: ModUtil.deserializeMods(score.mods),
             });
         }
     }
@@ -121,14 +120,10 @@ router.get<
     >;
     let strainChart: Buffer | null = null;
 
-    const requestedMods = (
-        data?.isReplayV3()
-            ? data.convertedMods
-            : (overrideParameters?.mods ??
-              (score instanceof Score
-                  ? score.mods
-                  : parseOfficialScoreMods(score.mode)))
-    ).serializeMods();
+    const requestedMods = data?.isReplayV3()
+        ? data.convertedMods.serializeMods()
+        : (overrideParameters?.mods.serializeMods() ??
+          (score instanceof Score ? score.mods.serializeMods() : score.mods));
 
     switch (gamemode) {
         case Modes.droid: {

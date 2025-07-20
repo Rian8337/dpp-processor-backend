@@ -92,8 +92,8 @@ import { getOfficialBestReplay, getOnlineReplay } from "./utils/replayManager";
                 await officialDb
                     .update(scoresTable)
                     .set({
-                        sliderTickHit: Math.max(0, tick.total - tick.obtained),
-                        sliderEndHit: Math.max(0, end.total - end.obtained),
+                        sliderTickHit: tick.obtained,
+                        sliderEndHit: end.obtained,
                     })
                     .where(eq(scoresTable.id, scoreId));
             }
@@ -129,11 +129,8 @@ import { getOfficialBestReplay, getOnlineReplay } from "./utils/replayManager";
                     await officialDb
                         .update(bestScoresTable)
                         .set({
-                            sliderTickHit: Math.max(
-                                0,
-                                tick.total - tick.obtained,
-                            ),
-                            sliderEndHit: Math.max(0, end.total - end.obtained),
+                            sliderTickHit: tick.obtained,
+                            sliderEndHit: end.obtained,
                         })
                         .where(eq(bestScoresTable.id, scoreId));
                 }

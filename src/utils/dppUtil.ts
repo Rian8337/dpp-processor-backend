@@ -2,7 +2,11 @@ import {
     IDroidDifficultyAttributes,
     IOsuDifficultyAttributes,
 } from "@rian8337/osu-difficulty-calculator";
-import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
+import {
+    HitResult,
+    ReplayAnalyzer,
+    ReplayData,
+} from "@rian8337/osu-droid-replay-analyzer";
 import { watch } from "chokidar";
 import { readFile, readdir } from "fs/promises";
 import { basename, join } from "path";
@@ -21,6 +25,17 @@ import {
     unprocessedReplayDirectory,
 } from "./replayManager";
 import { isDebug } from "./util";
+import {
+    IBeatmap,
+    ScoreRank,
+    Slider,
+    SliderTail,
+    SliderTick,
+} from "@rian8337/osu-base";
+import { Score } from "@rian8337/osu-droid-utilities";
+import { isDeepStrictEqual } from "util";
+import { OfficialDatabaseScore } from "../database/official/schema/OfficialDatabaseScore";
+import { SliderTickInformation } from "../structures/SliderTickInformation";
 
 const droidDifficultyCalculator = new BeatmapDroidDifficultyCalculator();
 const osuDifficultyCalculator = new BeatmapOsuDifficultyCalculator();
@@ -284,6 +299,66 @@ export async function initiateReplayProcessing(): Promise<void> {
 }
 
 /**
+ * Checks a replay's validity against its score data.
+ *
+ * @param databaseScore The score to check against.
+ * @param replayData The replay data to check.
+ * @returns Whether the replay is valid.
+ */
+export function isReplayValid(
+    databaseScore: Score | OfficialDatabaseScore,
+    replayData: ReplayData,
+): boolean {
+    // Wrap the score in a Score object.
+    const score =
+        databaseScore instanceof Score
+            ? databaseScore
+            : new Score({
+                  ...databaseScore,
+                  username: "",
+                  mark: databaseScore.mark as ScoreRank,
+                  date: databaseScore.date.getTime(),
+                  slider_tick_hit: databaseScore.sliderTickHit,
+                  slider_end_hit: databaseScore.sliderEndHit,
+              });
+
+    // For replay v1 and v2, there is not that much information - just check the accuracy and hash.
+    if (
+        score.hash !== replayData.hash ||
+        !score.accuracy.equals(replayData.accuracy) ||
+        // Also check if the accuracy is "empty", as in there are no hits at all.
+        Number.isNaN(replayData.accuracy.value())
+    ) {
+        return false;
+    }
+
+    // Replay v3 has way more information - compare all relevant ones.
+    if (replayData.isReplayV3()) {
+        if (
+            score.score !== replayData.score ||
+            score.combo !== replayData.maxCombo ||
+            (!(databaseScore instanceof Score) &&
+                (databaseScore.geki !== replayData.hit300k ||
+                    databaseScore.katu !== replayData.hit100k)) ||
+            score.rank !== replayData.rank
+        ) {
+            return false;
+        }
+
+        // Mods are compared later as they are more costly.
+        const scoreMods = score.mods.serializeMods();
+        const replayMods = replayData.convertedMods.serializeMods();
+
+        if (!isDeepStrictEqual(scoreMods, replayMods)) {
+            return false;
+        }
+    }
+
+    // Replay v4? Well... nothing new to check there, so let's end it here.
+    return true;
+}
+
+/**
  * Updates the Discord metadata of a user.
  *
  * @param userId The ID of the user.
@@ -300,4 +375,58 @@ async function updateDiscordMetadata(userId: string): Promise<boolean> {
     })
         .then(() => true)
         .catch(() => false);
+}
+
+/**
+ * Obtains the tick and end information for sliders in a replay.
+ *
+ * @param beatmap The beatmap to obtain the information for.
+ * @param data The replay data to analyze.
+ * @returns An object containing the tick and end information.
+ */
+export function obtainTickInformation(
+    beatmap: IBeatmap,
+    data: ReplayData,
+): {
+    readonly tick: SliderTickInformation;
+    readonly end: SliderTickInformation;
+} {
+    const tick: SliderTickInformation = {
+        obtained: 0,
+        total: beatmap.hitObjects.sliderTicks,
+    };
+
+    const end: SliderTickInformation = {
+        obtained: 0,
+        total: beatmap.hitObjects.sliderEnds,
+    };
+
+    for (let i = 0; i < data.hitObjectData.length; ++i) {
+        const object = beatmap.hitObjects.objects[i];
+        const objectData = data.hitObjectData[i];
+
+        if (
+            objectData.result === HitResult.miss ||
+            !(object instanceof Slider)
+        ) {
+            continue;
+        }
+
+        // Exclude the head circle.
+        for (let j = 1; j < object.nestedHitObjects.length; ++j) {
+            const nested = object.nestedHitObjects[j];
+
+            if (!objectData.tickset[j - 1]) {
+                continue;
+            }
+
+            if (nested instanceof SliderTick) {
+                ++tick.obtained;
+            } else if (nested instanceof SliderTail) {
+                ++end.obtained;
+            }
+        }
+    }
+
+    return { tick, end };
 }

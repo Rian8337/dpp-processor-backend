@@ -4,9 +4,6 @@ import {
     BeatmapDecoder,
     MathUtils,
     Modes,
-    Slider,
-    SliderTail,
-    SliderTick,
 } from "@rian8337/osu-base";
 import {
     CacheableDifficultyAttributes,
@@ -16,11 +13,7 @@ import {
     OsuPerformanceCalculator,
     PerformanceCalculationOptions,
 } from "@rian8337/osu-difficulty-calculator";
-import {
-    HitResult,
-    ReplayAnalyzer,
-    ReplayData,
-} from "@rian8337/osu-droid-replay-analyzer";
+import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import {
     IExtendedDroidDifficultyAttributes as IRebalanceExtendedDroidDifficultyAttributes,
     DroidPerformanceCalculator as RebalanceDroidPerformanceCalculator,
@@ -38,7 +31,6 @@ import { PerformanceAttributes } from "../../structures/attributes/PerformanceAt
 import { RawDifficultyAttributes } from "../../structures/attributes/RawDifficultyAttributes";
 import { RebalanceDroidPerformanceAttributes } from "../../structures/attributes/RebalanceDroidPerformanceAttributes";
 import { PPCalculationMethod } from "../../structures/PPCalculationMethod";
-import { SliderTickInformation } from "../../structures/SliderTickInformation";
 import { CalculationWorkerData } from "../../structures/workers/CalculationWorkerData";
 import { BeatmapDroidDifficultyCalculator } from "../calculator/BeatmapDroidDifficultyCalculator";
 import {
@@ -46,46 +38,13 @@ import {
     getStrainPeaks,
 } from "../calculator/LocalBeatmapDifficultyCalculator";
 import { PerformanceCalculationParameters } from "../calculator/PerformanceCalculationParameters";
+import { obtainTickInformation } from "../dppUtil";
 import { LimitedCapacityCollection } from "../LimitedCapacityCollection";
 
 const beatmapCache = new LimitedCapacityCollection<string, Beatmap>(
     250,
     180000,
 );
-
-function processTickInformation(
-    beatmap: Beatmap,
-    data: ReplayData,
-    sliderTickInformation: SliderTickInformation,
-    sliderEndInformation: SliderTickInformation,
-): void {
-    for (let i = 0; i < data.hitObjectData.length; ++i) {
-        const object = beatmap.hitObjects.objects[i];
-        const objectData = data.hitObjectData[i];
-
-        if (
-            objectData.result === HitResult.miss ||
-            !(object instanceof Slider)
-        ) {
-            continue;
-        }
-
-        // Exclude the head circle.
-        for (let j = 1; j < object.nestedHitObjects.length; ++j) {
-            const nested = object.nestedHitObjects[j];
-
-            if (!objectData.tickset[j - 1]) {
-                continue;
-            }
-
-            if (nested instanceof SliderTick) {
-                ++sliderTickInformation.obtained;
-            } else if (nested instanceof SliderTail) {
-                ++sliderEndInformation.obtained;
-            }
-        }
-    }
-}
 
 parentPort?.on("message", async (data: CalculationWorkerData) => {
     const { gamemode, calculationMethod, parameters, generateStrainChart } =
@@ -222,23 +181,9 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                         difficultyAttributes,
                     ).calculate(calculationOptions);
 
-                    const sliderTickInformation: SliderTickInformation = {
-                        obtained: 0,
-                        total: beatmap.hitObjects.sliderTicks,
-                    };
-                    const sliderEndInformation: SliderTickInformation = {
-                        obtained: 0,
-                        total: beatmap.hitObjects.sliderEnds,
-                    };
-
-                    if (analyzer.data) {
-                        processTickInformation(
-                            beatmap,
-                            analyzer.data,
-                            sliderTickInformation,
-                            sliderEndInformation,
-                        );
-                    }
+                    const sliderInformation = analyzer.data
+                        ? obtainTickInformation(beatmap, analyzer.data)
+                        : null;
 
                     attributes = {
                         params: calculationParams.toCloneable(),
@@ -260,14 +205,18 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                             visualSliderCheesePenalty:
                                 perfCalc.visualSliderCheesePenalty,
                         } as DroidPerformanceAttributes,
-                        replay: analyzer.data
-                            ? {
-                                  hitError:
-                                      analyzer.calculateHitError() ?? undefined,
-                                  sliderTickInformation: sliderTickInformation,
-                                  sliderEndInformation: sliderEndInformation,
-                              }
-                            : undefined,
+                        replay:
+                            analyzer.data && sliderInformation
+                                ? {
+                                      hitError:
+                                          analyzer.calculateHitError() ??
+                                          undefined,
+                                      sliderTickInformation:
+                                          sliderInformation.tick,
+                                      sliderEndInformation:
+                                          sliderInformation.end,
+                                  }
+                                : undefined,
                     };
 
                     break;
@@ -341,36 +290,21 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                         calculationParams.applyToOptions(calculationOptions);
                     }
 
-                    const sliderTickInformation: SliderTickInformation = {
-                        obtained: 0,
-                        total: beatmap.hitObjects.sliderTicks,
-                    };
-
-                    const sliderEndInformation: SliderTickInformation = {
-                        obtained: 0,
-                        total: beatmap.hitObjects.sliderEnds,
-                    };
-
-                    if (analyzer.data) {
-                        processTickInformation(
-                            beatmap,
-                            analyzer.data,
-                            sliderTickInformation,
-                            sliderEndInformation,
-                        );
-                    }
+                    const sliderInformation = analyzer.data
+                        ? obtainTickInformation(beatmap, analyzer.data)
+                        : null;
 
                     const perfCalc = new RebalanceDroidPerformanceCalculator(
                         difficultyAttributes,
                     ).calculate({
                         ...calculationOptions,
-                        sliderTicksMissed: analyzer.data
-                            ? sliderTickInformation.total -
-                              sliderTickInformation.obtained
+                        sliderTicksMissed: sliderInformation
+                            ? sliderInformation.tick.total -
+                              sliderInformation.tick.obtained
                             : undefined,
-                        sliderEndsDropped: analyzer.data
-                            ? sliderEndInformation.total -
-                              sliderEndInformation.obtained
+                        sliderEndsDropped: sliderInformation
+                            ? sliderInformation.end.total -
+                              sliderInformation.end.obtained
                             : undefined,
                     });
 
@@ -408,13 +342,18 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                 2,
                             ),
                         } as RebalanceDroidPerformanceAttributes,
-                        replay: analyzer.data
-                            ? {
-                                  hitError: hitError ?? undefined,
-                                  sliderTickInformation: sliderTickInformation,
-                                  sliderEndInformation: sliderEndInformation,
-                              }
-                            : undefined,
+                        replay:
+                            analyzer.data && sliderInformation
+                                ? {
+                                      hitError:
+                                          analyzer.calculateHitError() ??
+                                          undefined,
+                                      sliderTickInformation:
+                                          sliderInformation.tick,
+                                      sliderEndInformation:
+                                          sliderInformation.end,
+                                  }
+                                : undefined,
                     };
 
                     break;

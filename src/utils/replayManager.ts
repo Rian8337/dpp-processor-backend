@@ -32,9 +32,9 @@ export const officialReplayDirectory = "/hdd/osudroid/bestpp";
 export async function saveReplayToOfficialPP(
     replay: ReplayAnalyzer,
 ): Promise<boolean> {
-    const { originalODR, data, scoreID } = replay;
+    const { originalODR, scoreID } = replay;
 
-    if (!scoreID || !originalODR || !data) {
+    if (!scoreID || !originalODR) {
         return false;
     }
 

@@ -1,34 +1,8 @@
 import {
-    Mod,
-    ModAuto,
-    ModAutopilot,
-    ModCustomSpeed,
-    ModDifficultyAdjust,
-    ModDoubleTime,
-    ModEasy,
-    ModFlashlight,
-    ModHalfTime,
-    ModHardRock,
-    ModHidden,
-    ModNightCore,
-    ModNoFail,
-    ModPerfect,
-    ModPrecise,
-    ModReallyEasy,
-    ModRelax,
-    ModScoreV2,
-    ModSmallCircle,
-    ModSuddenDeath,
-    ModTraceable,
-} from "@rian8337/osu-base";
-import {
     IDroidDifficultyAttributes,
     IOsuDifficultyAttributes,
 } from "@rian8337/osu-difficulty-calculator";
-import {
-    ReplayAnalyzer,
-    ReplayV3Data,
-} from "@rian8337/osu-droid-replay-analyzer";
+import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import { watch } from "chokidar";
 import { readFile, readdir } from "fs/promises";
 import { basename, join } from "path";
@@ -307,86 +281,6 @@ export async function initiateReplayProcessing(): Promise<void> {
     }
 
     console.log("Unprocessed replay file(s) processing complete");
-}
-
-const replayModConstants = new Map<typeof Mod, string>([
-    [ModAuto, "a"],
-    [ModAutopilot, "p"],
-    [ModNoFail, "n"],
-    [ModEasy, "e"],
-    [ModHidden, "h"],
-    [ModTraceable, "b"],
-    [ModHardRock, "r"],
-    [ModDoubleTime, "d"],
-    [ModHalfTime, "t"],
-    [ModNightCore, "c"],
-    [ModPrecise, "s"],
-    [ModSmallCircle, "m"],
-    [ModReallyEasy, "l"],
-    [ModRelax, "x"],
-    [ModPerfect, "f"],
-    [ModSuddenDeath, "u"],
-    [ModScoreV2, "v"],
-    [ModFlashlight, "i"],
-]);
-
-/**
- * Constructs a mod string from a replay data.
- *
- * @param data The replay data.
- * @returns The constructed mod string.
- */
-export function constructModString(data: ReplayV3Data): string {
-    let modString = "";
-
-    for (const mod of data.convertedMods) {
-        const constant = replayModConstants.get(mod.constructor as typeof Mod);
-
-        if (constant) {
-            modString += constant;
-        }
-    }
-
-    if (data.replayVersion >= 4) {
-        modString += "|";
-        let extraModString = "";
-
-        const flashlight = data.convertedMods.get(ModFlashlight);
-        const difficultyAdjust = data.convertedMods.get(ModDifficultyAdjust);
-        const customSpeed = data.convertedMods.get(ModCustomSpeed);
-
-        if (customSpeed) {
-            extraModString += `x${customSpeed.trackRateMultiplier.value.toFixed(2)}|`;
-        }
-
-        if (difficultyAdjust) {
-            if (difficultyAdjust.ar.value !== null) {
-                extraModString += `AR${difficultyAdjust.ar.value.toFixed(1)}|`;
-            }
-
-            if (difficultyAdjust.od.value !== null) {
-                extraModString += `OD${difficultyAdjust.od.value.toFixed(1)}|`;
-            }
-
-            if (difficultyAdjust.cs.value !== null) {
-                extraModString += `CS${difficultyAdjust.cs.value.toFixed(1)}|`;
-            }
-
-            if (difficultyAdjust.hp.value !== null) {
-                extraModString += `HP${difficultyAdjust.hp.value.toFixed(1)}|`;
-            }
-        }
-
-        if (flashlight && !flashlight.followDelay.isDefault) {
-            extraModString += `FLD${flashlight.followDelay.value.toFixed(2)}|`;
-        }
-
-        if (extraModString) {
-            modString += extraModString.slice(0, -1);
-        }
-    }
-
-    return modString;
 }
 
 /**

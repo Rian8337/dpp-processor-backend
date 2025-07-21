@@ -1,4 +1,4 @@
-import { BeatmapDecoder, Modes } from "@rian8337/osu-base";
+import { Beatmap, BeatmapDecoder, Modes } from "@rian8337/osu-base";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import "dotenv/config";
 import { eq } from "drizzle-orm";
@@ -34,6 +34,9 @@ import { getOfficialBestReplay, getOnlineReplay } from "./utils/replayManager";
     }
 
     while (id <= 26000000) {
+        let beatmapFile: string | null | undefined;
+        let beatmap: Beatmap | null = null;
+
         const scoreId = id++;
 
         await processorDb
@@ -62,21 +65,21 @@ import { getOfficialBestReplay, getOnlineReplay } from "./utils/replayManager";
             continue;
         }
 
-        const beatmapFile = await getBeatmapFile(score.hash);
-
-        if (!beatmapFile) {
-            console.log("Score ID", scoreId, "has no beatmap");
-            continue;
-        }
-
-        const beatmap = new BeatmapDecoder().decode(
-            beatmapFile,
-            Modes.droid,
-        ).result;
-
         const replayFile = await getOnlineReplay(scoreId);
 
         if (replayFile) {
+            beatmapFile ??= await getBeatmapFile(score.hash);
+
+            if (!beatmapFile) {
+                console.log("Score ID", scoreId, "has no beatmap");
+                continue;
+            }
+
+            beatmap ??= new BeatmapDecoder().decode(
+                beatmapFile,
+                Modes.droid,
+            ).result;
+
             const analyzer = new ReplayAnalyzer();
 
             analyzer.beatmap = beatmap;
@@ -114,6 +117,18 @@ import { getOfficialBestReplay, getOnlineReplay } from "./utils/replayManager";
             const bestReplayFile = await getOfficialBestReplay(scoreId);
 
             if (bestReplayFile) {
+                beatmapFile ??= await getBeatmapFile(score.hash);
+
+                if (!beatmapFile) {
+                    console.log("Score ID", scoreId, "has no beatmap");
+                    continue;
+                }
+
+                beatmap ??= new BeatmapDecoder().decode(
+                    beatmapFile,
+                    Modes.droid,
+                ).result;
+
                 const analyzer = new ReplayAnalyzer();
 
                 analyzer.beatmap = beatmap;

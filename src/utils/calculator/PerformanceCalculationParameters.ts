@@ -13,7 +13,7 @@ import { CloneablePerformanceCalculationParameters } from "./CloneablePerformanc
 import { DifficultyCalculationParameters } from "./DifficultyCalculationParameters";
 import { Score } from "@rian8337/osu-droid-utilities";
 import { scoresTable } from "../../database/official/schema";
-import { obtainTickInformation } from "../dppUtil";
+import { obtainTickInformation } from "../replayManager";
 
 /**
  * Represents a parameter to alter performance calculation result.

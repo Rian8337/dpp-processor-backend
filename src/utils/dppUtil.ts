@@ -3,7 +3,6 @@ import {
     IOsuDifficultyAttributes,
 } from "@rian8337/osu-difficulty-calculator";
 import {
-    HitResult,
     ReplayAnalyzer,
     ReplayData,
 } from "@rian8337/osu-droid-replay-analyzer";
@@ -25,17 +24,10 @@ import {
     unprocessedReplayDirectory,
 } from "./replayManager";
 import { isDebug } from "./util";
-import {
-    IBeatmap,
-    ScoreRank,
-    Slider,
-    SliderTail,
-    SliderTick,
-} from "@rian8337/osu-base";
+import { ScoreRank, SerializedMod } from "@rian8337/osu-base";
 import { Score } from "@rian8337/osu-droid-utilities";
 import { isDeepStrictEqual } from "util";
 import { OfficialDatabaseScore } from "../database/official/schema/OfficialDatabaseScore";
-import { SliderTickInformation } from "../structures/SliderTickInformation";
 
 const droidDifficultyCalculator = new BeatmapDroidDifficultyCalculator();
 const osuDifficultyCalculator = new BeatmapOsuDifficultyCalculator();
@@ -316,6 +308,7 @@ export function isReplayValid(
             : new Score({
                   ...databaseScore,
                   username: "",
+                  mods: JSON.parse(databaseScore.mods) as SerializedMod[],
                   mark: databaseScore.mark as ScoreRank,
                   date: databaseScore.date.getTime(),
                   slider_tick_hit: databaseScore.sliderTickHit,
@@ -375,58 +368,4 @@ async function updateDiscordMetadata(userId: string): Promise<boolean> {
     })
         .then(() => true)
         .catch(() => false);
-}
-
-/**
- * Obtains the tick and end information for sliders in a replay.
- *
- * @param beatmap The beatmap to obtain the information for.
- * @param data The replay data to analyze.
- * @returns An object containing the tick and end information.
- */
-export function obtainTickInformation(
-    beatmap: IBeatmap,
-    data: ReplayData,
-): {
-    readonly tick: SliderTickInformation;
-    readonly end: SliderTickInformation;
-} {
-    const tick: SliderTickInformation = {
-        obtained: 0,
-        total: beatmap.hitObjects.sliderTicks,
-    };
-
-    const end: SliderTickInformation = {
-        obtained: 0,
-        total: beatmap.hitObjects.sliderEnds,
-    };
-
-    for (let i = 0; i < data.hitObjectData.length; ++i) {
-        const object = beatmap.hitObjects.objects[i];
-        const objectData = data.hitObjectData[i];
-
-        if (
-            objectData.result === HitResult.miss ||
-            !(object instanceof Slider)
-        ) {
-            continue;
-        }
-
-        // Exclude the head circle.
-        for (let j = 1; j < object.nestedHitObjects.length; ++j) {
-            const nested = object.nestedHitObjects[j];
-
-            if (!objectData.tickset[j - 1]) {
-                continue;
-            }
-
-            if (nested instanceof SliderTick) {
-                ++tick.obtained;
-            } else if (nested instanceof SliderTail) {
-                ++end.obtained;
-            }
-        }
-    }
-
-    return { tick, end };
 }

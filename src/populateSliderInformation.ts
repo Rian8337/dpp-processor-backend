@@ -7,8 +7,12 @@ import { bestScoresTable, scoresTable } from "./database/official/schema";
 import { processorDb } from "./database/processor";
 import { scoreCalculationTable } from "./database/processor/schema";
 import { getBeatmapFile } from "./services/beatmapService";
-import { isReplayValid, obtainTickInformation } from "./utils/dppUtil";
-import { getOfficialBestReplay, getOnlineReplay } from "./utils/replayManager";
+import { isReplayValid } from "./utils/dppUtil";
+import {
+    getOfficialBestReplay,
+    getOnlineReplay,
+    obtainTickInformation,
+} from "./utils/replayManager";
 
 (async () => {
     const processId = 0;

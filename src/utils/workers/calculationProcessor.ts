@@ -38,8 +38,8 @@ import {
     getStrainPeaks,
 } from "../calculator/LocalBeatmapDifficultyCalculator";
 import { PerformanceCalculationParameters } from "../calculator/PerformanceCalculationParameters";
-import { obtainTickInformation } from "../dppUtil";
 import { LimitedCapacityCollection } from "../LimitedCapacityCollection";
+import { obtainTickInformation } from "../replayManager";
 
 const beatmapCache = new LimitedCapacityCollection<string, Beatmap>(
     250,

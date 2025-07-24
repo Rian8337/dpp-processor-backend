@@ -1,8 +1,7 @@
-import { SerializedMod } from "@rian8337/osu-base";
 import {
     float,
     int,
-    json,
+    longtext,
     mediumint,
     serial,
     timestamp,
@@ -18,7 +17,7 @@ export const scoreColumns = {
     uid: mediumint().notNull(),
     filename: varchar({ length: 255 }).notNull(),
     hash: varchar({ length: 36 }).notNull(),
-    mods: json().$type<SerializedMod[]>().notNull().default([]),
+    mods: longtext().notNull().default("[]"),
     score: int().notNull().default(0),
     combo: int().notNull().default(0),
     mark: varchar({ length: 2 }),

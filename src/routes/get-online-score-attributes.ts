@@ -1,4 +1,10 @@
-import { Accuracy, MathUtils, Modes, ModUtil } from "@rian8337/osu-base";
+import {
+    Accuracy,
+    MathUtils,
+    Modes,
+    ModUtil,
+    SerializedMod,
+} from "@rian8337/osu-base";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import { Score } from "@rian8337/osu-droid-utilities";
 import { Router } from "express";
@@ -130,7 +136,7 @@ router.get<
             : (overrideParameters?.mods.serializeMods() ??
               (score instanceof Score
                   ? score.mods.serializeMods()
-                  : score.mods));
+                  : (JSON.parse(score.mods) as SerializedMod[])));
 
     switch (gamemode) {
         case Modes.droid: {

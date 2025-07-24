@@ -19,6 +19,8 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
             miss: table.miss,
             hash: table.hash,
             pp: table.pp,
+            sliderTickHit: table.sliderTickHit,
+            sliderEndHit: table.sliderEndHit,
         })
         .from(table)
         .where(isNull(table.ppMultiplier));

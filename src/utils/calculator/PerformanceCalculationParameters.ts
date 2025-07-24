@@ -1,4 +1,4 @@
-import { Accuracy, ModMap, ModUtil } from "@rian8337/osu-base";
+import { Accuracy, IBeatmap, ModMap, ModUtil } from "@rian8337/osu-base";
 import {
     CacheableDifficultyAttributes,
     PerformanceCalculationOptions,
@@ -13,6 +13,7 @@ import { CloneablePerformanceCalculationParameters } from "./CloneablePerformanc
 import { DifficultyCalculationParameters } from "./DifficultyCalculationParameters";
 import { Score } from "@rian8337/osu-droid-utilities";
 import { scoresTable } from "../../database/official/schema";
+import { obtainTickInformation } from "../dppUtil";
 
 /**
  * Represents a parameter to alter performance calculation result.
@@ -37,6 +38,16 @@ export interface PerformanceCalculationParametersInit {
      * The tap penalty to apply for penalized scores. Defaults to 1.
      */
     tapPenalty?: number;
+
+    /**
+     * The number of slider ticks that were hit.
+     */
+    sliderTickHits?: number;
+
+    /**
+     * The number of slider ends that were hit.
+     */
+    sliderEndHits?: number;
 
     /**
      * The slider cheese penalties to apply for penalized scores. Each of them defaults to 1.
@@ -79,6 +90,16 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
     tapPenalty?: number;
 
     /**
+     * The number of slider ticks that were hit.
+     */
+    sliderTickHits?: number;
+
+    /**
+     * The number of slider ends that were hit.
+     */
+    sliderEndHits?: number;
+
+    /**
      * The slider cheese penalties to apply for penalized scores. Each of them defaults to 1.
      */
     sliderCheesePenalty?: SliderCheeseInformation;
@@ -97,6 +118,8 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
                 nmiss: 0,
             });
 
+        this.sliderTickHits = values?.sliderTickHits;
+        this.sliderEndHits = values?.sliderEndHits;
         this.tapPenalty = values?.tapPenalty;
         this.sliderCheesePenalty = values?.sliderCheesePenalty;
     }
@@ -142,6 +165,16 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
             if (data.isReplayV3()) {
                 this.combo = data.maxCombo;
             }
+
+            if (replay.beatmap) {
+                const { tick, end } = obtainTickInformation(
+                    replay.beatmap,
+                    data,
+                );
+
+                this.sliderTickHits = tick.obtained;
+                this.sliderEndHits = end.obtained;
+            }
         }
 
         this.tapPenalty = replay.tapPenalty;
@@ -153,7 +186,14 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
             | Score
             | Pick<
                   typeof scoresTable.$inferSelect,
-                  "mods" | "combo" | "perfect" | "good" | "bad" | "miss"
+                  | "mods"
+                  | "combo"
+                  | "perfect"
+                  | "good"
+                  | "bad"
+                  | "miss"
+                  | "sliderTickHit"
+                  | "sliderEndHit"
               >,
     ) {
         super.applyScore(score);
@@ -170,6 +210,16 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
                       nmiss: score.miss,
                   },
         );
+
+        this.sliderTickHits =
+            (score instanceof Score
+                ? score.sliderTickHits
+                : score.sliderTickHit) ?? undefined;
+
+        this.sliderEndHits =
+            (score instanceof Score
+                ? score.sliderEndHits
+                : score.sliderEndHit) ?? undefined;
     }
 
     /**
@@ -178,6 +228,7 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
      * @param options The options to apply to.
      */
     applyToOptions(
+        beatmap: IBeatmap,
         options:
             | PerformanceCalculationOptions
             | RebalancePerformanceCalculationOptions,
@@ -191,6 +242,16 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
             this.sliderCheesePenalty?.flashlightPenalty ?? 1;
         options.visualSliderCheesePenalty =
             this.sliderCheesePenalty?.visualPenalty ?? 1;
+
+        if (this.sliderTickHits !== undefined) {
+            options.sliderTicksMissed =
+                beatmap.hitObjects.sliderTicks - this.sliderTickHits;
+        }
+
+        if (this.sliderEndHits !== undefined) {
+            options.sliderEndsDropped =
+                beatmap.hitObjects.sliders - this.sliderEndHits;
+        }
     }
 
     /**
@@ -199,10 +260,10 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
     override toCloneable(): CloneablePerformanceCalculationParameters {
         return {
             ...super.toCloneable(),
-            accuracy: {
-                ...this.accuracy,
-            },
+            accuracy: { ...this.accuracy },
             combo: this.combo,
+            sliderTickHits: this.sliderTickHits,
+            sliderEndHits: this.sliderEndHits,
             tapPenalty: this.tapPenalty,
             sliderCheesePenalty: this.sliderCheesePenalty,
         };

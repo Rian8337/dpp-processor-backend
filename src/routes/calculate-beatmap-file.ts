@@ -48,6 +48,8 @@ router.post<
         n100?: string;
         n50?: string;
         nmiss?: string;
+        sliderticksmissed?: string;
+        sliderendsdropped?: string;
         maxcombo?: string;
         aimslidercheesepenalty?: string;
         tappenalty?: string;
@@ -133,6 +135,24 @@ router.post<
             ),
             visualPenalty: parseInt(req.body.visualslidercheesepenalty ?? "1"),
         },
+        sliderTickHits:
+            req.body.sliderticksmissed !== undefined
+                ? MathUtils.clamp(
+                      0,
+                      beatmap.hitObjects.sliderTicks -
+                          parseInt(req.body.sliderticksmissed),
+                      beatmap.hitObjects.sliderTicks,
+                  )
+                : undefined,
+        sliderEndHits:
+            req.body.sliderendsdropped !== undefined
+                ? MathUtils.clamp(
+                      0,
+                      beatmap.hitObjects.sliders -
+                          parseInt(req.body.sliderendsdropped),
+                      beatmap.hitObjects.sliders,
+                  )
+                : undefined,
     });
 
     let attributes: CompleteCalculationAttributes<

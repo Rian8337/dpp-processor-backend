@@ -57,7 +57,14 @@ export abstract class BeatmapDifficultyCalculator<
             | ReplayAnalyzer
             | Pick<
                   typeof scoresTable.$inferSelect,
-                  "mods" | "combo" | "perfect" | "good" | "bad" | "miss"
+                  | "mods"
+                  | "combo"
+                  | "perfect"
+                  | "good"
+                  | "bad"
+                  | "miss"
+                  | "sliderTickHit"
+                  | "sliderEndHit"
               >,
     ): PerformanceCalculationParameters {
         const params = new PerformanceCalculationParameters();
@@ -90,6 +97,8 @@ export abstract class BeatmapDifficultyCalculator<
                   | "bad"
                   | "miss"
                   | "hash"
+                  | "sliderTickHit"
+                  | "sliderEndHit"
               >,
         generateStrainChart: true,
     ): Promise<PerformanceCalculationResult<DA, PA, true>>;
@@ -113,6 +122,8 @@ export abstract class BeatmapDifficultyCalculator<
                   | "bad"
                   | "miss"
                   | "hash"
+                  | "sliderTickHit"
+                  | "sliderEndHit"
               >,
         generateStrainChart: false,
     ): Promise<PerformanceCalculationResult<DA, PA, false>>;
@@ -136,6 +147,8 @@ export abstract class BeatmapDifficultyCalculator<
                   | "bad"
                   | "miss"
                   | "hash"
+                  | "sliderTickHit"
+                  | "sliderEndHit"
               >,
         generateStrainChart?: boolean,
     ): Promise<PerformanceCalculationResult<DA, PA>>;
@@ -152,6 +165,8 @@ export abstract class BeatmapDifficultyCalculator<
                   | "bad"
                   | "miss"
                   | "hash"
+                  | "sliderTickHit"
+                  | "sliderEndHit"
               >,
         generateStrainChart?: boolean,
     ): Promise<PerformanceCalculationResult<DA, PA>> {
@@ -281,6 +296,8 @@ export abstract class BeatmapDifficultyCalculator<
                   | "bad"
                   | "miss"
                   | "hash"
+                  | "sliderTickHit"
+                  | "sliderEndHit"
               >,
         generateStrainChart: false,
     ): Promise<RebalancePerformanceCalculationResult<RDA, RPA, false>>;
@@ -304,6 +321,8 @@ export abstract class BeatmapDifficultyCalculator<
                   | "bad"
                   | "miss"
                   | "hash"
+                  | "sliderTickHit"
+                  | "sliderEndHit"
               >,
         generateStrainChart?: boolean,
     ): Promise<RebalancePerformanceCalculationResult<RDA, RPA>>;
@@ -320,6 +339,8 @@ export abstract class BeatmapDifficultyCalculator<
                   | "bad"
                   | "miss"
                   | "hash"
+                  | "sliderTickHit"
+                  | "sliderEndHit"
               >,
         generateStrainChart?: boolean,
     ): Promise<RebalancePerformanceCalculationResult<RDA, RPA>> {

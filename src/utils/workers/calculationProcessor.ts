@@ -68,7 +68,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
               }),
           });
 
-    const analyzer = new ReplayAnalyzer({ scoreID: 0, map: beatmap });
+    const analyzer = new ReplayAnalyzer({ map: beatmap });
 
     if (data.replayFile) {
         analyzer.originalODR = Buffer.from(await data.replayFile.arrayBuffer());
@@ -96,7 +96,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
     );
 
     const calculationOptions: PerformanceCalculationOptions = {};
-    calculationParams.applyToOptions(calculationOptions);
+    calculationParams.applyToOptions(beatmap, calculationOptions);
 
     let attributes:
         | CompleteCalculationAttributes<
@@ -174,7 +174,10 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                             );
                         }
 
-                        calculationParams.applyToOptions(calculationOptions);
+                        calculationParams.applyToOptions(
+                            beatmap,
+                            calculationOptions,
+                        );
                     }
 
                     const perfCalc = new DroidPerformanceCalculator(
@@ -287,7 +290,10 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                             );
                         }
 
-                        calculationParams.applyToOptions(calculationOptions);
+                        calculationParams.applyToOptions(
+                            beatmap,
+                            calculationOptions,
+                        );
                     }
 
                     const sliderInformation = analyzer.data

@@ -21,6 +21,16 @@ export interface CloneablePerformanceCalculationParameters<
     accuracy: CloneableAccuracy;
 
     /**
+     * The number of slider ticks that were hit.
+     */
+    sliderTickHits?: number;
+
+    /**
+     * The number of slider ends that were hit.
+     */
+    sliderEndHits?: number;
+
+    /**
      * The tap penalty to apply for penalized scores.
      */
     tapPenalty: Optional<TFromCalculation, number>;

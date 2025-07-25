@@ -99,10 +99,9 @@ router.get<
 
     let overrideParameters: PerformanceCalculationParameters | undefined;
 
-    if (
-        data !== null &&
-        (data.replayVersion < 3 || !isReplayValid(score, data))
-    ) {
+    const replayValid = data !== null ? isReplayValid(score, data) : false;
+
+    if (data !== null && (data.replayVersion < 3 || !replayValid)) {
         // Old replay version or invalid replay - fill in missing data.
         if (score instanceof Score) {
             overrideParameters = new PerformanceCalculationParameters({
@@ -142,7 +141,7 @@ router.get<
         case Modes.droid: {
             const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
             const ppMultiplier =
-                data !== null || score instanceof Score
+                replayValid || score instanceof Score
                     ? 1
                     : Math.min(1, score.ppMultiplier ?? 1);
 

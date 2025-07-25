@@ -141,6 +141,10 @@ router.get<
     switch (gamemode) {
         case Modes.droid: {
             const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
+            const ppMultiplier =
+                data !== null || score instanceof Score
+                    ? 1
+                    : Math.min(1, score.ppMultiplier ?? 1);
 
             switch (calculationMethod) {
                 case PPCalculationMethod.live: {
@@ -185,7 +189,7 @@ router.get<
                             mods: requestedMods,
                         },
                         performance: {
-                            total: result.total,
+                            total: result.total * ppMultiplier,
                             aim: result.aim,
                             tap: result.tap,
                             accuracy: result.accuracy,
@@ -251,7 +255,7 @@ router.get<
                             mods: requestedMods,
                         },
                         performance: {
-                            total: result.total,
+                            total: result.total * ppMultiplier,
                             aim: result.aim,
                             tap: result.tap,
                             accuracy: result.accuracy,

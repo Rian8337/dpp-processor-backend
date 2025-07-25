@@ -148,7 +148,7 @@ router.get<
             switch (calculationMethod) {
                 case PPCalculationMethod.live: {
                     const calculationResult = await (
-                        data != null
+                        replayValid
                             ? difficultyCalculator.calculateReplayPerformance(
                                   analyzer,
                                   generateStrainChart,
@@ -214,7 +214,7 @@ router.get<
 
                 case PPCalculationMethod.rebalance: {
                     const calculationResult = await (
-                        data !== null
+                        replayValid
                             ? difficultyCalculator.calculateReplayRebalancePerformance(
                                   analyzer,
                                   generateStrainChart,
@@ -298,7 +298,7 @@ router.get<
             switch (calculationMethod) {
                 case PPCalculationMethod.live: {
                     const calculationResult = await (
-                        data !== null
+                        replayValid
                             ? difficultyCalculator.calculateReplayPerformance(
                                   analyzer,
                                   generateStrainChart,
@@ -353,7 +353,7 @@ router.get<
 
                 case PPCalculationMethod.rebalance: {
                     const calculationResult = await (
-                        data !== null
+                        replayValid
                             ? difficultyCalculator.calculateReplayRebalancePerformance(
                                   analyzer,
                                   generateStrainChart,

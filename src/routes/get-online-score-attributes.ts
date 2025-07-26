@@ -108,6 +108,8 @@ router.get<
                 accuracy: score.accuracy,
                 combo: score.combo,
                 mods: score.mods,
+                sliderTickHits: score.sliderTickHits ?? undefined,
+                sliderEndHits: score.sliderEndHits ?? undefined,
             });
         } else {
             overrideParameters = new PerformanceCalculationParameters({
@@ -119,6 +121,8 @@ router.get<
                 }),
                 combo: score.combo,
                 mods: ModUtil.deserializeMods(score.mods),
+                sliderTickHits: score.sliderTickHit ?? undefined,
+                sliderEndHits: score.sliderEndHit ?? undefined,
             });
         }
     }

@@ -130,7 +130,7 @@ router.get<
     let strainChart: Buffer | null = null;
 
     const requestedMods =
-        data?.isReplayV3() && isReplayValid(score, data)
+        data?.isReplayV3() && replayValid
             ? data.convertedMods.serializeMods()
             : (overrideParameters?.mods.serializeMods() ??
               (score instanceof Score

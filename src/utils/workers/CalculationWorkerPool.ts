@@ -20,7 +20,9 @@ export class CalculationWorkerPool extends EventEmitter {
     constructor() {
         super();
 
-        this.threadAmount = process.argv.at(-1)?.includes("calculateScores")
+        this.threadAmount = process.argv.some((arg) =>
+            arg.includes("calculateScores"),
+        )
             ? 1
             : availableParallelism();
 

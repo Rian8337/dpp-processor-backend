@@ -37,7 +37,10 @@ export async function getPlayerFromUsername<
         .select(columns)
         .from(usersTable)
         .where(eq(usersTable.username, username))
-        .then((res) => res.at(0) as Pick<OfficialDatabaseUser, K> | null)
+        .then(
+            (res) =>
+                (res.at(0) ?? null) as Pick<OfficialDatabaseUser, K> | null,
+        )
         .catch((e: unknown) => {
             console.error(e);
 
@@ -98,7 +101,13 @@ export async function getOfficialScore<K extends keyof OfficialDatabaseScore>(
                     gt(scoresTable.score, 0),
                 ),
             )
-            .then((res) => res.at(0) as Pick<OfficialDatabaseScore, K> | null)
+            .then(
+                (res) =>
+                    (res.at(0) ?? null) as Pick<
+                        OfficialDatabaseScore,
+                        K
+                    > | null,
+            )
             .catch((e: unknown) => {
                 console.error(e);
 
@@ -122,7 +131,10 @@ export async function getOfficialScore<K extends keyof OfficialDatabaseScore>(
                 gt(scoresTable.score, 0),
             ),
         )
-        .then((res) => res.at(0) as Pick<OfficialDatabaseScore, K> | null)
+        .then(
+            (res) =>
+                (res.at(0) ?? null) as Pick<OfficialDatabaseScore, K> | null,
+        )
         .catch((e: unknown) => {
             console.error(e);
 

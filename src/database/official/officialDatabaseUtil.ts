@@ -201,7 +201,11 @@ export async function getOfficialBestScore<
                 ),
             )
             .then(
-                (res) => res.at(0) as Pick<OfficialDatabaseBestScore, K> | null,
+                (res) =>
+                    (res.at(0) ?? null) as Pick<
+                        OfficialDatabaseBestScore,
+                        K
+                    > | null,
             )
             .catch((e: unknown) => {
                 console.error(e);
@@ -222,7 +226,13 @@ export async function getOfficialBestScore<
         .where(
             and(eq(bestScoresTable.uid, uid), eq(bestScoresTable.hash, hash)),
         )
-        .then((res) => res.at(0) as Pick<OfficialDatabaseBestScore, K> | null)
+        .then(
+            (res) =>
+                (res.at(0) ?? null) as Pick<
+                    OfficialDatabaseBestScore,
+                    K
+                > | null,
+        )
         .catch((e: unknown) => {
             console.error(e);
 

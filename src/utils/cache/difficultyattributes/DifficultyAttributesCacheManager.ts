@@ -17,7 +17,6 @@ import {
 import { PPCalculationMethod } from "../../../structures/PPCalculationMethod";
 import { RawDifficultyAttributes } from "../../../structures/attributes/RawDifficultyAttributes";
 import { sortAlphabet } from "../../util";
-import { getBeatmap } from "../beatmapStorage";
 
 /**
  * A cache manager for difficulty attributes.
@@ -220,13 +219,6 @@ export abstract class DifficultyAttributesCacheManager<
         let cache = this.cache.get(beatmapId) ?? null;
 
         if (!cache) {
-            // Try to get cache from database.
-            const beatmap = await getBeatmap(beatmapId);
-
-            if (!beatmap) {
-                return null;
-            }
-
             const schema = createSelectSchema(this.databaseTable);
 
             const result = await processorDb

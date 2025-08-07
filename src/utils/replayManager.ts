@@ -22,12 +22,12 @@ export const unprocessedReplayDirectory = `${localReplayDirectory}/unprocessed`;
 /**
  * The directory of online replays.
  */
-export const onlineReplayDirectory = "/hdd/osudroid/replay";
+export const onlineReplayDirectory = "/hdd/osudroid/odr/replay";
 
 /**
  * The directory of official replays.
  */
-export const officialReplayDirectory = "/hdd/osudroid/bestpp";
+export const officialReplayDirectory = "/hdd/osudroid/odr/bestpp";
 
 /**
  * Saves a replay to the official replay folder.

@@ -601,7 +601,7 @@ export abstract class BeatmapDifficultyCalculator<
             calculationMethod: calculationMethod,
             difficultyAttributes: cachedAttributes,
             replayFile: replay?.originalODR
-                ? new Blob([replay.originalODR])
+                ? new Blob([replay.originalODR as BlobPart])
                 : undefined,
             parameters: calculationParams?.toCloneable(),
             generateStrainChart: generateStrainChart,

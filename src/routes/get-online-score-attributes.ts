@@ -1,10 +1,4 @@
-import {
-    Accuracy,
-    MathUtils,
-    Modes,
-    ModUtil,
-    SerializedMod,
-} from "@rian8337/osu-base";
+import { Accuracy, Modes, ModUtil, SerializedMod } from "@rian8337/osu-base";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import { Score } from "@rian8337/osu-droid-utilities";
 import { Router } from "express";
@@ -263,7 +257,7 @@ router.get<
                             tap: result.tap,
                             accuracy: result.accuracy,
                             flashlight: result.flashlight,
-                            visual: result.visual,
+                            reading: result.reading,
                             deviation: result.deviation,
                             tapDeviation: result.tapDeviation,
                             tapPenalty: result.tapPenalty,
@@ -271,18 +265,9 @@ router.get<
                                 result.aimSliderCheesePenalty,
                             flashlightSliderCheesePenalty:
                                 result.flashlightSliderCheesePenalty,
-                            visualSliderCheesePenalty:
-                                result.visualSliderCheesePenalty,
-                            calculatedUnstableRate:
-                                result.calculatedUnstableRate,
-                            estimatedUnstableRate: MathUtils.round(
-                                result.deviation * 10,
-                                2,
-                            ),
-                            estimatedSpeedUnstableRate: MathUtils.round(
+                            estimatedUnstableRate: result.deviation * 10,
+                            estimatedSpeedUnstableRate:
                                 result.tapDeviation * 10,
-                                2,
-                            ),
                         } as RebalanceDroidPerformanceAttributes,
                         replay: calculationResult.replay,
                     };

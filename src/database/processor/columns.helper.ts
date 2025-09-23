@@ -109,11 +109,6 @@ export const baseDroidDifficultyAttributesColumns = {
     rhythmDifficulty: doublePrecision().notNull(),
 
     /**
-     * The difficulty corresponding to the visual skill.
-     */
-    visualDifficulty: doublePrecision().notNull(),
-
-    /**
      * The number of clickable objects weighted by difficulty.
      *
      * Related to aim difficulty.
@@ -131,11 +126,6 @@ export const baseDroidDifficultyAttributesColumns = {
     flashlightDifficultStrainCount: doublePrecision().notNull(),
 
     /**
-     * The amount of strains that are considered difficult with respect to the visual skill.
-     */
-    visualDifficultStrainCount: doublePrecision().notNull(),
-
-    /**
      * Describes how much of flashlight difficulty is contributed to by hitcircles or sliders.
      *
      * A value closer to 1 indicates most of flashlight difficulty is contributed by hitcircles.
@@ -143,15 +133,6 @@ export const baseDroidDifficultyAttributesColumns = {
      * A value closer to 0 indicates most of flashlight difficulty is contributed by sliders.
      */
     flashlightSliderFactor: doublePrecision().notNull(),
-
-    /**
-     * Describes how much of visual difficulty is contributed to by hitcircles or sliders.
-     *
-     * A value closer to 1 indicates most of visual difficulty is contributed by hitcircles.
-     *
-     * A value closer to 0 indicates most of visual difficulty is contributed by sliders.
-     */
-    visualSliderFactor: doublePrecision().notNull(),
 
     /**
      * Possible sections at which the player can use three fingers on.

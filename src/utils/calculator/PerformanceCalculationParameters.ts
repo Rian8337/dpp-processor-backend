@@ -240,6 +240,7 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
             this.sliderCheesePenalty?.aimPenalty ?? 1;
         options.flashlightSliderCheesePenalty =
             this.sliderCheesePenalty?.flashlightPenalty ?? 1;
+        //@ts-expect-error: Will be removed after rebalance
         options.visualSliderCheesePenalty =
             this.sliderCheesePenalty?.visualPenalty ?? 1;
 

@@ -32,6 +32,7 @@ import { RawDifficultyAttributes } from "../structures/attributes/RawDifficultyA
 import { PerformanceAttributes } from "../structures/attributes/PerformanceAttributes";
 import { StrainGraphColor } from "../enums/StrainGraphColor";
 import { buffer } from "stream/consumers";
+import { RebalanceDroidPerformanceAttributes } from "../structures/attributes/RebalanceDroidPerformanceAttributes";
 
 const router = Router();
 
@@ -259,7 +260,7 @@ router.post<
                             tap: perfCalc.tap,
                             accuracy: perfCalc.accuracy,
                             flashlight: perfCalc.flashlight,
-                            visual: perfCalc.visual,
+                            reading: perfCalc.reading,
                             deviation: perfCalc.deviation,
                             tapDeviation: perfCalc.tapDeviation,
                             tapPenalty: perfCalc.tapPenalty,
@@ -267,12 +268,13 @@ router.post<
                                 perfCalc.aimSliderCheesePenalty,
                             flashlightSliderCheesePenalty:
                                 perfCalc.flashlightSliderCheesePenalty,
-                            visualSliderCheesePenalty:
-                                perfCalc.visualSliderCheesePenalty,
+                            estimatedUnstableRate: perfCalc.deviation * 10,
+                            estimatedSpeedUnstableRate:
+                                perfCalc.tapDeviation * 10,
                         },
                     } as CompleteCalculationAttributes<
                         RebalanceDroidDifficultyAttributes,
-                        DroidPerformanceAttributes
+                        RebalanceDroidPerformanceAttributes
                     >;
 
                     break;

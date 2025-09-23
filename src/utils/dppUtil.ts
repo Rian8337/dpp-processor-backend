@@ -311,8 +311,6 @@ export function isReplayValid(
                   mods: JSON.parse(databaseScore.mods) as SerializedMod[],
                   mark: databaseScore.mark as ScoreRank,
                   date: databaseScore.date.getTime(),
-                  slider_tick_hit: databaseScore.sliderTickHit,
-                  slider_end_hit: databaseScore.sliderEndHit,
               });
 
     // For replay v1 and v2, there is not that much information - just check the accuracy and hash.

@@ -1,10 +1,4 @@
-import {
-    Accuracy,
-    Beatmap,
-    BeatmapDecoder,
-    MathUtils,
-    Modes,
-} from "@rian8337/osu-base";
+import { Accuracy, Beatmap, BeatmapDecoder, Modes } from "@rian8337/osu-base";
 import {
     CacheableDifficultyAttributes,
     DroidPerformanceCalculator,
@@ -325,7 +319,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                             tap: perfCalc.tap,
                             accuracy: perfCalc.accuracy,
                             flashlight: perfCalc.flashlight,
-                            visual: perfCalc.visual,
+                            reading: perfCalc.reading,
                             deviation: perfCalc.deviation,
                             tapDeviation: perfCalc.tapDeviation,
                             tapPenalty: perfCalc.tapPenalty,
@@ -333,20 +327,13 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                 perfCalc.aimSliderCheesePenalty,
                             flashlightSliderCheesePenalty:
                                 perfCalc.flashlightSliderCheesePenalty,
-                            visualSliderCheesePenalty:
-                                perfCalc.visualSliderCheesePenalty,
                             calculatedUnstableRate: analyzer.data
                                 ? (hitError?.unstableRate ?? 0) /
                                   difficultyAttributes.clockRate
                                 : 0,
-                            estimatedUnstableRate: MathUtils.round(
-                                perfCalc.deviation * 10,
-                                2,
-                            ),
-                            estimatedSpeedUnstableRate: MathUtils.round(
+                            estimatedUnstableRate: perfCalc.deviation * 10,
+                            estimatedSpeedUnstableRate:
                                 perfCalc.tapDeviation * 10,
-                                2,
-                            ),
                         } as RebalanceDroidPerformanceAttributes,
                         replay:
                             analyzer.data && sliderInformation

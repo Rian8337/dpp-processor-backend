@@ -251,7 +251,7 @@ router.post<
                             tap: result.tap,
                             accuracy: result.accuracy,
                             flashlight: result.flashlight,
-                            visual: result.visual,
+                            reading: result.reading,
                             deviation: result.deviation,
                             tapDeviation: result.tapDeviation,
                             tapPenalty: result.tapPenalty,
@@ -259,17 +259,9 @@ router.post<
                                 result.aimSliderCheesePenalty,
                             flashlightSliderCheesePenalty:
                                 result.flashlightSliderCheesePenalty,
-                            visualSliderCheesePenalty:
-                                result.visualSliderCheesePenalty,
-                            calculatedUnstableRate: 0,
-                            estimatedUnstableRate: MathUtils.round(
-                                result.deviation * 10,
-                                2,
-                            ),
-                            estimatedSpeedUnstableRate: MathUtils.round(
+                            estimatedUnstableRate: result.deviation * 10,
+                            estimatedSpeedUnstableRate:
                                 result.tapDeviation * 10,
-                                2,
-                            ),
                         } as RebalanceDroidPerformanceAttributes,
                         replay: calculationResult.replay,
                     };

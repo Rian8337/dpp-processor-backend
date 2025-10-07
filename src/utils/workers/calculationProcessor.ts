@@ -104,7 +104,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
         case Modes.droid: {
             switch (calculationMethod) {
                 case PPCalculationMethod.live: {
-                    const difficultyAttributes: CacheableDifficultyAttributes<IExtendedDroidDifficultyAttributes> =
+                    const difficultyAttributes =
                         (data.difficultyAttributes as CacheableDifficultyAttributes<IExtendedDroidDifficultyAttributes> | null) ??
                         calculateLocalBeatmapDifficulty(
                             beatmap,
@@ -191,7 +191,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                             tap: perfCalc.tap,
                             accuracy: perfCalc.accuracy,
                             flashlight: perfCalc.flashlight,
-                            visual: perfCalc.visual,
+                            reading: perfCalc.reading,
                             deviation: perfCalc.deviation,
                             tapDeviation: perfCalc.tapDeviation,
                             tapPenalty: perfCalc.tapPenalty,
@@ -199,8 +199,6 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                 perfCalc.aimSliderCheesePenalty,
                             flashlightSliderCheesePenalty:
                                 perfCalc.flashlightSliderCheesePenalty,
-                            visualSliderCheesePenalty:
-                                perfCalc.visualSliderCheesePenalty,
                         } as DroidPerformanceAttributes,
                         replay:
                             analyzer.data && sliderInformation
@@ -255,6 +253,19 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                                 ...difficultyAttributes,
                                 mods: calculationParams.mods,
                             };
+
+                        if (
+                            !BeatmapDroidDifficultyCalculator.applyTwoHandPenalty(
+                                calculationParams,
+                                beatmap,
+                                analyzer,
+                                extendedDifficultyAttributes,
+                            )
+                        ) {
+                            return parentPort?.postMessage(
+                                new Error("Unable to analyze for two-hand"),
+                            );
+                        }
 
                         if (
                             !BeatmapDroidDifficultyCalculator.applyTapPenalty(

@@ -55,7 +55,6 @@ router.post<
         aimslidercheesepenalty?: string;
         tappenalty?: string;
         flashlightslidercheesepenalty?: string;
-        visualslidercheesepenalty?: string;
         generatestrainchart?: string;
     }>
 >("/", validatePOSTInternalKey, async (req, res) => {
@@ -134,7 +133,6 @@ router.post<
             flashlightPenalty: parseInt(
                 req.body.flashlightslidercheesepenalty ?? "1",
             ),
-            visualPenalty: parseInt(req.body.visualslidercheesepenalty ?? "1"),
         },
         sliderTickHits:
             req.body.sliderticksmissed !== undefined
@@ -203,7 +201,7 @@ router.post<
                             tap: perfCalc.tap,
                             accuracy: perfCalc.accuracy,
                             flashlight: perfCalc.flashlight,
-                            visual: perfCalc.visual,
+                            reading: perfCalc.reading,
                             deviation: perfCalc.deviation,
                             tapDeviation: perfCalc.tapDeviation,
                             tapPenalty: perfCalc.tapPenalty,
@@ -211,8 +209,6 @@ router.post<
                                 perfCalc.aimSliderCheesePenalty,
                             flashlightSliderCheesePenalty:
                                 perfCalc.flashlightSliderCheesePenalty,
-                            visualSliderCheesePenalty:
-                                perfCalc.visualSliderCheesePenalty,
                         },
                     } as CompleteCalculationAttributes<
                         DroidDifficultyAttributes,

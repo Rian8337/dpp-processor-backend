@@ -43,7 +43,6 @@ router.post<
         aimslidercheesepenalty?: string;
         tappenalty?: string;
         flashlightslidercheesepenalty?: string;
-        visualslidercheesepenalty?: string;
         generatestrainchart?: string;
     }>
 >("/", validatePOSTInternalKey, async (req, res) => {
@@ -131,7 +130,6 @@ router.post<
             flashlightPenalty: parseInt(
                 req.body.flashlightslidercheesepenalty ?? "1",
             ),
-            visualPenalty: parseInt(req.body.visualslidercheesepenalty ?? "1"),
         },
     });
 
@@ -190,7 +188,7 @@ router.post<
                             tap: result.tap,
                             accuracy: result.accuracy,
                             flashlight: result.flashlight,
-                            visual: result.visual,
+                            reading: result.reading,
                             deviation: result.deviation,
                             tapDeviation: result.tapDeviation,
                             tapPenalty: result.tapPenalty,
@@ -198,8 +196,6 @@ router.post<
                                 result.aimSliderCheesePenalty,
                             flashlightSliderCheesePenalty:
                                 result.flashlightSliderCheesePenalty,
-                            visualSliderCheesePenalty:
-                                result.visualSliderCheesePenalty,
                         } as DroidPerformanceAttributes,
                         replay: calculationResult.replay,
                     };

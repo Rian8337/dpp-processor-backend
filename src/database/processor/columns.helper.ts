@@ -109,11 +109,14 @@ export const baseDroidDifficultyAttributesColumns = {
     rhythmDifficulty: doublePrecision().notNull(),
 
     /**
-     * The number of clickable objects weighted by difficulty.
-     *
-     * Related to aim difficulty.
+     * The difficulty corresponding to the reading skill.
      */
-    aimNoteCount: doublePrecision().notNull(),
+    readingDifficulty: doublePrecision().notNull(),
+
+    /**
+     * The amount of notes that are considered difficult with respect to the reading skill.
+     */
+    readingDifficultNoteCount: doublePrecision().notNull(),
 
     /**
      * The amount of strains that are considered difficult with respect to the tap skill.

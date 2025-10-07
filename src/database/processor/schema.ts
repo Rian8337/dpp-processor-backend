@@ -1,5 +1,5 @@
+import { RankedStatus } from "@rian8337/osu-base";
 import {
-    doublePrecision,
     foreignKey,
     index,
     integer,
@@ -14,7 +14,6 @@ import {
     baseDroidDifficultyAttributesColumns,
     baseOsuDifficultyAttributesColumns,
 } from "./columns.helper";
-import { RankedStatus } from "@rian8337/osu-base";
 
 /**
  * The beatmap table.
@@ -43,28 +42,7 @@ export const beatmapTable = pgTable(
  */
 export const liveDroidDifficultyAttributesTable = pgTable(
     "live_droid_difficulty_attributes",
-    {
-        ...baseDroidDifficultyAttributesColumns,
-
-        /**
-         * The difficulty corresponding to the visual skill.
-         */
-        visualDifficulty: doublePrecision().notNull(),
-
-        /**
-         * The amount of strains that are considered difficult with respect to the visual skill.
-         */
-        visualDifficultStrainCount: doublePrecision().notNull(),
-
-        /**
-         * Describes how much of visual difficulty is contributed to by hitcircles or sliders.
-         *
-         * A value closer to 1 indicates most of visual difficulty is contributed by hitcircles.
-         *
-         * A value closer to 0 indicates most of visual difficulty is contributed by sliders.
-         */
-        visualSliderFactor: doublePrecision().notNull(),
-    },
+    baseDroidDifficultyAttributesColumns,
     (table) => [
         primaryKey({
             columns: [table.beatmapId, table.mods],
@@ -89,19 +67,7 @@ export const liveDroidDifficultyAttributesTable = pgTable(
  */
 export const rebalanceDroidDifficultyAttributesTable = pgTable(
     "rebalance_droid_difficulty_attributes",
-    {
-        ...baseDroidDifficultyAttributesColumns,
-
-        /**
-         * The difficulty corresponding to the reading skill.
-         */
-        readingDifficulty: doublePrecision().notNull(),
-
-        /**
-         * The amount of notes that are considered difficult with respect to the reading skill.
-         */
-        readingDifficultNoteCount: doublePrecision().notNull(),
-    },
+    baseDroidDifficultyAttributesColumns,
     (table) => [
         primaryKey({
             columns: [table.beatmapId, table.mods],

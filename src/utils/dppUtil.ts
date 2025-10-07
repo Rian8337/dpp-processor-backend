@@ -98,7 +98,7 @@ export async function submitReplay(
                     tap: droidAttribs.result.tap,
                     accuracy: droidAttribs.result.accuracy,
                     flashlight: droidAttribs.result.flashlight,
-                    visual: droidAttribs.result.visual,
+                    reading: droidAttribs.result.reading,
                     deviation: droidAttribs.result.deviation,
                     tapDeviation: droidAttribs.result.tapDeviation,
                     tapPenalty: droidAttribs.result.tapPenalty,
@@ -106,8 +106,6 @@ export async function submitReplay(
                         droidAttribs.result.aimSliderCheesePenalty,
                     flashlightSliderCheesePenalty:
                         droidAttribs.result.flashlightSliderCheesePenalty,
-                    visualSliderCheesePenalty:
-                        droidAttribs.result.visualSliderCheesePenalty,
                 },
             };
 

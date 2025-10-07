@@ -30,6 +30,37 @@ export class BeatmapDroidDifficultyCalculator extends BeatmapDifficultyCalculato
         rebalanceDroidDifficultyCache;
 
     /**
+     * Applies a two-hand penalty to a calculation parameter.
+     *
+     * @param calculationParams The calculation parameter.
+     * @param beatmap The beatmap associated with the calculation parameter.
+     * @param replay The replay associated with the calculation parameter.
+     * @param difficultyAttributes The difficulty attributes of the beatmap.
+     * @returns Whether the operation was successful.
+     */
+    static applyTwoHandPenalty(
+        calculationParams: PerformanceCalculationParameters,
+        beatmap: Beatmap,
+        replay: ReplayAnalyzer,
+        difficultyAttributes: IRebalanceExtendedDroidDifficultyAttributes,
+    ): boolean {
+        if (!replay.data) {
+            return false;
+        }
+
+        if (!replay.hasBeenCheckedFor2Hand) {
+            replay.beatmap ??= beatmap;
+            replay.difficultyAttributes = difficultyAttributes;
+            replay.checkFor2Hand();
+            //@ts-expect-error: Will remove later
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            calculationParams.twoHandPenalty = replay.twoHandedness;
+        }
+
+        return true;
+    }
+
+    /**
      * Applies a tap penalty to a calculation parameter.
      *
      * @param calculationParams The calculation parameter.

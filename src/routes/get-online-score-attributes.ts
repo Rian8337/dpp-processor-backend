@@ -191,7 +191,7 @@ router.get<
                             tap: result.tap,
                             accuracy: result.accuracy,
                             flashlight: result.flashlight,
-                            visual: result.visual,
+                            reading: result.reading,
                             deviation: result.deviation,
                             tapDeviation: result.tapDeviation,
                             tapPenalty: result.tapPenalty,
@@ -199,8 +199,6 @@ router.get<
                                 result.aimSliderCheesePenalty,
                             flashlightSliderCheesePenalty:
                                 result.flashlightSliderCheesePenalty,
-                            visualSliderCheesePenalty:
-                                result.visualSliderCheesePenalty,
                         } as DroidPerformanceAttributes,
                         replay: calculationResult.replay,
                     };

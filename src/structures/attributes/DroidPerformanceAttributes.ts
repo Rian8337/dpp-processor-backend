@@ -10,9 +10,9 @@ export interface DroidPerformanceAttributes extends PerformanceAttributes {
     tap: number;
 
     /**
-     * The visual performance points.
+     * The reading performance points.
      */
-    visual: number;
+    reading: number;
 
     /**
      * The estimated deviation of the score.
@@ -38,9 +38,4 @@ export interface DroidPerformanceAttributes extends PerformanceAttributes {
      * The penalty used to penalize the flashlight performance value.
      */
     flashlightSliderCheesePenalty: number;
-
-    /**
-     * The penalty used to penalize the visual performance value.
-     */
-    visualSliderCheesePenalty: number;
 }

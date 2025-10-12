@@ -1,4 +1,10 @@
-import { Beatmap, BeatmapDecoder, Modes } from "@rian8337/osu-base";
+import {
+    Beatmap,
+    BeatmapDecoder,
+    Modes,
+    ModReplayV6,
+    ModUtil,
+} from "@rian8337/osu-base";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import "dotenv/config";
 import { eq, isNotNull } from "drizzle-orm";
@@ -69,40 +75,42 @@ import { readFile } from "fs/promises";
             continue;
         }
 
-        const replayFile = await getOnlineReplay(scoreId);
+        if (!ModUtil.deserializeMods(score.mods).has(ModReplayV6)) {
+            const replayFile = await getOnlineReplay(scoreId);
 
-        if (replayFile) {
-            beatmapFile ??= await getBeatmapFile(score.hash);
+            if (replayFile) {
+                beatmapFile ??= await getBeatmapFile(score.hash);
 
-            if (!beatmapFile) {
-                console.log("Score ID", scoreId, "has no beatmap");
-                continue;
-            }
+                if (!beatmapFile) {
+                    console.log("Score ID", scoreId, "has no beatmap");
+                    continue;
+                }
 
-            beatmap ??= new BeatmapDecoder().decode(
-                beatmapFile,
-                Modes.droid,
-            ).result;
+                beatmap ??= new BeatmapDecoder().decode(
+                    beatmapFile,
+                    Modes.droid,
+                ).result;
 
-            const analyzer = new ReplayAnalyzer();
+                const analyzer = new ReplayAnalyzer();
 
-            analyzer.beatmap = beatmap;
-            analyzer.originalODR = replayFile;
+                analyzer.beatmap = beatmap;
+                analyzer.originalODR = replayFile;
 
-            await analyzer.analyze().catch(() => null);
+                await analyzer.analyze().catch(() => null);
 
-            const { data } = analyzer;
+                const { data } = analyzer;
 
-            if (data !== null && isReplayValid(score, data)) {
-                const { tick, end } = obtainTickInformation(beatmap, data);
+                if (data !== null && isReplayValid(score, data)) {
+                    const { tick, end } = obtainTickInformation(beatmap, data);
 
-                await officialDb
-                    .update(scoresTable)
-                    .set({
-                        sliderTickHit: tick.obtained,
-                        sliderEndHit: end.obtained,
-                    })
-                    .where(eq(scoresTable.id, scoreId));
+                    await officialDb
+                        .update(scoresTable)
+                        .set({
+                            sliderTickHit: tick.obtained,
+                            sliderEndHit: end.obtained,
+                        })
+                        .where(eq(scoresTable.id, scoreId));
+                }
             }
         }
 
@@ -117,7 +125,10 @@ import { readFile } from "fs/promises";
                 return null;
             });
 
-        if (bestScore) {
+        if (
+            bestScore &&
+            !ModUtil.deserializeMods(bestScore.mods).has(ModReplayV6)
+        ) {
             const bestReplayFile = await getOfficialBestReplay(scoreId);
 
             if (bestReplayFile) {

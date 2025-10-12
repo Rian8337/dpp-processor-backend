@@ -9,7 +9,11 @@ import {
     tinyint,
     varchar,
 } from "drizzle-orm/mysql-core";
-import { bestScoreColumns, scoreColumns } from "./columns.helper";
+import {
+    baseScoreColumns,
+    bestScoreColumns,
+    scoreColumns,
+} from "./columns.helper";
 
 /**
  * The user table.
@@ -90,5 +94,26 @@ export const bannedBestScoresTable = mysqlTable(
         index("idx_id").on(table.id),
         index("idx_hash_filename").on(table.hash, table.filename),
         index("idx_uid").on(table.uid),
+    ],
+);
+
+/**
+ * The uncalculated score table.
+ */
+export const uncalculatedScoresTable = mysqlTable(
+    `${process.env.OFFICIAL_DB_PREFIX!}score_uncalculated`,
+    {
+        ...baseScoreColumns,
+
+        /**
+         * The name of the replay file associated with the score.
+         */
+        replayfilename: varchar({ length: 255 }),
+    },
+    (table) => [
+        index("idx_uid").on(table.uid),
+        index("idx_uid_hash").on(table.uid, table.hash),
+        index("idx_hash_filename").on(table.hash, table.filename),
+        index("idx_replayfilename").on(table.replayfilename),
     ],
 );

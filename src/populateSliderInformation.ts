@@ -1,9 +1,13 @@
 import { Beatmap, BeatmapDecoder, Modes } from "@rian8337/osu-base";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import "dotenv/config";
-import { eq } from "drizzle-orm";
+import { eq, isNotNull } from "drizzle-orm";
 import { officialDb } from "./database/official";
-import { bestScoresTable, scoresTable } from "./database/official/schema";
+import {
+    bestScoresTable,
+    scoresTable,
+    uncalculatedScoresTable,
+} from "./database/official/schema";
 import { processorDb } from "./database/processor";
 import { scoreCalculationTable } from "./database/processor/schema";
 import { getBeatmapFile } from "./services/beatmapService";
@@ -13,6 +17,7 @@ import {
     getOnlineReplay,
     obtainTickInformation,
 } from "./utils/replayManager";
+import { readFile } from "fs/promises";
 
 (async () => {
     const processId = 0;
@@ -54,18 +59,13 @@ import {
             .where(eq(scoresTable.id, scoreId))
             .then((res) => res.at(0) ?? null)
             .catch((e: unknown) => {
-                console.error("Failed to fetch best score", e);
+                console.error("Failed to fetch score", e);
 
                 return null;
             });
 
         if (!score || score.score === 0) {
             console.log("Score ID", scoreId, "does not exist");
-            continue;
-        }
-
-        if (score.sliderTickHit !== null && score.sliderEndHit !== null) {
-            console.log("Score ID", scoreId, "already has slider information");
             continue;
         }
 
@@ -157,6 +157,65 @@ import {
         }
 
         console.log("Processed score ID", scoreId);
+    }
+
+    const uncalculatedScores = await officialDb
+        .select({
+            replayfileName: uncalculatedScoresTable.replayfilename,
+        })
+        .from(uncalculatedScoresTable)
+        .where(isNotNull(uncalculatedScoresTable.replayfilename));
+
+    for (const uncalculatedScore of uncalculatedScores) {
+        const replayFile = await readFile(
+            `/hdd/osudroid/odr/uncalculated/${uncalculatedScore.replayfileName!}`,
+        ).catch(() => null);
+
+        if (!replayFile) {
+            continue;
+        }
+
+        const analyzer = new ReplayAnalyzer();
+        analyzer.originalODR = replayFile;
+
+        await analyzer.analyze();
+
+        const { data } = analyzer;
+
+        if (!data) {
+            continue;
+        }
+
+        const beatmapFile = await getBeatmapFile(data.hash);
+
+        if (!beatmapFile) {
+            continue;
+        }
+
+        const beatmap = new BeatmapDecoder().decode(
+            beatmapFile,
+            Modes.droid,
+        ).result;
+
+        const { tick, end } = obtainTickInformation(beatmap, data);
+
+        await officialDb
+            .update(uncalculatedScoresTable)
+            .set({
+                sliderTickHit: tick.obtained,
+                sliderEndHit: end.obtained,
+            })
+            .where(
+                eq(
+                    uncalculatedScoresTable.replayfilename,
+                    uncalculatedScore.replayfileName!,
+                ),
+            );
+
+        console.log(
+            "Processed uncalculated score with replay",
+            uncalculatedScore.replayfileName,
+        );
     }
 
     console.log("Process done");

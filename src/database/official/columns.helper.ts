@@ -10,9 +10,9 @@ import {
 } from "drizzle-orm/mysql-core";
 
 /**
- * The columns of the score table.
+ * The base columns of the score table.
  */
-export const scoreColumns = {
+export const baseScoreColumns = {
     id: serial().primaryKey(),
     uid: mediumint().notNull(),
     filename: varchar({ length: 255 }).notNull(),
@@ -31,6 +31,13 @@ export const scoreColumns = {
     sliderTickHit: tinyint(),
     sliderEndHit: tinyint(),
     accuracy: float().notNull().default(0),
+};
+
+/**
+ * The columns of the score table.
+ */
+export const scoreColumns = {
+    ...baseScoreColumns,
     pp: float(),
     ppMultiplier: float(),
 } as const;
@@ -39,7 +46,7 @@ export const scoreColumns = {
  * The columns of the best score table.
  */
 export const bestScoreColumns = {
-    ...scoreColumns,
+    ...baseScoreColumns,
     pp: float().notNull(),
     ppMultiplier: float().notNull(),
 } as const;

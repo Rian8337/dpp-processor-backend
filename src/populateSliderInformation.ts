@@ -78,7 +78,15 @@ import {
         const bestScore = await officialDb
             .select()
             .from(bestScoresTable)
-            .where(eq(bestScoresTable.id, score.id))
+            .where(
+                and(
+                    eq(bestScoresTable.id, score.id),
+                    notLike(
+                        bestScoresTable.mods,
+                        `%${new ModReplayV6().acronym}%`,
+                    ),
+                ),
+            )
             .then((res) => res.at(0) ?? null)
             .catch((e: unknown) => {
                 console.error("Failed to fetch best score", e);

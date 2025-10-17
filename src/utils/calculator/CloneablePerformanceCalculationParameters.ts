@@ -16,6 +16,11 @@ export interface CloneablePerformanceCalculationParameters<
     combo?: number;
 
     /**
+     * The total score achieved.
+     */
+    totalScore?: number;
+
+    /**
      * The accuracy achieved.
      */
     accuracy: CloneableAccuracy;

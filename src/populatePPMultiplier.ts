@@ -11,6 +11,7 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
     const scores = await officialDb
         .select({
             id: table.id,
+            score: table.score,
             mods: table.mods,
             combo: table.combo,
             perfect: table.perfect,

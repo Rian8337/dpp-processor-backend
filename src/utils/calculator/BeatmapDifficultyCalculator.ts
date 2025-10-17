@@ -16,6 +16,22 @@ import { RebalancePerformanceCalculationResult } from "./RebalancePerformanceCal
 import { Score } from "@rian8337/osu-droid-utilities";
 import { scoresTable } from "../../database/official/schema";
 
+type CalculatableScore =
+    | Score
+    | Pick<
+          typeof scoresTable.$inferSelect,
+          | "score"
+          | "mods"
+          | "combo"
+          | "perfect"
+          | "good"
+          | "bad"
+          | "miss"
+          | "hash"
+          | "sliderTickHit"
+          | "sliderEndHit"
+      >;
+
 /**
  * A helper class for calculating difficulty and performance of beatmaps or replays.
  */
@@ -52,20 +68,7 @@ export abstract class BeatmapDifficultyCalculator<
      * @returns The calculation parameters.
      */
     static getCalculationParameters(
-        scoreOrReplay:
-            | Score
-            | ReplayAnalyzer
-            | Pick<
-                  typeof scoresTable.$inferSelect,
-                  | "mods"
-                  | "combo"
-                  | "perfect"
-                  | "good"
-                  | "bad"
-                  | "miss"
-                  | "sliderTickHit"
-                  | "sliderEndHit"
-              >,
+        scoreOrReplay: ReplayAnalyzer | CalculatableScore,
     ): PerformanceCalculationParameters {
         const params = new PerformanceCalculationParameters();
 
@@ -86,20 +89,7 @@ export abstract class BeatmapDifficultyCalculator<
      * @returns The result of the calculation. Errors will be thrown whenever necessary.
      */
     async calculateScorePerformance(
-        score:
-            | Score
-            | Pick<
-                  typeof scoresTable.$inferSelect,
-                  | "mods"
-                  | "combo"
-                  | "perfect"
-                  | "good"
-                  | "bad"
-                  | "miss"
-                  | "hash"
-                  | "sliderTickHit"
-                  | "sliderEndHit"
-              >,
+        score: CalculatableScore,
         generateStrainChart: true,
     ): Promise<PerformanceCalculationResult<DA, PA, true>>;
 
@@ -111,20 +101,7 @@ export abstract class BeatmapDifficultyCalculator<
      * @returns The result of the calculation. Errors will be thrown whenever necessary.
      */
     async calculateScorePerformance(
-        score:
-            | Score
-            | Pick<
-                  typeof scoresTable.$inferSelect,
-                  | "mods"
-                  | "combo"
-                  | "perfect"
-                  | "good"
-                  | "bad"
-                  | "miss"
-                  | "hash"
-                  | "sliderTickHit"
-                  | "sliderEndHit"
-              >,
+        score: CalculatableScore,
         generateStrainChart: false,
     ): Promise<PerformanceCalculationResult<DA, PA, false>>;
 
@@ -136,38 +113,12 @@ export abstract class BeatmapDifficultyCalculator<
      * @returns The result of the calculation. Errors will be thrown whenever necessary.
      */
     async calculateScorePerformance(
-        score:
-            | Score
-            | Pick<
-                  typeof scoresTable.$inferSelect,
-                  | "mods"
-                  | "combo"
-                  | "perfect"
-                  | "good"
-                  | "bad"
-                  | "miss"
-                  | "hash"
-                  | "sliderTickHit"
-                  | "sliderEndHit"
-              >,
+        score: CalculatableScore,
         generateStrainChart?: boolean,
     ): Promise<PerformanceCalculationResult<DA, PA>>;
 
     async calculateScorePerformance(
-        score:
-            | Score
-            | Pick<
-                  typeof scoresTable.$inferSelect,
-                  | "mods"
-                  | "combo"
-                  | "perfect"
-                  | "good"
-                  | "bad"
-                  | "miss"
-                  | "hash"
-                  | "sliderTickHit"
-                  | "sliderEndHit"
-              >,
+        score: CalculatableScore,
         generateStrainChart?: boolean,
     ): Promise<PerformanceCalculationResult<DA, PA>> {
         const apiBeatmap = await getBeatmap(score.hash);
@@ -262,18 +213,7 @@ export abstract class BeatmapDifficultyCalculator<
      * @returns The result of the calculation. Errors will be thrown whenever necessary.
      */
     async calculateScoreRebalancePerformance(
-        score:
-            | Score
-            | Pick<
-                  typeof scoresTable.$inferSelect,
-                  | "mods"
-                  | "combo"
-                  | "perfect"
-                  | "good"
-                  | "bad"
-                  | "miss"
-                  | "hash"
-              >,
+        score: CalculatableScore,
         generateStrainChart: true,
     ): Promise<RebalancePerformanceCalculationResult<RDA, RPA, true>>;
 
@@ -285,20 +225,7 @@ export abstract class BeatmapDifficultyCalculator<
      * @returns The result of the calculation. Errors will be thrown whenever necessary.
      */
     async calculateScoreRebalancePerformance(
-        score:
-            | Score
-            | Pick<
-                  typeof scoresTable.$inferSelect,
-                  | "mods"
-                  | "combo"
-                  | "perfect"
-                  | "good"
-                  | "bad"
-                  | "miss"
-                  | "hash"
-                  | "sliderTickHit"
-                  | "sliderEndHit"
-              >,
+        score: CalculatableScore,
         generateStrainChart: false,
     ): Promise<RebalancePerformanceCalculationResult<RDA, RPA, false>>;
 
@@ -310,38 +237,12 @@ export abstract class BeatmapDifficultyCalculator<
      * @returns The result of the calculation. Errors will be thrown whenever necessary.
      */
     async calculateScoreRebalancePerformance(
-        score:
-            | Score
-            | Pick<
-                  typeof scoresTable.$inferSelect,
-                  | "mods"
-                  | "combo"
-                  | "perfect"
-                  | "good"
-                  | "bad"
-                  | "miss"
-                  | "hash"
-                  | "sliderTickHit"
-                  | "sliderEndHit"
-              >,
+        score: CalculatableScore,
         generateStrainChart?: boolean,
     ): Promise<RebalancePerformanceCalculationResult<RDA, RPA>>;
 
     async calculateScoreRebalancePerformance(
-        score:
-            | Score
-            | Pick<
-                  typeof scoresTable.$inferSelect,
-                  | "mods"
-                  | "combo"
-                  | "perfect"
-                  | "good"
-                  | "bad"
-                  | "miss"
-                  | "hash"
-                  | "sliderTickHit"
-                  | "sliderEndHit"
-              >,
+        score: CalculatableScore,
         generateStrainChart?: boolean,
     ): Promise<RebalancePerformanceCalculationResult<RDA, RPA>> {
         const apiBeatmap = await getBeatmap(score.hash);

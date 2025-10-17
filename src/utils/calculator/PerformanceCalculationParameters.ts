@@ -25,6 +25,11 @@ export interface PerformanceCalculationParametersInit {
     mods?: ModMap;
 
     /**
+     * The total score achieved.
+     */
+    totalScore?: number;
+
+    /**
      * The combo achieved. Defaults to the beatmap's maximum combo.
      */
     combo?: number;
@@ -80,6 +85,11 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
     combo?: number;
 
     /**
+     * The total score achieved.
+     */
+    totalScore?: number;
+
+    /**
      * The accuracy achieved.
      */
     accuracy: Accuracy;
@@ -108,6 +118,7 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
         super(values?.mods);
 
         this.combo = values?.combo;
+        this.totalScore = values?.totalScore;
 
         this.accuracy =
             values?.accuracy ??
@@ -164,6 +175,7 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
 
             if (data.isReplayV3()) {
                 this.combo = data.maxCombo;
+                this.totalScore = data.score;
             }
 
             if (replay.beatmap) {
@@ -186,6 +198,7 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
             | Score
             | Pick<
                   typeof scoresTable.$inferSelect,
+                  | "score"
                   | "mods"
                   | "combo"
                   | "perfect"
@@ -199,6 +212,7 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
         super.applyScore(score);
 
         this.combo = score.combo;
+        this.totalScore = score.score;
 
         this.accuracy = new Accuracy(
             score instanceof Score
@@ -250,6 +264,9 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
             options.sliderEndsDropped =
                 beatmap.hitObjects.sliders - this.sliderEndHits;
         }
+
+        (options as RebalancePerformanceCalculationOptions).totalScore =
+            this.totalScore;
     }
 
     /**
@@ -264,6 +281,7 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
             sliderEndHits: this.sliderEndHits,
             tapPenalty: this.tapPenalty,
             sliderCheesePenalty: this.sliderCheesePenalty,
+            totalScore: this.totalScore,
         };
     }
 }

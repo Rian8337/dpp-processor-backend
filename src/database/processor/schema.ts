@@ -1,5 +1,6 @@
 import { RankedStatus } from "@rian8337/osu-base";
 import {
+    doublePrecision,
     foreignKey,
     index,
     integer,
@@ -67,7 +68,34 @@ export const liveDroidDifficultyAttributesTable = pgTable(
  */
 export const rebalanceDroidDifficultyAttributesTable = pgTable(
     "rebalance_droid_difficulty_attributes",
-    baseDroidDifficultyAttributesColumns,
+    {
+        ...baseDroidDifficultyAttributesColumns,
+
+        /**
+         * The amount of sliders that are considered difficult in terms of relative strain, weighted by consistency.
+         */
+        aimTopWeightedSliderFactor: doublePrecision().notNull(),
+
+        /**
+         * The amount of sliders that are considered difficult with respect to the tap skill, weighted by consistency.
+         */
+        tapTopWeightedSliderFactor: doublePrecision().notNull(),
+
+        /**
+         * The amount of sliders that are considered difficult with respect to the flashlight skill, weighted by consistency.
+         */
+        flashlightTopWeightedSliderFactor: doublePrecision().notNull(),
+
+        /**
+         * The amount of sliders that are considered difficult with respect to the reading skill, weighted by consistency.
+         */
+        readingTopWeightedSliderFactor: doublePrecision().notNull(),
+
+        /**
+         * The maximum score obtainable on the beatmap.
+         */
+        maximumScore: integer().notNull(),
+    },
     (table) => [
         primaryKey({
             columns: [table.beatmapId, table.mods],
@@ -115,7 +143,14 @@ export const liveOsuDifficultyAttributesTable = pgTable(
  */
 export const rebalanceOsuDifficultyAttributesTable = pgTable(
     "rebalance_osu_difficulty_attributes",
-    baseOsuDifficultyAttributesColumns,
+    {
+        ...baseOsuDifficultyAttributesColumns,
+
+        /**
+         * The amount of sliders that are considered difficult in terms of relative strain, weighted by consistency.
+         */
+        aimTopWeightedSliderFactor: doublePrecision().notNull(),
+    },
     (table) => [
         primaryKey({
             columns: [table.beatmapId, table.mods],

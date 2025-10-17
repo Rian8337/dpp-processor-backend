@@ -78,6 +78,11 @@ CREATE TABLE IF NOT EXISTS rebalance_droid_difficulty_attributes (
     difficult_sliders                       jsonb           NOT NULL,
     average_speed_delta_time                float           NOT NULL,
     vibro_factor                            float           NOT NULL,
+    aim_top_weighted_slider_factor          float           NOT NULL,
+    tap_top_weighted_slider_factor          float           NOT NULL,
+    flashlight_top_weighted_slider_factor   float           NOT NULL,
+    reading_top_weighted_slider_factor      float           NOT NULL,
+    maximum_score                           int             NOT NULL,
 
     PRIMARY KEY (beatmap_id, mods),
     CONSTRAINT fk_rebalance_droid_difficulty_attributes_beatmap_id FOREIGN KEY (beatmap_id) REFERENCES beatmap(id) ON DELETE CASCADE
@@ -130,6 +135,7 @@ CREATE TABLE IF NOT EXISTS rebalance_osu_difficulty_attributes (
     aim_difficult_slider_count              float           NOT NULL,
     aim_difficult_strain_count              float           NOT NULL,
     speed_difficult_strain_count            float           NOT NULL,
+    aim_top_weighted_slider_factor          float           NOT NULL,
 
     PRIMARY KEY (beatmap_id, mods),
     CONSTRAINT fk_rebalance_osu_difficulty_attributes_beatmap_id FOREIGN KEY (beatmap_id) REFERENCES beatmap(id) ON DELETE CASCADE

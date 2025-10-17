@@ -82,7 +82,7 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
 
     if (!id) {
         // Modify this for starting point
-        id = 207695;
+        id = 23398014;
 
         await processorDb.insert(scoreCalculationTable).values({
             process_id: processId,
@@ -91,7 +91,7 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
     }
 
     // Modify this for ending point
-    while (id <= 2600000) {
+    while (id <= 23398014) {
         const scoreId = id++;
 
         await processorDb
@@ -127,29 +127,23 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
         let highestPPScore: OfficialDatabaseScore | null = null;
         let highestPPReplay: Buffer | null = null;
 
+        // Calculate the pp value of the score.
+        const scoreCalcResult = await difficultyCalculator
+            .calculateScorePerformance(score, false)
+            .catch((e: unknown) => {
+                console.error(
+                    `Failed to calculate score with ID ${scoreId.toString()}:`,
+                    e,
+                );
+
+                return null;
+            });
+
         await officialDb.transaction(async (tx) => {
-            // Update the filename of the score.
-            await tx
-                .update(scoresTable)
-                .set({ filename: beatmap.title })
-                .where(eq(scoresTable.id, scoreId));
-
-            // Calculate the pp value of the score.
-            const calcResult = await difficultyCalculator
-                .calculateScorePerformance(score, false)
-                .catch((e: unknown) => {
-                    console.error(
-                        `Failed to calculate score with ID ${scoreId.toString()}:`,
-                        e,
-                    );
-
-                    return null;
-                });
-
             // Update the pp value of the score.
-            if (calcResult !== null) {
+            if (scoreCalcResult !== null) {
                 highestPP =
-                    calcResult.result.total *
+                    scoreCalcResult.result.total *
                     Math.min(score.ppMultiplier ?? 1, 1);
 
                 await tx
@@ -173,37 +167,32 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
         const bestScore = await obtainOfficialBestScore(scoreId);
 
         if (bestScore !== null) {
+            // Calculate the pp value of the best score.
+            const bestScoreCalcResult = await difficultyCalculator
+                .calculateScorePerformance(bestScore, false)
+                .catch((e: unknown) => {
+                    console.error(
+                        `Failed to calculate best score with ID ${scoreId.toString()}:`,
+                        e,
+                    );
+
+                    return null;
+                });
+
             await officialDb.transaction(async (tx) => {
-                // Update the filename of the best score.
-                await tx
-                    .update(bestScoresTable)
-                    .set({ filename: beatmap.title })
-                    .where(eq(bestScoresTable.id, scoreId));
-
-                // Calculate the pp value of the best score.
-                const calcResult = await difficultyCalculator
-                    .calculateScorePerformance(bestScore, false)
-                    .catch((e: unknown) => {
-                        console.error(
-                            `Failed to calculate best score with ID ${scoreId.toString()}:`,
-                            e,
-                        );
-
-                        return null;
-                    });
-
                 // Update the pp value of the best score.
                 await tx
                     .update(bestScoresTable)
-                    .set({ pp: calcResult?.result.total ?? 0 })
+                    .set({ pp: bestScoreCalcResult?.result.total ?? 0 })
                     .where(eq(bestScoresTable.id, scoreId));
 
                 if (
-                    calcResult !== null &&
-                    (highestPP === null || calcResult.result.total > highestPP)
+                    bestScoreCalcResult !== null &&
+                    (highestPP === null ||
+                        bestScoreCalcResult.result.total > highestPP)
                 ) {
                     highestPP =
-                        calcResult.result.total *
+                        bestScoreCalcResult.result.total *
                         Math.min(bestScore.ppMultiplier, 1);
 
                     highestPPScore = bestScore;

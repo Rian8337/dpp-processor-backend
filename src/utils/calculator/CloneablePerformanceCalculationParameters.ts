@@ -27,13 +27,27 @@ export interface CloneablePerformanceCalculationParameters<
 
     /**
      * The number of slider ticks that were hit.
+     *
+     * If {@link sliderTicksMissed} is defined, this value will be ignored.
      */
     sliderTickHits?: number;
 
     /**
+     * The number of slider ticks that were missed.
+     */
+    sliderTicksMissed?: number;
+
+    /**
      * The number of slider ends that were hit.
+     *
+     * If {@link sliderEndsDropped} is defined, this value will be ignored.
      */
     sliderEndHits?: number;
+
+    /**
+     * The number of slider ends that were dropped.
+     */
+    sliderEndsDropped?: number;
 
     /**
      * The tap penalty to apply for penalized scores.

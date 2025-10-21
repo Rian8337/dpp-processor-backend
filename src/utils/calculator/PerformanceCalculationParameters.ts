@@ -46,13 +46,27 @@ export interface PerformanceCalculationParametersInit {
 
     /**
      * The number of slider ticks that were hit.
+     *
+     * If {@link sliderTicksMissed} is defined, this value will be ignored.
      */
     sliderTickHits?: number;
 
     /**
+     * The number of slider ticks that were missed.
+     */
+    sliderTicksMissed?: number;
+
+    /**
      * The number of slider ends that were hit.
+     *
+     * If {@link sliderEndsDropped} is defined, this value will be ignored.
      */
     sliderEndHits?: number;
+
+    /**
+     * The number of slider ends that were dropped.
+     */
+    sliderEndsDropped?: number;
 
     /**
      * The slider cheese penalties to apply for penalized scores. Each of them defaults to 1.
@@ -101,13 +115,27 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
 
     /**
      * The number of slider ticks that were hit.
+     *
+     * If {@link sliderTicksMissed} is defined, this value will be ignored.
      */
     sliderTickHits?: number;
 
     /**
+     * The number of slider ticks that were missed.
+     */
+    sliderTicksMissed?: number;
+
+    /**
      * The number of slider ends that were hit.
+     *
+     * If {@link sliderEndsDropped} is defined, this value will be ignored.
      */
     sliderEndHits?: number;
+
+    /**
+     * The number of slider ends that were dropped.
+     */
+    sliderEndsDropped?: number;
 
     /**
      * The slider cheese penalties to apply for penalized scores. Each of them defaults to 1.
@@ -131,6 +159,8 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
 
         this.sliderTickHits = values?.sliderTickHits;
         this.sliderEndHits = values?.sliderEndHits;
+        this.sliderTicksMissed = values?.sliderTicksMissed;
+        this.sliderEndsDropped = values?.sliderEndsDropped;
         this.tapPenalty = values?.tapPenalty;
         this.sliderCheesePenalty = values?.sliderCheesePenalty;
     }
@@ -255,12 +285,16 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
         options.flashlightSliderCheesePenalty =
             this.sliderCheesePenalty?.flashlightPenalty ?? 1;
 
-        if (this.sliderTickHits !== undefined) {
+        if (this.sliderTicksMissed !== undefined) {
+            options.sliderTicksMissed = this.sliderTicksMissed;
+        } else if (this.sliderTickHits !== undefined) {
             options.sliderTicksMissed =
                 beatmap.hitObjects.sliderTicks - this.sliderTickHits;
         }
 
-        if (this.sliderEndHits !== undefined) {
+        if (this.sliderEndsDropped !== undefined) {
+            options.sliderEndsDropped = this.sliderEndsDropped;
+        } else if (this.sliderEndHits !== undefined) {
             options.sliderEndsDropped =
                 beatmap.hitObjects.sliders - this.sliderEndHits;
         }
@@ -279,6 +313,8 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
             combo: this.combo,
             sliderTickHits: this.sliderTickHits,
             sliderEndHits: this.sliderEndHits,
+            sliderTicksMissed: this.sliderTicksMissed,
+            sliderEndsDropped: this.sliderEndsDropped,
             tapPenalty: this.tapPenalty,
             sliderCheesePenalty: this.sliderCheesePenalty,
             totalScore: this.totalScore,

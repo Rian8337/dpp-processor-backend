@@ -40,6 +40,9 @@ router.post<
         n50?: string;
         nmiss?: string;
         maxcombo?: string;
+        totalscore?: string;
+        sliderticksmissed?: string;
+        sliderendsdropped?: string;
         aimslidercheesepenalty?: string;
         tappenalty?: string;
         flashlightslidercheesepenalty?: string;
@@ -131,6 +134,18 @@ router.post<
                 req.body.flashlightslidercheesepenalty ?? "1",
             ),
         },
+        sliderTicksMissed:
+            req.body.sliderticksmissed !== undefined
+                ? Math.max(0, parseInt(req.body.sliderticksmissed))
+                : undefined,
+        sliderEndsDropped:
+            req.body.sliderendsdropped !== undefined
+                ? Math.max(0, parseInt(req.body.sliderendsdropped))
+                : undefined,
+        totalScore:
+            req.body.totalscore !== undefined
+                ? Math.max(0, parseInt(req.body.totalscore))
+                : undefined,
     });
 
     let attributes: CompleteCalculationAttributes<

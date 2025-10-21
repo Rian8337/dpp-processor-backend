@@ -7,7 +7,10 @@ import {
     ReplayAnalyzer,
     SliderCheeseInformation,
 } from "@rian8337/osu-droid-replay-analyzer";
-import { PerformanceCalculationOptions as RebalancePerformanceCalculationOptions } from "@rian8337/osu-rebalance-difficulty-calculator";
+import {
+    IDroidDifficultyAttributes,
+    PerformanceCalculationOptions as RebalancePerformanceCalculationOptions,
+} from "@rian8337/osu-rebalance-difficulty-calculator";
 import { RawDifficultyAttributes } from "../../structures/attributes/RawDifficultyAttributes";
 import { CloneablePerformanceCalculationParameters } from "./CloneablePerformanceCalculationParameters";
 import { DifficultyCalculationParameters } from "./DifficultyCalculationParameters";
@@ -192,6 +195,13 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
                         this.accuracy.n50,
                 ),
             });
+        }
+
+        const maxScore = (attributes as IDroidDifficultyAttributes | undefined)
+            ?.maximumScore;
+
+        if (maxScore !== undefined && this.totalScore !== undefined) {
+            this.totalScore = Math.min(this.totalScore, maxScore);
         }
     }
 

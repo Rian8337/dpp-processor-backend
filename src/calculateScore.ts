@@ -195,6 +195,10 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
     await saveReplayToOfficialPP(analyzer);
 
     console.log("Processed score ID", scoreId, "with a pp value of", highestPP);
-})().catch((e: unknown) => {
-    console.error("Failed to initialize database manager", e);
-});
+})()
+    .catch((e: unknown) => {
+        console.error("Failed to initialize database manager", e);
+    })
+    .finally(() => {
+        process.exit(0);
+    });

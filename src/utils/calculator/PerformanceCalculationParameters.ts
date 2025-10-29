@@ -224,8 +224,8 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
                     data,
                 );
 
-                this.sliderTickHits = tick.obtained;
-                this.sliderEndHits = end.obtained;
+                this.sliderTicksMissed = tick.total - tick.obtained;
+                this.sliderEndsDropped = end.total - end.obtained;
             }
         }
 

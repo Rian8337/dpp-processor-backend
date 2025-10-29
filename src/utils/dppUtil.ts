@@ -354,13 +354,15 @@ export function isReplayValid(
  * @returns Whether the request was successful.
  */
 async function updateDiscordMetadata(userId: string): Promise<boolean> {
-    const formData = new FormData();
-    formData.append("userId", userId);
-    formData.append("key", process.env.DISCORD_OAUTH_BACKEND_INTERNAL_KEY!);
-
     return fetch("http://127.0.0.1:3004/api/discord/update-metadata", {
         method: "POST",
-        body: formData,
+        body: JSON.stringify({
+            key: process.env.DISCORD_OAUTH_BACKEND_INTERNAL_KEY!,
+            userId,
+        }),
+        headers: {
+            "Content-Type": "application/json",
+        },
     })
         .then(() => true)
         .catch(() => false);

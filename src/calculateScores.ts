@@ -82,7 +82,7 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
 
     if (!id) {
         // Modify this for starting point
-        id = 23398014;
+        id = 207695;
 
         await processorDb.insert(scoreCalculationTable).values({
             process_id: processId,
@@ -91,7 +91,7 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
     }
 
     // Modify this for ending point
-    while (id <= 23398014) {
+    while (id <= 2600000) {
         const scoreId = id++;
 
         await processorDb

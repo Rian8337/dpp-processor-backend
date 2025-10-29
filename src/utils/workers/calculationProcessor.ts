@@ -74,9 +74,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
             );
         }
 
-        if (!parameters) {
-            calculationParams.applyReplay(analyzer);
-        }
+        calculationParams.applyReplay(analyzer);
     }
 
     // Check for potentially invalid properties.

@@ -282,6 +282,8 @@ export async function initiateReplayProcessing(): Promise<void> {
     console.log("Processing", replayFiles.length, "unprocessed replay file(s)");
 
     for (const replayFile of replayFiles) {
+        console.log("Processing replay file:", replayFile);
+
         await processReplay(join(unprocessedReplayDirectory, replayFile));
     }
 

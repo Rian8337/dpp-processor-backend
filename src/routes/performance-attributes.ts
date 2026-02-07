@@ -268,8 +268,6 @@ router.post<
                             tapPenalty: result.tapPenalty,
                             aimSliderCheesePenalty:
                                 result.aimSliderCheesePenalty,
-                            flashlightSliderCheesePenalty:
-                                result.flashlightSliderCheesePenalty,
                             estimatedUnstableRate: result.deviation * 10,
                             estimatedSpeedUnstableRate:
                                 result.tapDeviation * 10,

@@ -1,0 +1,7 @@
+ALTER TABLE rebalance_droid_difficulty_attributes DROP COLUMN IF EXISTS flashlight_difficult_strain_count;
+ALTER TABLE rebalance_droid_difficulty_attributes DROP COLUMN IF EXISTS flashlight_slider_factor;
+ALTER TABLE rebalance_droid_difficulty_attributes DROP COLUMN IF EXISTS flashlight_top_weighted_slider_factor;
+ALTER TABLE rebalance_droid_difficulty_attributes DROP COLUMN IF EXISTS reading_top_weighted_slider_factor;
+
+ALTER TABLE rebalance_osu_difficulty_attributes ADD COLUMN reading_difficulty FLOAT NOT NULL;
+ALTER TABLE rebalance_osu_difficulty_attributes ADD COLUMN reading_difficult_note_count FLOAT NOT NULL;

@@ -292,7 +292,9 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
         options.tapPenalty = this.tapPenalty;
         options.aimSliderCheesePenalty =
             this.sliderCheesePenalty?.aimPenalty ?? 1;
-        options.flashlightSliderCheesePenalty =
+        (
+            options as PerformanceCalculationOptions
+        ).flashlightSliderCheesePenalty =
             this.sliderCheesePenalty?.flashlightPenalty ?? 1;
 
         if (this.sliderTicksMissed !== undefined) {

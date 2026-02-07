@@ -36,11 +36,6 @@ export interface RebalanceDroidPerformanceAttributes
     aimSliderCheesePenalty: number;
 
     /**
-     * The penalty used to penalize the flashlight performance value.
-     */
-    flashlightSliderCheesePenalty: number;
-
-    /**
      * The estimated unstable rate of the score.
      */
     estimatedUnstableRate: number;

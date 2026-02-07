@@ -262,8 +262,6 @@ router.post<
                             tapPenalty: perfCalc.tapPenalty,
                             aimSliderCheesePenalty:
                                 perfCalc.aimSliderCheesePenalty,
-                            flashlightSliderCheesePenalty:
-                                perfCalc.flashlightSliderCheesePenalty,
                             estimatedUnstableRate: perfCalc.deviation * 10,
                             estimatedSpeedUnstableRate:
                                 perfCalc.tapDeviation * 10,

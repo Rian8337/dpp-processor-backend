@@ -43,7 +43,23 @@ export const beatmapTable = pgTable(
  */
 export const liveDroidDifficultyAttributesTable = pgTable(
     "live_droid_difficulty_attributes",
-    baseDroidDifficultyAttributesColumns,
+    {
+        ...baseDroidDifficultyAttributesColumns,
+
+        /**
+         * The amount of strains that are considered difficult with respect to the flashlight skill.
+         */
+        flashlightDifficultStrainCount: doublePrecision().notNull(),
+
+        /**
+         * Describes how much of flashlight difficulty is contributed to by hitcircles or sliders.
+         *
+         * A value closer to 1 indicates most of flashlight difficulty is contributed by hitcircles.
+         *
+         * A value closer to 0 indicates most of flashlight difficulty is contributed by sliders.
+         */
+        flashlightSliderFactor: doublePrecision().notNull(),
+    },
     (table) => [
         primaryKey({
             columns: [table.beatmapId, table.mods],
@@ -80,16 +96,6 @@ export const rebalanceDroidDifficultyAttributesTable = pgTable(
          * The amount of sliders that are considered difficult with respect to the tap skill, weighted by consistency.
          */
         tapTopWeightedSliderFactor: doublePrecision().notNull(),
-
-        /**
-         * The amount of sliders that are considered difficult with respect to the flashlight skill, weighted by consistency.
-         */
-        flashlightTopWeightedSliderFactor: doublePrecision().notNull(),
-
-        /**
-         * The amount of sliders that are considered difficult with respect to the reading skill, weighted by consistency.
-         */
-        readingTopWeightedSliderFactor: doublePrecision().notNull(),
 
         /**
          * The maximum score obtainable on the beatmap.
@@ -150,6 +156,16 @@ export const rebalanceOsuDifficultyAttributesTable = pgTable(
          * The amount of sliders that are considered difficult in terms of relative strain, weighted by consistency.
          */
         aimTopWeightedSliderFactor: doublePrecision().notNull(),
+
+        /**
+         * The difficulty corresponding to the reading skill.
+         */
+        readingDifficulty: doublePrecision().notNull(),
+
+        /**
+         * The amount of notes that are considered difficult with respect to the reading skill.
+         */
+        readingDifficultNoteCount: doublePrecision().notNull(),
     },
     (table) => [
         primaryKey({

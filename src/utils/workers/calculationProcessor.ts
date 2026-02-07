@@ -334,8 +334,6 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                             tapPenalty: perfCalc.tapPenalty,
                             aimSliderCheesePenalty:
                                 perfCalc.aimSliderCheesePenalty,
-                            flashlightSliderCheesePenalty:
-                                perfCalc.flashlightSliderCheesePenalty,
                             calculatedUnstableRate: analyzer.data
                                 ? (hitError?.unstableRate ?? 0) /
                                   difficultyAttributes.clockRate

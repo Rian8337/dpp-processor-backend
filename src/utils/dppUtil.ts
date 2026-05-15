@@ -28,6 +28,7 @@ import { ScoreRank, SerializedMod } from "@rian8337/osu-base";
 import { Score } from "@rian8337/osu-droid-utilities";
 import { isDeepStrictEqual } from "util";
 import { OfficialDatabaseScore } from "../database/official/schema/OfficialDatabaseScore";
+import { processReplay } from "./danCourseUtil";
 
 const droidDifficultyCalculator = new BeatmapDroidDifficultyCalculator();
 const osuDifficultyCalculator = new BeatmapOsuDifficultyCalculator();
@@ -183,31 +184,33 @@ export async function submitReplay(
 
         const beatmap = await getBeatmap(data.hash);
 
-        if (!beatmap) {
-            successes.push(true);
+        if (beatmap) {
+            const droidAttribs = await droidDifficultyCalculator
+                .calculateReplayPerformance(replay)
+                .catch((e: unknown) => {
+                    console.error(e);
+
+                    return null;
+                });
+
+            const osuAttribs = await osuDifficultyCalculator
+                .calculateReplayPerformance(replay)
+                .catch((e: unknown) => {
+                    console.error(e);
+
+                    return null;
+                });
+
+            insertRecentScore(replay, beatmap, droidAttribs, osuAttribs);
+        } else {
             insertRecentScore(replay);
-            continue;
         }
 
-        const droidAttribs = await droidDifficultyCalculator
-            .calculateReplayPerformance(replay)
-            .catch((e: unknown) => {
-                console.error(e);
-
-                return null;
-            });
-
-        const osuAttribs = await osuDifficultyCalculator
-            .calculateReplayPerformance(replay)
-            .catch((e: unknown) => {
-                console.error(e);
-
-                return null;
-            });
-
-        insertRecentScore(replay, beatmap, droidAttribs, osuAttribs);
-
         successes.push(true);
+
+        if (data.isReplayV3()) {
+            await processReplay(uid, data);
+        }
     }
 
     if (bindInfo) {

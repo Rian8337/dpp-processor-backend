@@ -27,6 +27,10 @@ export async function initBeatmaps() {
  * @param data The replay data.
  */
 export async function processReplay(uid: number, data: ReplayV3Data) {
+    if (!courses.has(data.hash)) {
+        return;
+    }
+
     const score: IDanCourseScore = {
         bad: data.accuracy.n50,
         date: data.time.getTime(),

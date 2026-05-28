@@ -12,6 +12,7 @@ import difficultyAttributes from "./routes/difficulty-attributes";
 import getOnlineScoreAttributes from "./routes/get-online-score-attributes";
 import performanceAttributes from "./routes/performance-attributes";
 import { initiateReplayProcessing } from "./utils/dppUtil";
+import { initBeatmaps } from "./utils/danCourseUtil";
 
 config();
 
@@ -42,6 +43,7 @@ DatabaseManager.init()
             console.log("DPP processor backend is up");
         });
 
+        await initBeatmaps();
         await initiateReplayProcessing();
     })
     .catch((e: unknown) => {

@@ -1,5 +1,5 @@
 import { Collection } from "@discordjs/collection";
-import { Mod, ModMap, ModUtil, SerializedMod } from "@rian8337/osu-base";
+import { Mod, ModMap, ModUtil } from "@rian8337/osu-base";
 import { CacheableDifficultyAttributes } from "@rian8337/osu-difficulty-calculator";
 import { eq } from "drizzle-orm";
 import { createSelectSchema } from "drizzle-zod";
@@ -16,7 +16,11 @@ import {
 } from "../../../database/processor/schema";
 import { PPCalculationMethod } from "../../../structures/PPCalculationMethod";
 import { RawDifficultyAttributes } from "../../../structures/attributes/RawDifficultyAttributes";
-import { sortAlphabet } from "../../util";
+
+interface BeatmapDifficultyCache<TAttributes extends RawDifficultyAttributes> {
+    readonly mods: ModMap;
+    readonly attributes: CacheableDifficultyAttributes<TAttributes>;
+}
 
 /**
  * A cache manager for difficulty attributes.
@@ -43,7 +47,7 @@ export abstract class DifficultyAttributesCacheManager<
      */
     private readonly cache = new Collection<
         number,
-        Collection<string, CacheableDifficultyAttributes<TAttributes>>
+        BeatmapDifficultyCache<TAttributes>[]
     >();
 
     /**
@@ -53,10 +57,7 @@ export abstract class DifficultyAttributesCacheManager<
      */
     getBeatmapAttributes(
         beatmapId: number,
-    ): Promise<Collection<
-        string,
-        CacheableDifficultyAttributes<TAttributes>
-    > | null> {
+    ): Promise<BeatmapDifficultyCache<TAttributes>[] | null> {
         return this.getCache(beatmapId);
     }
 
@@ -69,13 +70,12 @@ export abstract class DifficultyAttributesCacheManager<
      */
     getDifficultyAttributes(
         beatmapId: number,
-        mods?: ModMap,
+        mods = new ModMap(),
     ): Promise<CacheableDifficultyAttributes<TAttributes> | null> {
         return this.getCache(beatmapId)
             .then(
                 (cache) =>
-                    cache?.get(this.convertModsForAttributeCacheKey(mods)) ??
-                    null,
+                    cache?.find((c) => c.mods.equals(mods))?.attributes ?? null,
             )
             .catch(() => null);
     }
@@ -91,8 +91,13 @@ export abstract class DifficultyAttributesCacheManager<
         beatmapId: number,
         difficultyAttributes: TAttributes,
     ): Promise<CacheableDifficultyAttributes<TAttributes>> {
-        const cache =
-            (await this.getBeatmapAttributes(beatmapId)) ?? new Collection();
+        let cache = await this.getBeatmapAttributes(beatmapId);
+
+        if (!cache) {
+            cache = [];
+
+            this.cache.set(beatmapId, cache);
+        }
 
         const cacheableAttributes: CacheableDifficultyAttributes<TAttributes> =
             {
@@ -100,12 +105,10 @@ export abstract class DifficultyAttributesCacheManager<
                 mods: difficultyAttributes.mods.serializeMods(),
             };
 
-        cache.set(
-            this.convertModsForAttributeCacheKey(cacheableAttributes.mods),
-            cacheableAttributes,
-        );
-
-        this.cache.set(beatmapId, cache);
+        cache.push({
+            mods: difficultyAttributes.mods,
+            attributes: cacheableAttributes,
+        });
 
         // Also insert attributes to database.
         const databaseAttributes = {
@@ -212,10 +215,7 @@ export abstract class DifficultyAttributesCacheManager<
      */
     private async getCache(
         beatmapId: number,
-    ): Promise<Collection<
-        string,
-        CacheableDifficultyAttributes<TAttributes>
-    > | null> {
+    ): Promise<BeatmapDifficultyCache<TAttributes>[] | null> {
         let cache = this.cache.get(beatmapId) ?? null;
 
         if (!cache) {
@@ -226,7 +226,7 @@ export abstract class DifficultyAttributesCacheManager<
                 .from(this.databaseTable)
                 .where(eq(this.databaseTable.beatmapId, beatmapId));
 
-            cache = new Collection();
+            cache = [];
 
             for (const row of result) {
                 const parsed = schema.parse(
@@ -235,28 +235,18 @@ export abstract class DifficultyAttributesCacheManager<
 
                 this.removePrimaryKeys(parsed);
 
-                cache.set(
-                    this.convertModsForAttributeCacheKey(parsed.mods),
-                    Object.assign(
+                cache.push({
+                    mods: ModUtil.deserializeMods(parsed.mods),
+                    attributes: Object.assign(
                         parsed,
                         this.convertDatabaseAttributes(parsed),
                     ) as CacheableDifficultyAttributes<TAttributes>,
-                );
+                });
             }
 
             this.cache.set(beatmapId, cache);
         }
 
         return cache;
-    }
-
-    private convertModsForAttributeCacheKey(
-        mods?: ModMap | SerializedMod[],
-    ): string {
-        const serializedMods =
-            mods instanceof ModMap ? mods.serializeMods() : (mods ?? []);
-
-        // This sounds SO expensive for an in-memory cache, but it is what it is...
-        return sortAlphabet(JSON.stringify(serializedMods));
     }
 }

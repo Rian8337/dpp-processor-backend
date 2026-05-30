@@ -18,16 +18,6 @@ export function computeMD5(buf: Buffer): string {
 }
 
 /**
- * Sorts a string alphabetically.
- *
- * @param str The string.
- * @returns The sorted string.
- */
-export function sortAlphabet(str: string): string {
-    return [...str].sort((a, b) => a.localeCompare(b)).join("");
-}
-
-/**
  * Validates whether a given internal key is valid in a GET request.
  */
 export function validateGETInternalKey(

@@ -59,6 +59,20 @@ export const liveDroidDifficultyAttributesTable = pgTable(
          * A value closer to 0 indicates most of flashlight difficulty is contributed by sliders.
          */
         flashlightSliderFactor: doublePrecision().notNull(),
+
+        /**
+         * The amount of strains that are considered difficult with respect to the visual skill.
+         */
+        averageSpeedDeltaTime: doublePrecision().notNull(),
+
+        /**
+         * Describes how much of tap difficulty is contributed by notes that are "vibroable".
+         *
+         * A value closer to 1 indicates most of tap difficulty is contributed by notes that are not "vibroable".
+         *
+         * A value closer to 0 indicates most of tap difficulty is contributed by notes that are "vibroable".
+         */
+        vibroFactor: doublePrecision().notNull(),
     },
     (table) => [
         primaryKey({

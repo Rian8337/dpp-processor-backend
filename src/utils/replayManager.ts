@@ -1,13 +1,18 @@
 import {
     HitResult,
+    IBeatmap,
+    Slider,
+    SliderTail,
+    SliderTick,
+} from "@rian8337/osu-base";
+import {
     ReplayAnalyzer,
     ReplayData,
 } from "@rian8337/osu-droid-replay-analyzer";
 import { chmod, readFile, unlink, writeFile } from "fs/promises";
 import { join } from "path";
-import { isDebug } from "./util";
-import { IBeatmap, Slider, SliderTick, SliderTail } from "@rian8337/osu-base";
 import { SliderTickInformation } from "../structures/SliderTickInformation";
+import { isDebug } from "./util";
 
 /**
  * The directory of local replays.

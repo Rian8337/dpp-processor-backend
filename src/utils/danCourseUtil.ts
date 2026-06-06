@@ -62,7 +62,7 @@ export async function processReplay(uid: number, data: ReplayV3Data) {
     }
 }
 
-function getGrade(score: IDanCourseScore): number {
+export function getGrade(score: IDanCourseScore): number {
     const beatmap = courses.get(score.hash);
 
     switch (beatmap?.requirement.id) {

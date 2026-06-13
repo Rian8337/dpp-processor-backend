@@ -5,10 +5,7 @@ import {
 } from "@rian8337/osu-difficulty-calculator";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import { Score } from "@rian8337/osu-droid-utilities";
-import {
-    IDroidDifficultyAttributes,
-    PerformanceCalculationOptions as RebalancePerformanceCalculationOptions,
-} from "@rian8337/osu-rebalance-difficulty-calculator";
+import { IDroidDifficultyAttributes } from "@rian8337/osu-rebalance-difficulty-calculator";
 import { scoresTable } from "../../database/official/schema";
 import { RawDifficultyAttributes } from "../../structures/attributes/RawDifficultyAttributes";
 import { obtainTickInformation } from "../replayManager";
@@ -280,9 +277,7 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
      */
     applyToOptions(
         beatmap: IBeatmap,
-        options:
-            | PerformanceCalculationOptions
-            | RebalancePerformanceCalculationOptions,
+        options: PerformanceCalculationOptions,
     ): void {
         options.combo = this.combo;
         options.accPercent = this.accuracy;
@@ -303,8 +298,7 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
                 beatmap.hitObjects.sliders - this.sliderEndHits;
         }
 
-        (options as RebalancePerformanceCalculationOptions).totalScore =
-            this.totalScore;
+        options.totalScore = this.totalScore;
     }
 
     /**

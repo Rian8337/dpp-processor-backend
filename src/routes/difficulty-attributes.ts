@@ -71,15 +71,15 @@ router.post<
     const calculationMethod = parseInt(req.body.calculationmethod);
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-    if (gamemode !== Modes.droid && gamemode !== Modes.osu) {
+    if (gamemode !== Modes.Droid && gamemode !== Modes.Osu) {
         return res.status(400).json({ error: "Invalid gamemode" });
     }
 
     if (
         // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-        calculationMethod !== PPCalculationMethod.live &&
+        calculationMethod !== PPCalculationMethod.Live &&
         // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-        calculationMethod !== PPCalculationMethod.rebalance
+        calculationMethod !== PPCalculationMethod.Rebalance
     ) {
         return res.status(400).json({ error: "Invalid calculation method" });
     }
@@ -108,15 +108,15 @@ router.post<
     });
 
     switch (calculationMethod) {
-        case PPCalculationMethod.live: {
+        case PPCalculationMethod.Live: {
             switch (gamemode) {
-                case Modes.droid:
+                case Modes.Droid:
                     difficultyCalculator =
                         new BeatmapDroidDifficultyCalculator();
                     difficultyCacheManager = liveDroidDifficultyCache;
                     break;
 
-                case Modes.osu:
+                case Modes.Osu:
                     difficultyCalculator = new BeatmapOsuDifficultyCalculator();
                     difficultyCacheManager = liveOsuDifficultyCache;
                     break;
@@ -124,15 +124,15 @@ router.post<
             break;
         }
 
-        case PPCalculationMethod.rebalance: {
+        case PPCalculationMethod.Rebalance: {
             switch (gamemode) {
-                case Modes.droid:
+                case Modes.Droid:
                     difficultyCalculator =
                         new BeatmapDroidDifficultyCalculator();
                     difficultyCacheManager = rebalanceDroidDifficultyCache;
                     break;
 
-                case Modes.osu:
+                case Modes.Osu:
                     difficultyCalculator = new BeatmapOsuDifficultyCalculator();
                     difficultyCacheManager = rebalanceOsuDifficultyCache;
                     break;
@@ -148,7 +148,7 @@ router.post<
 
     if (!difficultyAttributes || generateStrainChart) {
         const calculationResult = await (
-            calculationMethod === PPCalculationMethod.live
+            calculationMethod === PPCalculationMethod.Live
                 ? difficultyCalculator.calculateBeatmapPerformance(
                       beatmap,
                       calculationParams,

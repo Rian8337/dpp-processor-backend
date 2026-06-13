@@ -48,7 +48,7 @@ router.get<
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-    if (gamemode !== Modes.droid && gamemode !== Modes.osu) {
+    if (gamemode !== Modes.Droid && gamemode !== Modes.Osu) {
         return res.status(400).json({ error: "Invalid gamemode" });
     }
 
@@ -62,9 +62,9 @@ router.get<
 
     if (
         // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-        calculationMethod !== PPCalculationMethod.live &&
+        calculationMethod !== PPCalculationMethod.Live &&
         // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-        calculationMethod !== PPCalculationMethod.rebalance
+        calculationMethod !== PPCalculationMethod.Rebalance
     ) {
         return res.status(400).json({ error: "Invalid calculation method" });
     }
@@ -136,7 +136,7 @@ router.get<
                   : (JSON.parse(score.mods) as SerializedMod[])));
 
     switch (gamemode) {
-        case Modes.droid: {
+        case Modes.Droid: {
             const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
             const ppMultiplier =
                 replayValid || score instanceof Score
@@ -144,7 +144,7 @@ router.get<
                     : Math.min(1, score.ppMultiplier ?? 1);
 
             switch (calculationMethod) {
-                case PPCalculationMethod.live: {
+                case PPCalculationMethod.Live: {
                     const calculationResult = await (
                         replayValid
                             ? difficultyCalculator.calculateReplayPerformance(
@@ -195,10 +195,7 @@ router.get<
                             deviation: result.deviation,
                             tapDeviation: result.tapDeviation,
                             tapPenalty: result.tapPenalty,
-                            aimSliderCheesePenalty:
-                                result.aimSliderCheesePenalty,
-                            flashlightSliderCheesePenalty:
-                                result.flashlightSliderCheesePenalty,
+                            sliderCheesePenalty: result.sliderCheesePenalty,
                         } as DroidPerformanceAttributes,
                         replay: calculationResult.replay,
                     };
@@ -208,7 +205,7 @@ router.get<
                     break;
                 }
 
-                case PPCalculationMethod.rebalance: {
+                case PPCalculationMethod.Rebalance: {
                     const calculationResult = await (
                         replayValid
                             ? difficultyCalculator.calculateReplayRebalancePerformance(
@@ -259,8 +256,7 @@ router.get<
                             deviation: result.deviation,
                             tapDeviation: result.tapDeviation,
                             tapPenalty: result.tapPenalty,
-                            aimSliderCheesePenalty:
-                                result.aimSliderCheesePenalty,
+                            sliderCheesePenalty: result.sliderCheesePenalty,
                             estimatedUnstableRate: result.deviation * 10,
                             estimatedSpeedUnstableRate:
                                 result.tapDeviation * 10,
@@ -277,11 +273,11 @@ router.get<
             break;
         }
 
-        case Modes.osu: {
+        case Modes.Osu: {
             const difficultyCalculator = new BeatmapOsuDifficultyCalculator();
 
             switch (calculationMethod) {
-                case PPCalculationMethod.live: {
+                case PPCalculationMethod.Live: {
                     const calculationResult = await (
                         replayValid
                             ? difficultyCalculator.calculateReplayPerformance(
@@ -336,7 +332,7 @@ router.get<
                     break;
                 }
 
-                case PPCalculationMethod.rebalance: {
+                case PPCalculationMethod.Rebalance: {
                     const calculationResult = await (
                         replayValid
                             ? difficultyCalculator.calculateReplayRebalancePerformance(

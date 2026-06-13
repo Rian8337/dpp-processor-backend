@@ -43,37 +43,7 @@ export const beatmapTable = pgTable(
  */
 export const liveDroidDifficultyAttributesTable = pgTable(
     "live_droid_difficulty_attributes",
-    {
-        ...baseDroidDifficultyAttributesColumns,
-
-        /**
-         * The amount of strains that are considered difficult with respect to the flashlight skill.
-         */
-        flashlightDifficultStrainCount: doublePrecision().notNull(),
-
-        /**
-         * Describes how much of flashlight difficulty is contributed to by hitcircles or sliders.
-         *
-         * A value closer to 1 indicates most of flashlight difficulty is contributed by hitcircles.
-         *
-         * A value closer to 0 indicates most of flashlight difficulty is contributed by sliders.
-         */
-        flashlightSliderFactor: doublePrecision().notNull(),
-
-        /**
-         * The amount of strains that are considered difficult with respect to the visual skill.
-         */
-        averageSpeedDeltaTime: doublePrecision().notNull(),
-
-        /**
-         * Describes how much of tap difficulty is contributed by notes that are "vibroable".
-         *
-         * A value closer to 1 indicates most of tap difficulty is contributed by notes that are not "vibroable".
-         *
-         * A value closer to 0 indicates most of tap difficulty is contributed by notes that are "vibroable".
-         */
-        vibroFactor: doublePrecision().notNull(),
-    },
+    baseDroidDifficultyAttributesColumns,
     (table) => [
         primaryKey({
             columns: [table.beatmapId, table.mods],
@@ -98,24 +68,7 @@ export const liveDroidDifficultyAttributesTable = pgTable(
  */
 export const rebalanceDroidDifficultyAttributesTable = pgTable(
     "rebalance_droid_difficulty_attributes",
-    {
-        ...baseDroidDifficultyAttributesColumns,
-
-        /**
-         * The amount of sliders that are considered difficult in terms of relative strain, weighted by consistency.
-         */
-        aimTopWeightedSliderFactor: doublePrecision().notNull(),
-
-        /**
-         * The amount of sliders that are considered difficult with respect to the tap skill, weighted by consistency.
-         */
-        tapTopWeightedSliderFactor: doublePrecision().notNull(),
-
-        /**
-         * The maximum score obtainable on the beatmap.
-         */
-        maximumScore: integer().notNull(),
-    },
+    baseDroidDifficultyAttributesColumns,
     (table) => [
         primaryKey({
             columns: [table.beatmapId, table.mods],

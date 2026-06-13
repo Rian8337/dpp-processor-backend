@@ -74,8 +74,8 @@ export async function getBeatmap(
 
     // For unranked beatmaps, check the status if 30 minutes have passed since the last check.
     if (
-        cache.rankedStatus !== RankedStatus.ranked &&
-        cache.rankedStatus !== RankedStatus.approved &&
+        cache.rankedStatus !== RankedStatus.Ranked &&
+        cache.rankedStatus !== RankedStatus.Approved &&
         cache.lastChecked < new Date(Date.now() - 1800000)
     ) {
         const apiBeatmap = await beatmapService.getBeatmap(beatmapIdOrHash);

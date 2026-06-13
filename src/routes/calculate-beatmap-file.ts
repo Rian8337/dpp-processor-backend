@@ -52,9 +52,8 @@ router.post<
         sliderticksmissed?: string;
         sliderendsdropped?: string;
         maxcombo?: string;
-        aimslidercheesepenalty?: string;
+        slidercheesepenalty?: string;
         tappenalty?: string;
-        flashlightslidercheesepenalty?: string;
         generatestrainchart?: string;
     }>
 >("/", validatePOSTInternalKey, async (req, res) => {
@@ -99,15 +98,15 @@ router.post<
     const calculationMethod = parseInt(req.body.calculationmethod);
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-    if (gamemode !== Modes.droid && gamemode !== Modes.osu) {
+    if (gamemode !== Modes.Droid && gamemode !== Modes.Osu) {
         return res.status(400).json({ error: "Invalid gamemode" });
     }
 
     if (
         // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-        calculationMethod !== PPCalculationMethod.live &&
+        calculationMethod !== PPCalculationMethod.Live &&
         // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-        calculationMethod !== PPCalculationMethod.rebalance
+        calculationMethod !== PPCalculationMethod.Rebalance
     ) {
         return res.status(400).json({ error: "Invalid calculation method" });
     }
@@ -128,12 +127,7 @@ router.post<
             beatmap.maxCombo,
         ),
         tapPenalty: parseInt(req.body.tappenalty ?? "1"),
-        sliderCheesePenalty: {
-            aimPenalty: parseInt(req.body.aimslidercheesepenalty ?? "1"),
-            flashlightPenalty: parseInt(
-                req.body.flashlightslidercheesepenalty ?? "1",
-            ),
-        },
+        sliderCheesePenalty: parseInt(req.body.slidercheesepenalty ?? "1"),
         sliderTickHits:
             req.body.sliderticksmissed !== undefined
                 ? MathUtils.clamp(
@@ -161,9 +155,9 @@ router.post<
     let strainChart: Buffer | null = null;
 
     switch (gamemode) {
-        case Modes.droid: {
+        case Modes.Droid: {
             switch (calculationMethod) {
-                case PPCalculationMethod.live: {
+                case PPCalculationMethod.Live: {
                     const diffAttribs = calculateLocalBeatmapDifficulty(
                         beatmap,
                         mods,
@@ -205,10 +199,7 @@ router.post<
                             deviation: perfCalc.deviation,
                             tapDeviation: perfCalc.tapDeviation,
                             tapPenalty: perfCalc.tapPenalty,
-                            aimSliderCheesePenalty:
-                                perfCalc.aimSliderCheesePenalty,
-                            flashlightSliderCheesePenalty:
-                                perfCalc.flashlightSliderCheesePenalty,
+                            sliderCheesePenalty: perfCalc.sliderCheesePenalty,
                         },
                     } as CompleteCalculationAttributes<
                         DroidDifficultyAttributes,
@@ -218,7 +209,7 @@ router.post<
                     break;
                 }
 
-                case PPCalculationMethod.rebalance: {
+                case PPCalculationMethod.Rebalance: {
                     const diffAttribs = calculateLocalBeatmapDifficulty(
                         beatmap,
                         mods,
@@ -260,8 +251,7 @@ router.post<
                             deviation: perfCalc.deviation,
                             tapDeviation: perfCalc.tapDeviation,
                             tapPenalty: perfCalc.tapPenalty,
-                            aimSliderCheesePenalty:
-                                perfCalc.aimSliderCheesePenalty,
+                            sliderCheesePenalty: perfCalc.sliderCheesePenalty,
                             estimatedUnstableRate: perfCalc.deviation * 10,
                             estimatedSpeedUnstableRate:
                                 perfCalc.tapDeviation * 10,
@@ -278,9 +268,9 @@ router.post<
             break;
         }
 
-        case Modes.osu: {
+        case Modes.Osu: {
             switch (calculationMethod) {
-                case PPCalculationMethod.live: {
+                case PPCalculationMethod.Live: {
                     const diffAttribs = calculateLocalBeatmapDifficulty(
                         beatmap,
                         mods,
@@ -327,7 +317,7 @@ router.post<
                     break;
                 }
 
-                case PPCalculationMethod.rebalance: {
+                case PPCalculationMethod.Rebalance: {
                     const diffAttribs = calculateLocalBeatmapDifficulty(
                         beatmap,
                         mods,

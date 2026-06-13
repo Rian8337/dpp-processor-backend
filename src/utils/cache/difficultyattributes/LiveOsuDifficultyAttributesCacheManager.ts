@@ -15,7 +15,7 @@ import { DifficultyAttributesCacheManager } from "./DifficultyAttributesCacheMan
  * A cache manager for osu!standard live calculation difficulty attributes.
  */
 export class LiveOsuDifficultyAttributesCacheManager extends DifficultyAttributesCacheManager<IOsuDifficultyAttributes> {
-    protected override readonly attributeType = PPCalculationMethod.live;
+    protected override readonly attributeType = PPCalculationMethod.Live;
 
     protected override readonly databaseTable =
         liveOsuDifficultyAttributesTable;

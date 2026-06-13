@@ -129,7 +129,7 @@ export abstract class BeatmapDifficultyCalculator<
 
         return this.calculatePerformance(
             apiBeatmap,
-            PPCalculationMethod.live,
+            PPCalculationMethod.Live,
             BeatmapDifficultyCalculator.getCalculationParameters(score),
             undefined,
             generateStrainChart,
@@ -198,7 +198,7 @@ export abstract class BeatmapDifficultyCalculator<
 
         return this.calculatePerformance(
             apiBeatmap,
-            PPCalculationMethod.live,
+            PPCalculationMethod.Live,
             calcParams,
             replay,
             generateStrainChart,
@@ -253,7 +253,7 @@ export abstract class BeatmapDifficultyCalculator<
 
         return this.calculatePerformance(
             apiBeatmap,
-            PPCalculationMethod.rebalance,
+            PPCalculationMethod.Rebalance,
             BeatmapDifficultyCalculator.getCalculationParameters(score),
             undefined,
             generateStrainChart,
@@ -322,7 +322,7 @@ export abstract class BeatmapDifficultyCalculator<
 
         return this.calculatePerformance(
             apiBeatmap,
-            PPCalculationMethod.rebalance,
+            PPCalculationMethod.Rebalance,
             calcParams,
             replay,
             generateStrainChart,
@@ -384,7 +384,7 @@ export abstract class BeatmapDifficultyCalculator<
 
         return this.calculatePerformance(
             apiBeatmap,
-            PPCalculationMethod.live,
+            PPCalculationMethod.Live,
             calculationParams,
             undefined,
             generateStrainChart,
@@ -447,7 +447,7 @@ export abstract class BeatmapDifficultyCalculator<
 
         return this.calculatePerformance(
             apiBeatmap,
-            PPCalculationMethod.rebalance,
+            PPCalculationMethod.Rebalance,
             calculationParams,
             undefined,
             generateStrainChart,
@@ -456,7 +456,7 @@ export abstract class BeatmapDifficultyCalculator<
 
     private async calculatePerformance(
         beatmap: ProcessorDatabaseBeatmap,
-        calculationMethod: PPCalculationMethod.live,
+        calculationMethod: PPCalculationMethod.Live,
         calculationParams?: PerformanceCalculationParameters,
         replay?: ReplayAnalyzer,
         generateStrainChart?: boolean,
@@ -464,7 +464,7 @@ export abstract class BeatmapDifficultyCalculator<
 
     private async calculatePerformance(
         beatmap: ProcessorDatabaseBeatmap,
-        calculationMethod: PPCalculationMethod.rebalance,
+        calculationMethod: PPCalculationMethod.Rebalance,
         calculationParams?: PerformanceCalculationParameters,
         replay?: ReplayAnalyzer,
         generateStrainChart?: boolean,
@@ -481,7 +481,7 @@ export abstract class BeatmapDifficultyCalculator<
         | RebalancePerformanceCalculationResult<RDA, RPA>
     > {
         const cacheManager =
-            calculationMethod === PPCalculationMethod.live
+            calculationMethod === PPCalculationMethod.Live
                 ? this.liveDifficultyAttributesCache
                 : this.rebalanceDifficultyAttributesCache;
 
@@ -540,7 +540,7 @@ export abstract class BeatmapDifficultyCalculator<
                         );
                     }
 
-                    if (calculationMethod === PPCalculationMethod.live) {
+                    if (calculationMethod === PPCalculationMethod.Live) {
                         resolve(
                             new PerformanceCalculationResult(
                                 calculationParams,

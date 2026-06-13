@@ -23,7 +23,7 @@ export class BeatmapDroidDifficultyCalculator extends BeatmapDifficultyCalculato
     DroidPerformanceAttributes,
     RebalanceDroidPerformanceAttributes
 > {
-    protected override readonly mode = Modes.droid;
+    protected override readonly mode = Modes.Droid;
     protected override readonly liveDifficultyAttributesCache =
         liveDroidDifficultyCache;
     protected override readonly rebalanceDifficultyAttributesCache =

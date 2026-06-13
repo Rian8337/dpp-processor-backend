@@ -16,7 +16,7 @@ export class BeatmapOsuDifficultyCalculator extends BeatmapDifficultyCalculator<
     IRebalanceOsuDifficultyAttributes,
     OsuPerformanceAttributes
 > {
-    protected override readonly mode = Modes.osu;
+    protected override readonly mode = Modes.Osu;
     protected override readonly liveDifficultyAttributesCache =
         liveOsuDifficultyCache;
     protected override readonly rebalanceDifficultyAttributesCache =

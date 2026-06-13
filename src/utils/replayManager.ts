@@ -141,7 +141,7 @@ export function obtainTickInformation(
         const objectData = data.hitObjectData[i];
 
         if (
-            objectData.result === HitResult.miss ||
+            objectData.result === HitResult.Miss ||
             !(object instanceof Slider)
         ) {
             continue;

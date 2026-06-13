@@ -36,8 +36,8 @@ import { PerformanceCalculationParameters } from "./PerformanceCalculationParame
 export function calculateLocalBeatmapDifficulty(
     beatmap: Beatmap,
     mods: ModMap,
-    mode: Modes.droid,
-    method: PPCalculationMethod.live,
+    mode: Modes.Droid,
+    method: PPCalculationMethod.Live,
 ): ExtendedDroidDifficultyAttributes;
 
 /**
@@ -52,8 +52,8 @@ export function calculateLocalBeatmapDifficulty(
 export function calculateLocalBeatmapDifficulty(
     beatmap: Beatmap,
     mods: ModMap,
-    mode: Modes.osu,
-    method: PPCalculationMethod.live,
+    mode: Modes.Osu,
+    method: PPCalculationMethod.Live,
 ): OsuDifficultyAttributes;
 
 /**
@@ -68,8 +68,8 @@ export function calculateLocalBeatmapDifficulty(
 export function calculateLocalBeatmapDifficulty(
     beatmap: Beatmap,
     mods: ModMap,
-    mode: Modes.droid,
-    method: PPCalculationMethod.rebalance,
+    mode: Modes.Droid,
+    method: PPCalculationMethod.Rebalance,
 ): RebalanceExtendedDroidDifficultyAttributes;
 
 /**
@@ -84,8 +84,8 @@ export function calculateLocalBeatmapDifficulty(
 export function calculateLocalBeatmapDifficulty(
     beatmap: Beatmap,
     mods: ModMap,
-    mode: Modes.osu,
-    method: PPCalculationMethod.rebalance,
+    mode: Modes.Osu,
+    method: PPCalculationMethod.Rebalance,
 ): RebalanceOsuDifficultyAttributes;
 
 export function calculateLocalBeatmapDifficulty(
@@ -98,12 +98,12 @@ export function calculateLocalBeatmapDifficulty(
     | OsuDifficultyAttributes
     | RebalanceExtendedDroidDifficultyAttributes
     | RebalanceOsuDifficultyAttributes {
-    if (mode === Modes.droid) {
+    if (mode === Modes.Droid) {
         switch (method) {
-            case PPCalculationMethod.live:
+            case PPCalculationMethod.Live:
                 return new DroidDifficultyCalculator().calculate(beatmap, mods);
 
-            case PPCalculationMethod.rebalance:
+            case PPCalculationMethod.Rebalance:
                 return new RebalanceDroidDifficultyCalculator().calculate(
                     beatmap,
                     mods,
@@ -111,7 +111,7 @@ export function calculateLocalBeatmapDifficulty(
         }
     } else {
         switch (method) {
-            case PPCalculationMethod.live:
+            case PPCalculationMethod.Live:
                 return new OsuDifficultyCalculator().calculate(beatmap, mods);
 
             default:
@@ -138,15 +138,15 @@ export function getStrainPeaks(
     mode: Modes,
     method: PPCalculationMethod,
 ): StrainPeaks {
-    if (mode === Modes.droid) {
+    if (mode === Modes.Droid) {
         switch (method) {
-            case PPCalculationMethod.live:
+            case PPCalculationMethod.Live:
                 return new DroidDifficultyCalculator().calculateStrainPeaks(
                     beatmap,
                     mods,
                 );
 
-            case PPCalculationMethod.rebalance:
+            case PPCalculationMethod.Rebalance:
                 return new RebalanceDroidDifficultyCalculator().calculateStrainPeaks(
                     beatmap,
                     mods,
@@ -154,7 +154,7 @@ export function getStrainPeaks(
         }
     } else {
         switch (method) {
-            case PPCalculationMethod.live:
+            case PPCalculationMethod.Live:
                 return new OsuDifficultyCalculator().calculateStrainPeaks(
                     beatmap,
                     mods,
@@ -181,8 +181,8 @@ export function getStrainPeaks(
 export function calculateLocalBeatmapPerformance(
     attributes: IExtendedDroidDifficultyAttributes,
     calculationParams: PerformanceCalculationParameters,
-    mode: Modes.droid,
-    method: PPCalculationMethod.live,
+    mode: Modes.Droid,
+    method: PPCalculationMethod.Live,
 ): DroidPerformanceCalculator;
 
 /**
@@ -197,8 +197,8 @@ export function calculateLocalBeatmapPerformance(
 export function calculateLocalBeatmapPerformance(
     attributes: IRebalanceExtendedDroidDifficultyAttributes,
     calculationParams: PerformanceCalculationParameters,
-    mode: Modes.droid,
-    method: PPCalculationMethod.rebalance,
+    mode: Modes.Droid,
+    method: PPCalculationMethod.Rebalance,
 ): RebalanceDroidPerformanceCalculator;
 
 /**
@@ -213,8 +213,8 @@ export function calculateLocalBeatmapPerformance(
 export function calculateLocalBeatmapPerformance(
     attributes: IOsuDifficultyAttributes,
     calculationParams: PerformanceCalculationParameters,
-    mode: Modes.osu,
-    method: PPCalculationMethod.live,
+    mode: Modes.Osu,
+    method: PPCalculationMethod.Live,
 ): OsuPerformanceCalculator;
 
 /**
@@ -229,8 +229,8 @@ export function calculateLocalBeatmapPerformance(
 export function calculateLocalBeatmapPerformance(
     attributes: IRebalanceOsuDifficultyAttributes,
     calculationParams: PerformanceCalculationParameters,
-    mode: Modes.osu,
-    method: PPCalculationMethod.rebalance,
+    mode: Modes.Osu,
+    method: PPCalculationMethod.Rebalance,
 ): RebalanceOsuPerformanceCalculator;
 
 export function calculateLocalBeatmapPerformance(
@@ -255,21 +255,21 @@ export function calculateLocalBeatmapPerformance(
         tapPenalty: calculationParams.tapPenalty,
     };
 
-    if (mode === Modes.droid) {
+    if (mode === Modes.Droid) {
         switch (method) {
-            case PPCalculationMethod.live:
+            case PPCalculationMethod.Live:
                 return new DroidPerformanceCalculator(
                     attributes as IExtendedDroidDifficultyAttributes,
                 ).calculate(calculationOptions);
 
-            case PPCalculationMethod.rebalance:
+            case PPCalculationMethod.Rebalance:
                 return new RebalanceDroidPerformanceCalculator(
                     attributes as IRebalanceExtendedDroidDifficultyAttributes,
                 ).calculate(calculationOptions);
         }
     } else {
         switch (method) {
-            case PPCalculationMethod.live:
+            case PPCalculationMethod.Live:
                 return new OsuPerformanceCalculator(
                     attributes as IOsuDifficultyAttributes,
                 ).calculate(calculationOptions);

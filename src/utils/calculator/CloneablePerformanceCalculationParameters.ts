@@ -1,4 +1,3 @@
-import { SliderCheeseInformation } from "@rian8337/osu-droid-replay-analyzer";
 import { CloneableAccuracy } from "./CloneableAccuracy";
 import { CloneableDifficultyCalculationParameters } from "./CloneableDifficultyCalculationParameters";
 import { Optional } from "../../structures/Optional";
@@ -57,5 +56,5 @@ export interface CloneablePerformanceCalculationParameters<
     /**
      * The slider cheese penalties to apply for penalized scores.
      */
-    sliderCheesePenalty: Optional<TFromCalculation, SliderCheeseInformation>;
+    sliderCheesePenalty: Optional<TFromCalculation, number>;
 }

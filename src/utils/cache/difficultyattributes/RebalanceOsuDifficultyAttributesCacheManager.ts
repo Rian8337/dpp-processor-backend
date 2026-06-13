@@ -15,7 +15,7 @@ import { Mod } from "@rian8337/osu-base";
  * A cache manager for osu!standard rebalance calculation difficulty attributes.
  */
 export class RebalanceOsuDifficultyAttributesCacheManager extends DifficultyAttributesCacheManager<IOsuDifficultyAttributes> {
-    protected override readonly attributeType = PPCalculationMethod.rebalance;
+    protected override readonly attributeType = PPCalculationMethod.Rebalance;
 
     protected override readonly databaseTable =
         rebalanceOsuDifficultyAttributesTable;

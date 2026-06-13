@@ -3,20 +3,17 @@ import {
     CacheableDifficultyAttributes,
     PerformanceCalculationOptions,
 } from "@rian8337/osu-difficulty-calculator";
-import {
-    ReplayAnalyzer,
-    SliderCheeseInformation,
-} from "@rian8337/osu-droid-replay-analyzer";
+import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
+import { Score } from "@rian8337/osu-droid-utilities";
 import {
     IDroidDifficultyAttributes,
     PerformanceCalculationOptions as RebalancePerformanceCalculationOptions,
 } from "@rian8337/osu-rebalance-difficulty-calculator";
+import { scoresTable } from "../../database/official/schema";
 import { RawDifficultyAttributes } from "../../structures/attributes/RawDifficultyAttributes";
+import { obtainTickInformation } from "../replayManager";
 import { CloneablePerformanceCalculationParameters } from "./CloneablePerformanceCalculationParameters";
 import { DifficultyCalculationParameters } from "./DifficultyCalculationParameters";
-import { Score } from "@rian8337/osu-droid-utilities";
-import { scoresTable } from "../../database/official/schema";
-import { obtainTickInformation } from "../replayManager";
 
 /**
  * Represents a parameter to alter performance calculation result.
@@ -72,9 +69,9 @@ export interface PerformanceCalculationParametersInit {
     sliderEndsDropped?: number;
 
     /**
-     * The slider cheese penalties to apply for penalized scores. Each of them defaults to 1.
+     * The slider cheese penalties to apply for penalized scores. Defaults to 1.
      */
-    sliderCheesePenalty?: SliderCheeseInformation;
+    sliderCheesePenalty?: number;
 }
 
 /**
@@ -141,9 +138,9 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
     sliderEndsDropped?: number;
 
     /**
-     * The slider cheese penalties to apply for penalized scores. Each of them defaults to 1.
+     * The slider cheese penalties to apply for penalized scores. Defaults to 1.
      */
-    sliderCheesePenalty?: SliderCheeseInformation;
+    sliderCheesePenalty?: number;
 
     constructor(values?: PerformanceCalculationParametersInit) {
         super(values?.mods);
@@ -165,7 +162,7 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
         this.sliderTicksMissed = values?.sliderTicksMissed;
         this.sliderEndsDropped = values?.sliderEndsDropped;
         this.tapPenalty = values?.tapPenalty;
-        this.sliderCheesePenalty = values?.sliderCheesePenalty;
+        this.sliderCheesePenalty = values?.sliderCheesePenalty ?? 1;
     }
 
     /**
@@ -290,12 +287,7 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
         options.combo = this.combo;
         options.accPercent = this.accuracy;
         options.tapPenalty = this.tapPenalty;
-        options.aimSliderCheesePenalty =
-            this.sliderCheesePenalty?.aimPenalty ?? 1;
-        (
-            options as PerformanceCalculationOptions
-        ).flashlightSliderCheesePenalty =
-            this.sliderCheesePenalty?.flashlightPenalty ?? 1;
+        options.sliderCheesePenalty = this.sliderCheesePenalty;
 
         if (this.sliderTicksMissed !== undefined) {
             options.sliderTicksMissed = this.sliderTicksMissed;

@@ -98,6 +98,7 @@ export const baseDifficultyAttributesColumns = {
  */
 export const baseDroidDifficultyAttributesColumns = {
     ...baseDifficultyAttributesColumns,
+
     /**
      * The difficulty corresponding to the tap skill.
      */
@@ -134,6 +135,21 @@ export const baseDroidDifficultyAttributesColumns = {
      * Sliders that are considered difficult.
      */
     difficultSliders: jsonb().$type<DifficultSlider[]>().notNull(),
+
+    /**
+     * The amount of sliders that are considered difficult in terms of relative strain, weighted by consistency.
+     */
+    aimTopWeightedSliderFactor: doublePrecision().notNull(),
+
+    /**
+     * The amount of sliders that are considered difficult with respect to the tap skill, weighted by consistency.
+     */
+    tapTopWeightedSliderFactor: doublePrecision().notNull(),
+
+    /**
+     * The maximum score obtainable on the beatmap.
+     */
+    maximumScore: integer().notNull(),
 } as const;
 
 /**

@@ -15,7 +15,7 @@ import { DroidDifficultyAttributesCacheManager } from "./DroidDifficultyAttribut
  * A cache manager for osu!droid live calculation difficulty attributes.
  */
 export class LiveDroidDifficultyAttributesCacheManager extends DroidDifficultyAttributesCacheManager<IExtendedDroidDifficultyAttributes> {
-    protected override readonly attributeType = PPCalculationMethod.live;
+    protected override readonly attributeType = PPCalculationMethod.Live;
 
     protected override readonly databaseTable =
         liveDroidDifficultyAttributesTable;

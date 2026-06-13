@@ -50,7 +50,7 @@ import {
 
             beatmap ??= new BeatmapDecoder().decode(
                 beatmapFile,
-                Modes.droid,
+                Modes.Droid,
             ).result;
 
             const analyzer = new ReplayAnalyzer();
@@ -107,7 +107,7 @@ import {
 
                 beatmap ??= new BeatmapDecoder().decode(
                     beatmapFile,
-                    Modes.droid,
+                    Modes.Droid,
                 ).result;
 
                 const analyzer = new ReplayAnalyzer();
@@ -171,7 +171,7 @@ import {
 
         const beatmap = new BeatmapDecoder().decode(
             beatmapFile,
-            Modes.droid,
+            Modes.Droid,
         ).result;
 
         const { tick, end } = obtainTickInformation(beatmap, data);

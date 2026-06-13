@@ -99,9 +99,9 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
     let strainChart: Buffer | undefined;
 
     switch (gamemode) {
-        case Modes.droid: {
+        case Modes.Droid: {
             switch (calculationMethod) {
-                case PPCalculationMethod.live: {
+                case PPCalculationMethod.Live: {
                     const difficultyAttributes =
                         (data.difficultyAttributes as CacheableDifficultyAttributes<IExtendedDroidDifficultyAttributes> | null) ??
                         calculateLocalBeatmapDifficulty(
@@ -193,10 +193,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                             deviation: perfCalc.deviation,
                             tapDeviation: perfCalc.tapDeviation,
                             tapPenalty: perfCalc.tapPenalty,
-                            aimSliderCheesePenalty:
-                                perfCalc.aimSliderCheesePenalty,
-                            flashlightSliderCheesePenalty:
-                                perfCalc.flashlightSliderCheesePenalty,
+                            sliderCheesePenalty: perfCalc.sliderCheesePenalty,
                         } as DroidPerformanceAttributes,
                         replay:
                             analyzer.data && sliderInformation
@@ -215,7 +212,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                     break;
                 }
 
-                case PPCalculationMethod.rebalance: {
+                case PPCalculationMethod.Rebalance: {
                     const difficultyAttributes: CacheableDifficultyAttributes<IRebalanceExtendedDroidDifficultyAttributes> =
                         (data.difficultyAttributes as CacheableDifficultyAttributes<IRebalanceExtendedDroidDifficultyAttributes> | null) ??
                         calculateLocalBeatmapDifficulty(
@@ -332,8 +329,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                             deviation: perfCalc.deviation,
                             tapDeviation: perfCalc.tapDeviation,
                             tapPenalty: perfCalc.tapPenalty,
-                            aimSliderCheesePenalty:
-                                perfCalc.aimSliderCheesePenalty,
+                            sliderCheesePenalty: perfCalc.sliderCheesePenalty,
                             calculatedUnstableRate: analyzer.data
                                 ? (hitError?.unstableRate ?? 0) /
                                   difficultyAttributes.clockRate
@@ -363,9 +359,9 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
             break;
         }
 
-        case Modes.osu: {
+        case Modes.Osu: {
             switch (calculationMethod) {
-                case PPCalculationMethod.live: {
+                case PPCalculationMethod.Live: {
                     const difficultyAttributes: CacheableDifficultyAttributes<OsuDifficultyAttributes> =
                         (data.difficultyAttributes as CacheableDifficultyAttributes<OsuDifficultyAttributes> | null) ??
                         calculateLocalBeatmapDifficulty(
@@ -414,7 +410,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                     break;
                 }
 
-                case PPCalculationMethod.rebalance: {
+                case PPCalculationMethod.Rebalance: {
                     const difficultyAttributes: CacheableDifficultyAttributes<RebalanceOsuDifficultyAttributes> =
                         (data.difficultyAttributes as CacheableDifficultyAttributes<RebalanceOsuDifficultyAttributes> | null) ??
                         calculateLocalBeatmapDifficulty(

@@ -88,15 +88,15 @@ router.post<
     const calculationMethod = parseInt(req.body.calculationmethod);
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-    if (gamemode !== Modes.droid && gamemode !== Modes.osu) {
+    if (gamemode !== Modes.Droid && gamemode !== Modes.Osu) {
         return res.status(400).json({ error: "Invalid gamemode" });
     }
 
     if (
         // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-        calculationMethod !== PPCalculationMethod.live &&
+        calculationMethod !== PPCalculationMethod.Live &&
         // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-        calculationMethod !== PPCalculationMethod.rebalance
+        calculationMethod !== PPCalculationMethod.Rebalance
     ) {
         return res.status(400).json({ error: "Invalid calculation method" });
     }
@@ -128,12 +128,7 @@ router.post<
                   )
                 : (apiBeatmap.maxCombo ?? undefined),
         tapPenalty: parseInt(req.body.tappenalty ?? "1"),
-        sliderCheesePenalty: {
-            aimPenalty: parseInt(req.body.aimslidercheesepenalty ?? "1"),
-            flashlightPenalty: parseInt(
-                req.body.flashlightslidercheesepenalty ?? "1",
-            ),
-        },
+        sliderCheesePenalty: parseInt(req.body.aimslidercheesepenalty ?? "1"),
         sliderTicksMissed:
             req.body.sliderticksmissed !== undefined
                 ? Math.max(0, parseInt(req.body.sliderticksmissed))
@@ -157,11 +152,11 @@ router.post<
     const requestedMods = mods.serializeMods();
 
     switch (gamemode) {
-        case Modes.droid: {
+        case Modes.Droid: {
             const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
 
             switch (calculationMethod) {
-                case PPCalculationMethod.live: {
+                case PPCalculationMethod.Live: {
                     const calculationResult = await difficultyCalculator
                         .calculateBeatmapPerformance(
                             apiBeatmap,
@@ -207,10 +202,7 @@ router.post<
                             deviation: result.deviation,
                             tapDeviation: result.tapDeviation,
                             tapPenalty: result.tapPenalty,
-                            aimSliderCheesePenalty:
-                                result.aimSliderCheesePenalty,
-                            flashlightSliderCheesePenalty:
-                                result.flashlightSliderCheesePenalty,
+                            sliderCheesePenalty: result.sliderCheesePenalty,
                         } as DroidPerformanceAttributes,
                         replay: calculationResult.replay,
                     };
@@ -220,7 +212,7 @@ router.post<
                     break;
                 }
 
-                case PPCalculationMethod.rebalance: {
+                case PPCalculationMethod.Rebalance: {
                     const calculationResult = await difficultyCalculator
                         .calculateBeatmapRebalancePerformance(
                             apiBeatmap,
@@ -266,8 +258,7 @@ router.post<
                             deviation: result.deviation,
                             tapDeviation: result.tapDeviation,
                             tapPenalty: result.tapPenalty,
-                            aimSliderCheesePenalty:
-                                result.aimSliderCheesePenalty,
+                            sliderCheesePenalty: result.sliderCheesePenalty,
                             estimatedUnstableRate: result.deviation * 10,
                             estimatedSpeedUnstableRate:
                                 result.tapDeviation * 10,
@@ -284,11 +275,11 @@ router.post<
             break;
         }
 
-        case Modes.osu: {
+        case Modes.Osu: {
             const difficultyCalculator = new BeatmapOsuDifficultyCalculator();
 
             switch (calculationMethod) {
-                case PPCalculationMethod.live: {
+                case PPCalculationMethod.Live: {
                     const calculationResult = await difficultyCalculator
                         .calculateBeatmapPerformance(
                             apiBeatmap,
@@ -338,7 +329,7 @@ router.post<
                     break;
                 }
 
-                case PPCalculationMethod.rebalance: {
+                case PPCalculationMethod.Rebalance: {
                     const calculationResult = await difficultyCalculator
                         .calculateBeatmapRebalancePerformance(
                             apiBeatmap,

@@ -15,7 +15,7 @@ import { DroidDifficultyAttributesCacheManager } from "./DroidDifficultyAttribut
  * A cache manager for osu!droid rebalance calculation difficulty attributes.
  */
 export class RebalanceDroidDifficultyAttributesCacheManager extends DroidDifficultyAttributesCacheManager<IExtendedDroidDifficultyAttributes> {
-    protected override readonly attributeType = PPCalculationMethod.rebalance;
+    protected override readonly attributeType = PPCalculationMethod.Rebalance;
 
     protected override readonly databaseTable =
         rebalanceDroidDifficultyAttributesTable;

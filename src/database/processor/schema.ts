@@ -1,6 +1,5 @@
 import { RankedStatus } from "@rian8337/osu-base";
 import {
-    doublePrecision,
     foreignKey,
     index,
     integer,
@@ -9,7 +8,7 @@ import {
     smallint,
     text,
     timestamp,
-    varchar,
+    varchar
 } from "drizzle-orm/pg-core";
 import {
     baseDroidDifficultyAttributesColumns,
@@ -116,24 +115,7 @@ export const liveOsuDifficultyAttributesTable = pgTable(
  */
 export const rebalanceOsuDifficultyAttributesTable = pgTable(
     "rebalance_osu_difficulty_attributes",
-    {
-        ...baseOsuDifficultyAttributesColumns,
-
-        /**
-         * The amount of sliders that are considered difficult in terms of relative strain, weighted by consistency.
-         */
-        aimTopWeightedSliderFactor: doublePrecision().notNull(),
-
-        /**
-         * The difficulty corresponding to the reading skill.
-         */
-        readingDifficulty: doublePrecision().notNull(),
-
-        /**
-         * The amount of notes that are considered difficult with respect to the reading skill.
-         */
-        readingDifficultNoteCount: doublePrecision().notNull(),
-    },
+    baseOsuDifficultyAttributesColumns,
     (table) => [
         primaryKey({
             columns: [table.beatmapId, table.mods],

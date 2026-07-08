@@ -93,6 +93,7 @@ CREATE TABLE IF NOT EXISTS live_osu_difficulty_attributes (
     aim_difficulty                          float           NOT NULL,
     speed_difficulty                        float           NOT NULL,
     flashlight_difficulty                   float           NOT NULL,
+    reading_difficulty                      float           NOT NULL,
     speed_note_count                        float           NOT NULL,
     slider_factor                           float           NOT NULL,
     clock_rate                              float           NOT NULL,
@@ -104,6 +105,7 @@ CREATE TABLE IF NOT EXISTS live_osu_difficulty_attributes (
     aim_difficult_slider_count              float           NOT NULL,
     aim_difficult_strain_count              float           NOT NULL,
     speed_difficult_strain_count            float           NOT NULL,
+    reading_difficult_note_count            float           NOT NULL,
     aim_top_weighted_slider_factor          float           NOT NULL,
     speed_top_weighted_slider_factor        float           NOT NULL,
 

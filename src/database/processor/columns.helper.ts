@@ -40,6 +40,11 @@ export const baseDifficultyAttributesColumns = {
     flashlightDifficulty: doublePrecision().notNull(),
 
     /**
+     * The difficulty corresponding to the reading skill.
+     */
+    readingDifficulty: doublePrecision().notNull(),
+
+    /**
      * The number of clickable objects weighted by difficulty.
      *
      * Related to speed/tap difficulty.
@@ -91,6 +96,16 @@ export const baseDifficultyAttributesColumns = {
      * The amount of strains that are considered difficult with respect to the aim skill.
      */
     aimDifficultStrainCount: doublePrecision().notNull(),
+
+    /**
+     * The amount of notes that are considered difficult with respect to the reading skill.
+     */
+    readingDifficultNoteCount: doublePrecision().notNull(),
+
+    /**
+     * The amount of sliders that are considered difficult in terms of relative strain, weighted by consistency.
+     */
+    aimTopWeightedSliderFactor: doublePrecision().notNull(),
 } as const;
 
 /**
@@ -110,16 +125,6 @@ export const baseDroidDifficultyAttributesColumns = {
     rhythmDifficulty: doublePrecision().notNull(),
 
     /**
-     * The difficulty corresponding to the reading skill.
-     */
-    readingDifficulty: doublePrecision().notNull(),
-
-    /**
-     * The amount of notes that are considered difficult with respect to the reading skill.
-     */
-    readingDifficultNoteCount: doublePrecision().notNull(),
-
-    /**
      * The amount of strains that are considered difficult with respect to the tap skill.
      */
     tapDifficultStrainCount: doublePrecision().notNull(),
@@ -135,11 +140,6 @@ export const baseDroidDifficultyAttributesColumns = {
      * Sliders that are considered difficult.
      */
     difficultSliders: jsonb().$type<DifficultSlider[]>().notNull(),
-
-    /**
-     * The amount of sliders that are considered difficult in terms of relative strain, weighted by consistency.
-     */
-    aimTopWeightedSliderFactor: doublePrecision().notNull(),
 
     /**
      * The amount of sliders that are considered difficult with respect to the tap skill, weighted by consistency.
@@ -179,15 +179,6 @@ export const baseOsuDifficultyAttributesColumns = {
      * The amount of strains that are considered difficult with respect to the speed skill.
      */
     speedDifficultStrainCount: doublePrecision().notNull(),
-
-    /**
-     * Describes how much of {@link aimDifficultStrainCount} is contributed to by circles or sliders.
-     *
-     * A value closer to 0 indicates most of {@link aimDifficultStrainCount} is contributed by circles.
-     *
-     * A value closer to infinity indicates most of {@link aimDifficultStrainCount} is contributed by sliders.
-     */
-    aimTopWeightedSliderFactor: doublePrecision().notNull(),
 
     /**
      * Describes how much of {@link speedDifficultStrainCount} is contributed to by circles or sliders.

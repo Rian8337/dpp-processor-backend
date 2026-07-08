@@ -12,23 +12,23 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       '@rian8337/osu-base':
-        specifier: 4.0.0-beta.91
-        version: 4.0.0-beta.91
+        specifier: 4.0.0-beta.95
+        version: 4.0.0-beta.95
       '@rian8337/osu-difficulty-calculator':
-        specifier: 4.0.0-beta.94
-        version: 4.0.0-beta.94
+        specifier: 4.0.0-beta.95
+        version: 4.0.0-beta.95
       '@rian8337/osu-droid-replay-analyzer':
-        specifier: 4.0.0-beta.94
-        version: 4.0.0-beta.94
+        specifier: 4.0.0-beta.95
+        version: 4.0.0-beta.95
       '@rian8337/osu-droid-utilities':
-        specifier: 4.0.0-beta.91
-        version: 4.0.0-beta.91
+        specifier: 4.0.0-beta.95
+        version: 4.0.0-beta.95
       '@rian8337/osu-rebalance-difficulty-calculator':
-        specifier: 4.0.0-beta.94
-        version: 4.0.0-beta.94
+        specifier: 4.0.0-beta.95
+        version: 4.0.0-beta.95
       '@rian8337/osu-strain-graph-generator':
-        specifier: 4.0.0-beta.94
-        version: 4.0.0-beta.94
+        specifier: 4.0.0-beta.95
+        version: 4.0.0-beta.95
       chokidar:
         specifier: ^3.6.0
         version: 3.6.0
@@ -40,10 +40,10 @@ importers:
         version: 16.6.1
       drizzle-orm:
         specifier: ^0.43.1
-        version: 0.43.1(@types/pg@8.20.0)(gel@2.2.0)(mysql2@3.22.5(@types/node@22.19.21))(pg@8.21.0(pg-native@3.8.0))
+        version: 0.43.1(@types/pg@8.20.0)(gel@2.2.0)(mysql2@3.22.5(@types/node@22.20.0))(pg@8.22.0(pg-native@3.8.0))
       drizzle-zod:
         specifier: ^0.7.1
-        version: 0.7.1(drizzle-orm@0.43.1(@types/pg@8.20.0)(gel@2.2.0)(mysql2@3.22.5(@types/node@22.19.21))(pg@8.21.0(pg-native@3.8.0)))(zod@3.25.76)
+        version: 0.7.1(drizzle-orm@0.43.1(@types/pg@8.20.0)(gel@2.2.0)(mysql2@3.22.5(@types/node@22.20.0))(pg@8.22.0(pg-native@3.8.0)))(zod@3.25.76)
       express:
         specifier: ^4.22.2
         version: 4.22.2
@@ -55,10 +55,10 @@ importers:
         version: 6.21.0
       mysql2:
         specifier: ^3.22.5
-        version: 3.22.5(@types/node@22.19.21)
+        version: 3.22.5(@types/node@22.20.0)
       pg:
-        specifier: ^8.21.0
-        version: 8.21.0(pg-native@3.8.0)
+        specifier: ^8.22.0
+        version: 8.22.0(pg-native@3.8.0)
       pg-native:
         specifier: ^3.8.0
         version: 3.8.0
@@ -76,8 +76,8 @@ importers:
         specifier: ^2.0.5
         version: 2.0.5
       '@types/node':
-        specifier: ^22.19.20
-        version: 22.19.21
+        specifier: ^22.20.0
+        version: 22.20.0
       '@types/pg':
         specifier: ^8.20.0
         version: 8.20.0
@@ -94,8 +94,8 @@ importers:
         specifier: ^8.57.1
         version: 8.57.1
       prettier:
-        specifier: ^3.8.3
-        version: 3.8.4
+        specifier: ^3.9.4
+        version: 3.9.4
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -418,8 +418,8 @@ packages:
     resolution: {integrity: sha512-93zYdMES/c1D69yZiKDBj0V24vqNzB/koF26KPaagAfd3P/4gUlh3Dys5ogAK+Exi9QyzlD8x/08Zt7wIKcDcA==}
     deprecated: Use @eslint/object-schema instead
 
-  '@mongodb-js/saslprep@1.4.11':
-    resolution: {integrity: sha512-o9rAHc0IpIjuPSxRutWpE1F62x7n+4mVS4rCNHkzhIUMQcc18bb6xEq5wd2NdN0WjepIyXIppRshYI2kQDOZVA==}
+  '@mongodb-js/saslprep@1.4.12':
+    resolution: {integrity: sha512-QAfAMwNgnYxZ2C6D1HgeP7Gc4i/uvJRim415PCIL9ptRxWMNbWeLBYb2/9R4pGKny/s1FVu2JA2cxCUBUOggrA==}
 
   '@nodelib/fs.scandir@2.1.5':
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
@@ -436,28 +436,28 @@ packages:
   '@petamoriken/float16@3.9.3':
     resolution: {integrity: sha512-8awtpHXCx/bNpFt4mt2xdkgtgVvKqty8VbjHI/WWWQuEw+KLzFot3f4+LkQY9YmOtq7A5GdOnqoIC8Pdygjk2g==}
 
-  '@rian8337/osu-base@4.0.0-beta.91':
-    resolution: {integrity: sha512-NdWf3FK6NbjtCGzqFRDOG0FCgv2QgCrgyfwAKoJcFUmPrfxfAbsKfwGHdbw9+l71jG1oPbjbwr9JanpmmGqEUA==}
+  '@rian8337/osu-base@4.0.0-beta.95':
+    resolution: {integrity: sha512-Sy5aThCmhvp4i/4VeoW8YnxClLeAo7Vmx+iTfYH5+BPH4YVnPhk7ImSqrZEHCqKR+4yyOilXSrHSlYR+1z1+dg==}
     engines: {node: '>=18'}
 
-  '@rian8337/osu-difficulty-calculator@4.0.0-beta.94':
-    resolution: {integrity: sha512-nDpmOj7oG42gRGkpPGypXJ2dMk6XVmQnl4igZqxDTYDyTZTLrLa5ThrAXU/UMz1wE9oalBECQ0Y9knbDgIpG3A==}
+  '@rian8337/osu-difficulty-calculator@4.0.0-beta.95':
+    resolution: {integrity: sha512-NU92CRNd6z+JioqUVCTstUb14jwlBKc+rMVIL55hh/hru8VWUA4+J9Ve0pfmk5c6DoJqYDRFrj9XrC12TwDU3Q==}
     engines: {node: '>=18'}
 
-  '@rian8337/osu-droid-replay-analyzer@4.0.0-beta.94':
-    resolution: {integrity: sha512-km2xZK2pzLdk4YKl+zfhnAxc/dXgxiA+oTvM5xCt5ArehtfL9dz+X6XGPGlYH6nCGR69KR7OUpdk5DLNbUbL/A==}
+  '@rian8337/osu-droid-replay-analyzer@4.0.0-beta.95':
+    resolution: {integrity: sha512-UgqwnyoNSzoQbbXI74l6/KGZa58seZAaWzCHxs9W0T4CghmHzlaWGRx0Y6HQnwY08tqOHt89blJkmIftFzizbA==}
     engines: {node: '>=18'}
 
-  '@rian8337/osu-droid-utilities@4.0.0-beta.91':
-    resolution: {integrity: sha512-dbvRHTjSEYYBYjhK9560WcpIMZrmep87V1FFmyGbD/msIVqsOSPpvjkJWLNm3x31IgVenI5aTuCOoWY8C1hH7Q==}
+  '@rian8337/osu-droid-utilities@4.0.0-beta.95':
+    resolution: {integrity: sha512-iiFSPmyu7wlXHn260/e4g+wyU4EbiCq2b2x1FhzeV6e+ebR8TEv5HaNw2u+Yai5hQ+iNIcd7btTeLLBkFjXNgQ==}
     engines: {node: '>=18'}
 
-  '@rian8337/osu-rebalance-difficulty-calculator@4.0.0-beta.94':
-    resolution: {integrity: sha512-luHQYV0SxKCgiH8HyogEQIqSdeUPt6VRbIT4pLSQstlitvS8Y6lSfki1cy7kqeR9NaKvxQB5tr73h8rwF5LCCg==}
+  '@rian8337/osu-rebalance-difficulty-calculator@4.0.0-beta.95':
+    resolution: {integrity: sha512-scD0Mr8FR1PYWB+QWHWkFzUy8ahcL1TikpwfB6l/2Ace4eoHA7YP44UrhJ2DBugeLj8UyfOAtKqNwGe/8gwzcA==}
     engines: {node: '>=18'}
 
-  '@rian8337/osu-strain-graph-generator@4.0.0-beta.94':
-    resolution: {integrity: sha512-yCFKaC0w/HhLn8jqhhNTLr1a/LmA/NWjQfuf9k3DpovpdYlj5mrOhJ0g8YZNx6leVFo2zBzHzFaj0oektwwMEg==}
+  '@rian8337/osu-strain-graph-generator@4.0.0-beta.95':
+    resolution: {integrity: sha512-rOrmh4vZecQnctsLTLAO6fYwwPVvWzHIlfPlmFg1coR7jjz8HvFJ5SoGO5ilCe4IV0Gmn78l2W8NfD3cx/Q9mA==}
     engines: {node: '>=18'}
 
   '@types/body-parser@1.19.6':
@@ -487,8 +487,8 @@ packages:
   '@types/multiparty@4.2.1':
     resolution: {integrity: sha512-Wi6aK3FgvHLvCDxD7ngG4w8MsCK9h64EB53Gvc8t7FVX81tleiz8vFS3ebBohGxqHRzNGHaNwhfdxTGOGAXm6A==}
 
-  '@types/node@22.19.21':
-    resolution: {integrity: sha512-VMeFBSCKQKmm2swI2kW51SFusDqekC6q9trBCvJ/JliDchFSuoYYKN7yVNjPthP1HKZcx3U1gI/wTcEBjEFKTA==}
+  '@types/node@22.20.0':
+    resolution: {integrity: sha512-QWlFW2wf3nTjC13/DqRnBpR4ZO36VJH/JVBkA/vcnmbTBNQIlnObqyqZE1tUR7+Ni23Lda8R1BxMfbXRpCUx5g==}
 
   '@types/pg@8.20.0':
     resolution: {integrity: sha512-bEPFOaMAHTEP1EzpvHTbmwR8UsFyHSKsRisLIHVMXnpNefSbGA1bD6CVy+qKjGSqmZqNqBDV2azOBo8TgkcVow==}
@@ -572,8 +572,8 @@ packages:
     resolution: {integrity: sha512-cDF0/Gf81QpY3xYyJKDV14Zwdmid5+uuENhjH2EqFaF0ni+yAyq/LzMaIJdhNJXZI7uLzwIlA+V7oWoyn6Curg==}
     engines: {node: ^18.18.0 || >=20.0.0}
 
-  '@ungap/structured-clone@1.3.1':
-    resolution: {integrity: sha512-mUFwbeTqrVgDQxFveS+df2yfap6iuP20NAKAsBt5jDEoOTDew+zwLAOilHCeQJOVSvmgCX4ogqIrA0mnyr08yQ==}
+  '@ungap/structured-clone@1.3.2':
+    resolution: {integrity: sha512-5jsZFwgR5rTdKwidH9Qmat75RKwqfpKlWWB1frDkljN127mwqBu8K0PYo7/hFpF03IEJpfVPpCQDY/eDx3iHvA==}
 
   accepts@1.3.8:
     resolution: {integrity: sha512-PYAthTa2m2VKxuvSD3DPC/Gy+U+sOA1LAuT8mkmRuvw+NACSaeXEQ+NHcVF7rONl6qcaxV3Uuemwawk+7+SJLw==}
@@ -1172,8 +1172,8 @@ packages:
     resolution: {integrity: sha512-v3MXnZAcvnywkTUEZomIActle7RXXeedOR31wwl7VlyoXO4Qi9arvSenNQWne1TcRwhCL1HwLI21bEqdpj8/rA==}
     engines: {node: '>=0.10.0'}
 
-  iconv-lite@0.7.2:
-    resolution: {integrity: sha512-im9DjEDQ55s9fL4EYzOAv0yMqmMBSZp6G0VvFyTMPKWxiSBHUj9NW/qqLmXUwXrrM7AvqSlTCfvqRb0cM8yYqw==}
+  iconv-lite@0.7.3:
+    resolution: {integrity: sha512-IKXpvIzjnC9XTAUbVBcMfGS0EPaIXtW6v+zr+RRp+hqULEpo0owZax6wyRwPOJbWbzjYspQwusTsfVr0ifh4uQ==}
     engines: {node: '>=0.10.0'}
 
   ieee754@1.2.1:
@@ -1241,8 +1241,8 @@ packages:
   java-deserialization@0.1.0:
     resolution: {integrity: sha512-USdyndx3Wd9KVqLwDTfEW4UN8y+hnrSjU+0li47kIa0NKTXJyLCZrkBx0payxCt+G55Tc+ubG/W96CaM3Rq/FQ==}
 
-  js-yaml@4.2.0:
-    resolution: {integrity: sha512-ePWsvanv0DWuDRsW8dnt+R4jQ31SCRCQ7hhNcPXZPsoBZiemuZNYGf7adZdqX2D86j6rvKp3RpCxVTSb8WQlOw==}
+  js-yaml@4.3.0:
+    resolution: {integrity: sha512-1td788aAnnZ5qs7V2QIRl1owjtYpbKt749Y3xauqQgwIIGF/xXWz1wMTEBx5O3LK3lXLVuqXPdPxj2BoFHaW9Q==}
     hasBin: true
 
   json-buffer@3.0.1:
@@ -1411,8 +1411,8 @@ packages:
     resolution: {integrity: sha512-+EUsqGPLsM+j/zdChZjsnX51g4XrHFOIXwfnCVPGlQk/k5giakcKsuxCObBRu6DSm9opw/O6slWbJdghQM4bBg==}
     engines: {node: '>= 0.6'}
 
-  node-abi@3.92.0:
-    resolution: {integrity: sha512-KdHvFWZjEKDf0cakgFjebl371GPsISX2oZHcuyKqM7DtogIsHrqKeLTo8wBHxaXRAQlY2PsPlZmfo+9ZCxEREQ==}
+  node-abi@3.94.0:
+    resolution: {integrity: sha512-W5ZNO5KRPB5TkYmGVD9F6YqhsglXJzE6etpbmT+f6EQElhiX/UTG551cnsRGvLG3fyZEg9HwaDmNmj5nwJ4z9g==}
     engines: {node: '>=10'}
 
   node-addon-api@7.1.1:
@@ -1483,8 +1483,8 @@ packages:
   pg-cloudflare@1.4.0:
     resolution: {integrity: sha512-Vo7z/6rrQYxpNRylp4Tlob2elzbh+N/MOQbxFVWCxS7oEx6jF53GTJFxK2WWpKuBRkmiin4Mt+xofFDjx09R0A==}
 
-  pg-connection-string@2.13.0:
-    resolution: {integrity: sha512-EMnU9E2fSULdsbErBbMaXJvFeD9B4+nPcM3f+4lsiCR0BHLPrLVjv3DbyM2hgQQviKJaTWIRRTjKjWlHg3p2ig==}
+  pg-connection-string@2.14.0:
+    resolution: {integrity: sha512-XwWDGcLRGCXAR8F/AM5bG7Q+A3Wm2s6QeEjlOKZLlH3UYcguiqCWKyWXVag5TLTIjR7oOJUY8kcADaZgWPyLeg==}
 
   pg-int8@1.0.1:
     resolution: {integrity: sha512-WCtabS6t3c8SkpDBUlb1kjOs7l66xsGdKpIPZsg4wR+B3+u9UAum2odSsF9tnvxg80h4ZxLWMy4pRjOsFIqQpw==}
@@ -1498,15 +1498,15 @@ packages:
     peerDependencies:
       pg: '>=8.0'
 
-  pg-protocol@1.14.0:
-    resolution: {integrity: sha512-n5taZ1kO3s9ngDTVxsEznOqCyToTgz0FLuPq0B33COy5pPpuWJpY3/2oRBVETuOgzdqRXfWpM9HIhp2LBBT1BA==}
+  pg-protocol@1.15.0:
+    resolution: {integrity: sha512-cq9sECI5s0+uPUXjbz8ioyPJni6RzsRib0US67i5IoTZKw8fNeYlVE7u8F4dG7vEJJtc5wdD1K189lCCUwqWTQ==}
 
   pg-types@2.2.0:
     resolution: {integrity: sha512-qTAAlrEsl8s4OiEQY69wDvcMIdQN6wdz5ojQiOy6YRMuynxenON0O5oCpJI6lshc6scgAY8qvJ2On/p+CXY0GA==}
     engines: {node: '>=4'}
 
-  pg@8.21.0:
-    resolution: {integrity: sha512-AUP1EYJuHraQGsVoCQVIcM7TEJVGtDzxWtGFZd8rds9d+CCXlU5Js1rYgfLNvxy9iJrpHjGrRjoi/3BT9fRyiA==}
+  pg@8.22.0:
+    resolution: {integrity: sha512-8wih1vVIBMxoUM2oB4soJsD9tDnDpLv4OXBJ+EJzFsvycD+lfyIreC2gGHq78f8jbLLt+bvlPTFdFZfJkOuzAA==}
     engines: {node: '>= 16.0.0'}
     peerDependencies:
       pg-native: '>=3.0.1'
@@ -1547,8 +1547,8 @@ packages:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
     engines: {node: '>= 0.8.0'}
 
-  prettier@3.8.4:
-    resolution: {integrity: sha512-N2MylSdi48+5N/6S5j+maeHbUSIzzZ5uOcX5Hm4QpV8Dkb1HFjfAKTKX6yNPJQD9AhcT3ifHNB66tWTTJDi11Q==}
+  prettier@3.9.4:
+    resolution: {integrity: sha512-yWG/o/4oJfo036EKAfK6ACAoDOfHeRHx4tuxkfBZiauURiaSmYwlpOr5LQqKtIkRD2z1PLteme2WoxEnj4tHTg==}
     engines: {node: '>=14'}
     hasBin: true
 
@@ -1566,8 +1566,8 @@ packages:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
 
-  qs@6.15.2:
-    resolution: {integrity: sha512-Rzq0KEyX/w/tEybncDgdkZrJgVUsUMk3xjh3t5bv3S1HTAtg+uOYt72+ZfwiQwKdysThkTBdL/rTi6HDmX9Ddw==}
+  qs@6.15.3:
+    resolution: {integrity: sha512-O9gl3zCl5h5blw1KGUzQKhA5oUXSl8rwUIM5o0S3nCXMliSvy5Dzx7/DJcI+SwgICv+IneSZwhBh1oSyEHA71A==}
     engines: {node: '>=0.6'}
 
   qs@6.5.5:
@@ -1637,8 +1637,8 @@ packages:
   safer-buffer@2.1.2:
     resolution: {integrity: sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==}
 
-  semver@7.8.4:
-    resolution: {integrity: sha512-rUCObTnP32Q08R2uuIrt7r9PlEonuTmtuXYcW6s5kjdlj3xbnwe+21yXptAUYcMAABLkYYTtnmzb3w3EDZfueA==}
+  semver@7.8.5:
+    resolution: {integrity: sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA==}
     engines: {node: '>=10'}
     hasBin: true
 
@@ -1667,8 +1667,8 @@ packages:
     resolution: {integrity: sha512-7++dFhtcx3353uBaq8DDR4NuxBetBzC7ZQOhmTQInHEd6bSrXdiEyzCvG07Z44UYdLShWUyXt5M/yhz8ekcb1A==}
     engines: {node: '>=8'}
 
-  shell-quote@1.8.4:
-    resolution: {integrity: sha512-VsC6n6vz1ihYYyZZwX7YZSF5l5x36ca17OC+a69h94YqB7X6XLwf+5MOgynYir2SLFUbl8gIYvBo8K8RoNQ6bQ==}
+  shell-quote@1.9.0:
+    resolution: {integrity: sha512-Iov+JwFv/2HcTpcwNMKd8+IWNb8tboQJNQTkAY/LLVK7gGH9jy+LGkVqPxfekHl+yMmiqXszdGWXgkfml7hjqA==}
     engines: {node: '>= 0.4'}
 
   side-channel-list@1.0.1:
@@ -1748,8 +1748,8 @@ packages:
     resolution: {integrity: sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw==}
     engines: {node: '>=8'}
 
-  tar-fs@2.1.4:
-    resolution: {integrity: sha512-mDAjwmZdh7LTT6pNleZ05Yt65HC3E+NiQzl672vQG38jIrehtJk/J3mNwIg+vShQPcLF/LV7CMnDW6vjj6sfYQ==}
+  tar-fs@2.1.5:
+    resolution: {integrity: sha512-OboTd8mmMhZDNPV+UjQcK9yKAatXu2aJ+r1w4im1Otd4M4fl2hwvdoXUxIYHFTHWK/3y3FarBP70v3vwmGlOxw==}
 
   tar-stream@2.2.0:
     resolution: {integrity: sha512-ujeqbceABgwMZxEJnk2HDY2DlnUZ+9oEcb1KzTVfYHio0UE6dG71n60d8D2I4qNvleWrrXpmjpt7vZeF1LnMZQ==}
@@ -2037,7 +2037,7 @@ snapshots:
       globals: 13.24.0
       ignore: 5.3.2
       import-fresh: 3.3.1
-      js-yaml: 4.2.0
+      js-yaml: 4.3.0
       minimatch: 3.1.5
       strip-json-comments: 3.1.1
     transitivePeerDependencies:
@@ -2057,7 +2057,7 @@ snapshots:
 
   '@humanwhocodes/object-schema@2.0.3': {}
 
-  '@mongodb-js/saslprep@1.4.11':
+  '@mongodb-js/saslprep@1.4.12':
     dependencies:
       sparse-bitfield: 3.0.3
 
@@ -2075,47 +2075,47 @@ snapshots:
 
   '@petamoriken/float16@3.9.3': {}
 
-  '@rian8337/osu-base@4.0.0-beta.91': {}
+  '@rian8337/osu-base@4.0.0-beta.95': {}
 
-  '@rian8337/osu-difficulty-calculator@4.0.0-beta.94':
+  '@rian8337/osu-difficulty-calculator@4.0.0-beta.95':
     dependencies:
-      '@rian8337/osu-base': 4.0.0-beta.91
+      '@rian8337/osu-base': 4.0.0-beta.95
 
-  '@rian8337/osu-droid-replay-analyzer@4.0.0-beta.94':
+  '@rian8337/osu-droid-replay-analyzer@4.0.0-beta.95':
     dependencies:
-      '@rian8337/osu-base': 4.0.0-beta.91
-      '@rian8337/osu-difficulty-calculator': 4.0.0-beta.94
-      '@rian8337/osu-rebalance-difficulty-calculator': 4.0.0-beta.94
+      '@rian8337/osu-base': 4.0.0-beta.95
+      '@rian8337/osu-difficulty-calculator': 4.0.0-beta.95
+      '@rian8337/osu-rebalance-difficulty-calculator': 4.0.0-beta.95
       java-deserialization: 0.1.0
       unzipper: 0.10.14
 
-  '@rian8337/osu-droid-utilities@4.0.0-beta.91':
+  '@rian8337/osu-droid-utilities@4.0.0-beta.95':
     dependencies:
-      '@rian8337/osu-base': 4.0.0-beta.91
+      '@rian8337/osu-base': 4.0.0-beta.95
 
-  '@rian8337/osu-rebalance-difficulty-calculator@4.0.0-beta.94':
+  '@rian8337/osu-rebalance-difficulty-calculator@4.0.0-beta.95':
     dependencies:
-      '@rian8337/osu-base': 4.0.0-beta.91
+      '@rian8337/osu-base': 4.0.0-beta.95
 
-  '@rian8337/osu-strain-graph-generator@4.0.0-beta.94':
+  '@rian8337/osu-strain-graph-generator@4.0.0-beta.95':
     dependencies:
-      '@rian8337/osu-base': 4.0.0-beta.91
-      '@rian8337/osu-difficulty-calculator': 4.0.0-beta.94
-      '@rian8337/osu-rebalance-difficulty-calculator': 4.0.0-beta.94
+      '@rian8337/osu-base': 4.0.0-beta.95
+      '@rian8337/osu-difficulty-calculator': 4.0.0-beta.95
+      '@rian8337/osu-rebalance-difficulty-calculator': 4.0.0-beta.95
       canvas: 3.2.3
 
   '@types/body-parser@1.19.6':
     dependencies:
       '@types/connect': 3.4.38
-      '@types/node': 22.19.21
+      '@types/node': 22.20.0
 
   '@types/connect@3.4.38':
     dependencies:
-      '@types/node': 22.19.21
+      '@types/node': 22.20.0
 
   '@types/cors@2.8.19':
     dependencies:
-      '@types/node': 22.19.21
+      '@types/node': 22.20.0
 
   '@types/express-form-data@2.0.5':
     dependencies:
@@ -2124,7 +2124,7 @@ snapshots:
 
   '@types/express-serve-static-core@4.19.8':
     dependencies:
-      '@types/node': 22.19.21
+      '@types/node': 22.20.0
       '@types/qs': 6.15.1
       '@types/range-parser': 1.2.7
       '@types/send': 1.2.1
@@ -2142,16 +2142,16 @@ snapshots:
 
   '@types/multiparty@4.2.1':
     dependencies:
-      '@types/node': 22.19.21
+      '@types/node': 22.20.0
 
-  '@types/node@22.19.21':
+  '@types/node@22.20.0':
     dependencies:
       undici-types: 6.21.0
 
   '@types/pg@8.20.0':
     dependencies:
-      '@types/node': 22.19.21
-      pg-protocol: 1.14.0
+      '@types/node': 22.20.0
+      pg-protocol: 1.15.0
       pg-types: 2.2.0
 
   '@types/qs@6.15.1': {}
@@ -2161,16 +2161,16 @@ snapshots:
   '@types/send@0.17.6':
     dependencies:
       '@types/mime': 1.3.5
-      '@types/node': 22.19.21
+      '@types/node': 22.20.0
 
   '@types/send@1.2.1':
     dependencies:
-      '@types/node': 22.19.21
+      '@types/node': 22.20.0
 
   '@types/serve-static@1.15.10':
     dependencies:
       '@types/http-errors': 2.0.5
-      '@types/node': 22.19.21
+      '@types/node': 22.20.0
       '@types/send': 0.17.6
 
   '@types/webidl-conversions@7.0.3': {}
@@ -2237,7 +2237,7 @@ snapshots:
       globby: 11.1.0
       is-glob: 4.0.3
       minimatch: 9.0.9
-      semver: 7.8.4
+      semver: 7.8.5
       ts-api-utils: 1.4.3(typescript@5.9.3)
     optionalDependencies:
       typescript: 5.9.3
@@ -2260,7 +2260,7 @@ snapshots:
       '@typescript-eslint/types': 7.18.0
       eslint-visitor-keys: 3.4.3
 
-  '@ungap/structured-clone@1.3.1': {}
+  '@ungap/structured-clone@1.3.2': {}
 
   accepts@1.3.8:
     dependencies:
@@ -2336,7 +2336,7 @@ snapshots:
       http-errors: 2.0.1
       iconv-lite: 0.4.24
       on-finished: 2.4.1
-      qs: 6.15.2
+      qs: 6.15.3
       raw-body: 2.5.3
       type-is: 1.6.18
       unpipe: 1.0.0
@@ -2496,16 +2496,16 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-orm@0.43.1(@types/pg@8.20.0)(gel@2.2.0)(mysql2@3.22.5(@types/node@22.19.21))(pg@8.21.0(pg-native@3.8.0)):
+  drizzle-orm@0.43.1(@types/pg@8.20.0)(gel@2.2.0)(mysql2@3.22.5(@types/node@22.20.0))(pg@8.22.0(pg-native@3.8.0)):
     optionalDependencies:
       '@types/pg': 8.20.0
       gel: 2.2.0
-      mysql2: 3.22.5(@types/node@22.19.21)
-      pg: 8.21.0(pg-native@3.8.0)
+      mysql2: 3.22.5(@types/node@22.20.0)
+      pg: 8.22.0(pg-native@3.8.0)
 
-  drizzle-zod@0.7.1(drizzle-orm@0.43.1(@types/pg@8.20.0)(gel@2.2.0)(mysql2@3.22.5(@types/node@22.19.21))(pg@8.21.0(pg-native@3.8.0)))(zod@3.25.76):
+  drizzle-zod@0.7.1(drizzle-orm@0.43.1(@types/pg@8.20.0)(gel@2.2.0)(mysql2@3.22.5(@types/node@22.20.0))(pg@8.22.0(pg-native@3.8.0)))(zod@3.25.76):
     dependencies:
-      drizzle-orm: 0.43.1(@types/pg@8.20.0)(gel@2.2.0)(mysql2@3.22.5(@types/node@22.19.21))(pg@8.21.0(pg-native@3.8.0))
+      drizzle-orm: 0.43.1(@types/pg@8.20.0)(gel@2.2.0)(mysql2@3.22.5(@types/node@22.20.0))(pg@8.22.0(pg-native@3.8.0))
       zod: 3.25.76
 
   dunder-proto@1.0.1:
@@ -2614,7 +2614,7 @@ snapshots:
       '@humanwhocodes/config-array': 0.13.0
       '@humanwhocodes/module-importer': 1.0.1
       '@nodelib/fs.walk': 1.2.8
-      '@ungap/structured-clone': 1.3.1
+      '@ungap/structured-clone': 1.3.2
       ajv: 6.15.0
       chalk: 4.1.2
       cross-spawn: 7.0.6
@@ -2636,7 +2636,7 @@ snapshots:
       imurmurhash: 0.1.4
       is-glob: 4.0.3
       is-path-inside: 3.0.3
-      js-yaml: 4.2.0
+      js-yaml: 4.3.0
       json-stable-stringify-without-jsonify: 1.0.1
       levn: 0.4.1
       lodash.merge: 4.6.2
@@ -2699,7 +2699,7 @@ snapshots:
       parseurl: 1.3.3
       path-to-regexp: 0.1.13
       proxy-addr: 2.0.7
-      qs: 6.15.2
+      qs: 6.15.3
       range-parser: 1.2.1
       safe-buffer: 5.2.1
       send: 0.19.2
@@ -2797,8 +2797,8 @@ snapshots:
       '@petamoriken/float16': 3.9.3
       debug: 4.4.3
       env-paths: 3.0.0
-      semver: 7.8.4
-      shell-quote: 1.8.4
+      semver: 7.8.5
+      shell-quote: 1.9.0
       which: 4.0.0
     transitivePeerDependencies:
       - supports-color
@@ -2903,7 +2903,7 @@ snapshots:
     dependencies:
       safer-buffer: 2.1.2
 
-  iconv-lite@0.7.2:
+  iconv-lite@0.7.3:
     dependencies:
       safer-buffer: 2.1.2
 
@@ -2955,7 +2955,7 @@ snapshots:
     dependencies:
       long: 3.2.0
 
-  js-yaml@4.2.0:
+  js-yaml@4.3.0:
     dependencies:
       argparse: 2.0.1
 
@@ -3049,7 +3049,7 @@ snapshots:
 
   mongodb@6.21.0:
     dependencies:
-      '@mongodb-js/saslprep': 1.4.11
+      '@mongodb-js/saslprep': 1.4.12
       bson: 6.10.4
       mongodb-connection-string-url: 3.0.2
 
@@ -3063,13 +3063,13 @@ snapshots:
       safe-buffer: 5.2.1
       uid-safe: 2.1.5
 
-  mysql2@3.22.5(@types/node@22.19.21):
+  mysql2@3.22.5(@types/node@22.20.0):
     dependencies:
-      '@types/node': 22.19.21
+      '@types/node': 22.20.0
       aws-ssl-profiles: 1.1.2
       denque: 2.1.0
       generate-function: 2.3.1
-      iconv-lite: 0.7.2
+      iconv-lite: 0.7.3
       long: 5.3.2
       lru.min: 1.1.4
       named-placeholders: 1.1.6
@@ -3087,9 +3087,9 @@ snapshots:
 
   negotiator@0.6.3: {}
 
-  node-abi@3.92.0:
+  node-abi@3.94.0:
     dependencies:
-      semver: 7.8.4
+      semver: 7.8.5
 
   node-addon-api@7.1.1: {}
 
@@ -3147,7 +3147,7 @@ snapshots:
   pg-cloudflare@1.4.0:
     optional: true
 
-  pg-connection-string@2.13.0: {}
+  pg-connection-string@2.14.0: {}
 
   pg-int8@1.0.1: {}
 
@@ -3156,11 +3156,11 @@ snapshots:
       libpq: 1.11.0
       pg-types: 2.2.0
 
-  pg-pool@3.14.0(pg@8.21.0(pg-native@3.8.0)):
+  pg-pool@3.14.0(pg@8.22.0(pg-native@3.8.0)):
     dependencies:
-      pg: 8.21.0(pg-native@3.8.0)
+      pg: 8.22.0(pg-native@3.8.0)
 
-  pg-protocol@1.14.0: {}
+  pg-protocol@1.15.0: {}
 
   pg-types@2.2.0:
     dependencies:
@@ -3170,11 +3170,11 @@ snapshots:
       postgres-date: 1.0.7
       postgres-interval: 1.2.0
 
-  pg@8.21.0(pg-native@3.8.0):
+  pg@8.22.0(pg-native@3.8.0):
     dependencies:
-      pg-connection-string: 2.13.0
-      pg-pool: 3.14.0(pg@8.21.0(pg-native@3.8.0))
-      pg-protocol: 1.14.0
+      pg-connection-string: 2.14.0
+      pg-pool: 3.14.0(pg@8.22.0(pg-native@3.8.0))
+      pg-protocol: 1.15.0
       pg-types: 2.2.0
       pgpass: 1.0.5
     optionalDependencies:
@@ -3205,16 +3205,16 @@ snapshots:
       minimist: 1.2.8
       mkdirp-classic: 0.5.3
       napi-build-utils: 2.0.0
-      node-abi: 3.92.0
+      node-abi: 3.94.0
       pump: 3.0.4
       rc: 1.2.8
       simple-get: 4.0.1
-      tar-fs: 2.1.4
+      tar-fs: 2.1.5
       tunnel-agent: 0.6.0
 
   prelude-ls@1.2.1: {}
 
-  prettier@3.8.4: {}
+  prettier@3.9.4: {}
 
   process-nextick-args@2.0.1: {}
 
@@ -3230,8 +3230,9 @@ snapshots:
 
   punycode@2.3.1: {}
 
-  qs@6.15.2:
+  qs@6.15.3:
     dependencies:
+      es-define-property: 1.0.1
       side-channel: 1.1.1
 
   qs@6.5.5: {}
@@ -3300,7 +3301,7 @@ snapshots:
 
   safer-buffer@2.1.2: {}
 
-  semver@7.8.4: {}
+  semver@7.8.5: {}
 
   send@0.19.2:
     dependencies:
@@ -3341,7 +3342,7 @@ snapshots:
 
   shebang-regex@3.0.0: {}
 
-  shell-quote@1.8.4: {}
+  shell-quote@1.9.0: {}
 
   side-channel-list@1.0.1:
     dependencies:
@@ -3422,7 +3423,7 @@ snapshots:
     dependencies:
       has-flag: 4.0.0
 
-  tar-fs@2.1.4:
+  tar-fs@2.1.5:
     dependencies:
       chownr: 1.1.4
       mkdirp-classic: 0.5.3

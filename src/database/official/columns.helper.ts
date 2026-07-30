@@ -28,7 +28,9 @@ export const baseScoreColumns = {
     bad: mediumint().notNull().default(0),
     miss: mediumint().notNull().default(0),
     date: timestamp().notNull().defaultNow(),
+    sliderHeadHit: tinyint(),
     sliderTickHit: tinyint(),
+    sliderRepeatHit: tinyint(),
     sliderEndHit: tinyint(),
     accuracy: float().notNull().default(0),
 };

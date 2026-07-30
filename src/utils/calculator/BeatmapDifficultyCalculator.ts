@@ -28,7 +28,9 @@ type CalculatableScore =
           | "bad"
           | "miss"
           | "hash"
+          | "sliderHeadHit"
           | "sliderTickHit"
+          | "sliderRepeatHit"
           | "sliderEndHit"
       >;
 

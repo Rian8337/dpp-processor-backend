@@ -299,26 +299,16 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                         );
                     }
 
+                    const perfCalc = new RebalanceDroidPerformanceCalculator(
+                        difficultyAttributes,
+                    ).calculate(calculationOptions);
+
                     const sliderInformation = analyzer.data
                         ? obtainSliderNestedObjectInformation(
                               beatmap,
                               analyzer.data,
                           )
                         : null;
-
-                    const perfCalc = new RebalanceDroidPerformanceCalculator(
-                        difficultyAttributes,
-                    ).calculate({
-                        ...calculationOptions,
-                        sliderTicksMissed: sliderInformation
-                            ? sliderInformation.tick.total -
-                              sliderInformation.tick.obtained
-                            : undefined,
-                        sliderEndsDropped: sliderInformation
-                            ? sliderInformation.end.total -
-                              sliderInformation.end.obtained
-                            : undefined,
-                    });
 
                     const hitError = analyzer.calculateHitError();
 

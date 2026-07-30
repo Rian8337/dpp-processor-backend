@@ -25,11 +25,25 @@ export interface CloneablePerformanceCalculationParameters<
     accuracy: CloneableAccuracy;
 
     /**
+     * The number of slider heads that were hit.
+     *
+     * If {@link sliderTicksMissed} is defined, this value will be ignored.
+     */
+    sliderHeadHits?: number;
+
+    /**
      * The number of slider ticks that were hit.
      *
      * If {@link sliderTicksMissed} is defined, this value will be ignored.
      */
     sliderTickHits?: number;
+
+    /**
+     * The number of slider repeats that were hit.
+     *
+     * If {@link sliderTicksMissed} is defined, this value will be ignored.
+     */
+    sliderRepeatHits?: number;
 
     /**
      * The number of slider ticks that were missed.

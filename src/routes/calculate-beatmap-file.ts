@@ -128,23 +128,13 @@ router.post<
         ),
         tapPenalty: parseInt(req.body.tappenalty ?? "1"),
         sliderCheesePenalty: parseInt(req.body.slidercheesepenalty ?? "1"),
-        sliderTickHits:
+        sliderTicksMissed:
             req.body.sliderticksmissed !== undefined
-                ? MathUtils.clamp(
-                      0,
-                      beatmap.hitObjects.sliderTicks -
-                          parseInt(req.body.sliderticksmissed),
-                      beatmap.hitObjects.sliderTicks,
-                  )
+                ? Math.max(0, parseInt(req.body.sliderticksmissed))
                 : undefined,
-        sliderEndHits:
+        sliderEndsDropped:
             req.body.sliderendsdropped !== undefined
-                ? MathUtils.clamp(
-                      0,
-                      beatmap.hitObjects.sliders -
-                          parseInt(req.body.sliderendsdropped),
-                      beatmap.hitObjects.sliders,
-                  )
+                ? Math.max(0, parseInt(req.body.sliderendsdropped))
                 : undefined,
     });
 

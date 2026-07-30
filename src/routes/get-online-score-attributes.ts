@@ -102,7 +102,9 @@ router.get<
                 accuracy: score.accuracy,
                 combo: score.combo,
                 mods: score.mods,
+                sliderHeadHits: score.sliderHeadHits ?? undefined,
                 sliderTickHits: score.sliderTickHits ?? undefined,
+                sliderRepeatHits: score.sliderRepeatHits ?? undefined,
                 sliderEndHits: score.sliderEndHits ?? undefined,
             });
         } else {
@@ -115,7 +117,9 @@ router.get<
                 }),
                 combo: score.combo,
                 mods: ModUtil.deserializeMods(score.mods),
+                sliderHeadHits: score.sliderHeadHit ?? undefined,
                 sliderTickHits: score.sliderTickHit ?? undefined,
+                sliderRepeatHits: score.sliderRepeatHit ?? undefined,
                 sliderEndHits: score.sliderEndHit ?? undefined,
             });
         }

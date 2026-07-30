@@ -42,11 +42,25 @@ export interface PerformanceCalculationParametersInit {
     tapPenalty?: number;
 
     /**
+     * The number of slider heads that were hit.
+     *
+     * If {@link sliderTicksMissed} is defined, this value will be ignored.
+     */
+    sliderHeadHits?: number;
+
+    /**
      * The number of slider ticks that were hit.
      *
      * If {@link sliderTicksMissed} is defined, this value will be ignored.
      */
     sliderTickHits?: number;
+
+    /**
+     * The number of slider repeats that were hit.
+     *
+     * If {@link sliderTicksMissed} is defined, this value will be ignored.
+     */
+    sliderRepeatHits?: number;
 
     /**
      * The number of slider ticks that were missed.
@@ -111,11 +125,25 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
     tapPenalty?: number;
 
     /**
+     * The number of slider heads that were hit.
+     *
+     * If {@link sliderTicksMissed} is defined, this value will be ignored.
+     */
+    sliderHeadHits?: number;
+
+    /**
      * The number of slider ticks that were hit.
      *
      * If {@link sliderTicksMissed} is defined, this value will be ignored.
      */
     sliderTickHits?: number;
+
+    /**
+     * The number of slider repeats that were hit.
+     *
+     * If {@link sliderTicksMissed} is defined, this value will be ignored.
+     */
+    sliderRepeatHits?: number;
 
     /**
      * The number of slider ticks that were missed.
@@ -154,7 +182,9 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
                 nmiss: 0,
             });
 
+        this.sliderHeadHits = values?.sliderHeadHits;
         this.sliderTickHits = values?.sliderTickHits;
+        this.sliderRepeatHits = values?.sliderRepeatHits;
         this.sliderEndHits = values?.sliderEndHits;
         this.sliderTicksMissed = values?.sliderTicksMissed;
         this.sliderEndsDropped = values?.sliderEndsDropped;
@@ -213,12 +243,16 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
             }
 
             if (replay.beatmap) {
-                const { tick, end } = obtainSliderNestedObjectInformation(
-                    replay.beatmap,
-                    data,
-                );
+                const { head, repeat, tick, end } =
+                    obtainSliderNestedObjectInformation(replay.beatmap, data);
 
-                this.sliderTicksMissed = tick.total - tick.obtained;
+                const headsMissed = head.total - head.obtained;
+                const ticksMissed = tick.total - tick.obtained;
+                const repeatsMissed = repeat.total - repeat.obtained;
+
+                this.sliderTicksMissed =
+                    headsMissed + ticksMissed + repeatsMissed;
+
                 this.sliderEndsDropped = end.total - end.obtained;
             }
         }
@@ -239,7 +273,9 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
                   | "good"
                   | "bad"
                   | "miss"
+                  | "sliderHeadHit"
                   | "sliderTickHit"
+                  | "sliderRepeatHit"
                   | "sliderEndHit"
               >,
     ) {
@@ -259,10 +295,20 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
                   },
         );
 
+        this.sliderHeadHits =
+            (score instanceof Score
+                ? score.sliderHeadHits
+                : score.sliderHeadHit) ?? undefined;
+
         this.sliderTickHits =
             (score instanceof Score
                 ? score.sliderTickHits
                 : score.sliderTickHit) ?? undefined;
+
+        this.sliderRepeatHits =
+            (score instanceof Score
+                ? score.sliderRepeatHits
+                : score.sliderRepeatHit) ?? undefined;
 
         this.sliderEndHits =
             (score instanceof Score
@@ -286,9 +332,22 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
 
         if (this.sliderTicksMissed !== undefined) {
             options.sliderTicksMissed = this.sliderTicksMissed;
-        } else if (this.sliderTickHits !== undefined) {
-            options.sliderTicksMissed =
+        } else if (
+            this.sliderHeadHits !== undefined &&
+            this.sliderTickHits !== undefined &&
+            this.sliderRepeatHits !== undefined
+        ) {
+            const headsMissed =
+                beatmap.hitObjects.sliders - this.sliderHeadHits;
+
+            const ticksMissed =
                 beatmap.hitObjects.sliderTicks - this.sliderTickHits;
+
+            const repeatsMissed =
+                beatmap.hitObjects.sliderRepeatPoints - this.sliderRepeatHits;
+
+            options.sliderTicksMissed =
+                headsMissed + ticksMissed + repeatsMissed;
         }
 
         if (this.sliderEndsDropped !== undefined) {
@@ -309,7 +368,9 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
             ...super.toCloneable(),
             accuracy: { ...this.accuracy },
             combo: this.combo,
+            sliderHeadHits: this.sliderHeadHits,
             sliderTickHits: this.sliderTickHits,
+            sliderRepeatHits: this.sliderRepeatHits,
             sliderEndHits: this.sliderEndHits,
             sliderTicksMissed: this.sliderTicksMissed,
             sliderEndsDropped: this.sliderEndsDropped,

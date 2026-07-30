@@ -16,11 +16,8 @@ import {
 } from "./database/official/schema";
 import { getBeatmapFile } from "./services/beatmapService";
 import { isReplayValid } from "./utils/dppUtil";
-import {
-    getOfficialBestReplay,
-    getOnlineReplay,
-    obtainTickInformation,
-} from "./utils/replayManager";
+import { getOfficialBestReplay, getOnlineReplay } from "./utils/replayManager";
+import { obtainSliderNestedObjectInformation } from "./utils/nestedSliderObjectCalculator";
 
 (async () => {
     const scores = await officialDb
@@ -63,7 +60,10 @@ import {
             const { data } = analyzer;
 
             if (data !== null && isReplayValid(score, data)) {
-                const { tick, end } = obtainTickInformation(beatmap, data);
+                const { tick, end } = obtainSliderNestedObjectInformation(
+                    beatmap,
+                    data,
+                );
 
                 await officialDb
                     .update(scoresTable)
@@ -120,7 +120,10 @@ import {
                 const { data } = analyzer;
 
                 if (data !== null && isReplayValid(bestScore, data)) {
-                    const { tick, end } = obtainTickInformation(beatmap, data);
+                    const { tick, end } = obtainSliderNestedObjectInformation(
+                        beatmap,
+                        data,
+                    );
 
                     await officialDb
                         .update(bestScoresTable)
@@ -174,7 +177,10 @@ import {
             Modes.Droid,
         ).result;
 
-        const { tick, end } = obtainTickInformation(beatmap, data);
+        const { tick, end } = obtainSliderNestedObjectInformation(
+            beatmap,
+            data,
+        );
 
         await officialDb
             .update(uncalculatedScoresTable)

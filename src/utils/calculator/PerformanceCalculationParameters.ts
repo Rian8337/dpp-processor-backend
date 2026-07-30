@@ -8,9 +8,9 @@ import { Score } from "@rian8337/osu-droid-utilities";
 import { IDroidDifficultyAttributes } from "@rian8337/osu-rebalance-difficulty-calculator";
 import { scoresTable } from "../../database/official/schema";
 import { RawDifficultyAttributes } from "../../structures/attributes/RawDifficultyAttributes";
-import { obtainTickInformation } from "../replayManager";
 import { CloneablePerformanceCalculationParameters } from "./CloneablePerformanceCalculationParameters";
 import { DifficultyCalculationParameters } from "./DifficultyCalculationParameters";
+import { obtainSliderNestedObjectInformation } from "../nestedSliderObjectCalculator";
 
 /**
  * Represents a parameter to alter performance calculation result.
@@ -213,7 +213,7 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
             }
 
             if (replay.beatmap) {
-                const { tick, end } = obtainTickInformation(
+                const { tick, end } = obtainSliderNestedObjectInformation(
                     replay.beatmap,
                     data,
                 );

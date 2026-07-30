@@ -33,7 +33,7 @@ import {
 } from "../calculator/LocalBeatmapDifficultyCalculator";
 import { PerformanceCalculationParameters } from "../calculator/PerformanceCalculationParameters";
 import { LimitedCapacityCollection } from "../LimitedCapacityCollection";
-import { obtainTickInformation } from "../replayManager";
+import { obtainSliderNestedObjectInformation } from "../nestedSliderObjectCalculator";
 
 const beatmapCache = new LimitedCapacityCollection<string, Beatmap>(
     250,
@@ -177,7 +177,10 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                     ).calculate(calculationOptions);
 
                     const sliderInformation = analyzer.data
-                        ? obtainTickInformation(beatmap, analyzer.data)
+                        ? obtainSliderNestedObjectInformation(
+                              beatmap,
+                              analyzer.data,
+                          )
                         : null;
 
                     attributes = {
@@ -297,7 +300,10 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                     }
 
                     const sliderInformation = analyzer.data
-                        ? obtainTickInformation(beatmap, analyzer.data)
+                        ? obtainSliderNestedObjectInformation(
+                              beatmap,
+                              analyzer.data,
+                          )
                         : null;
 
                     const perfCalc = new RebalanceDroidPerformanceCalculator(

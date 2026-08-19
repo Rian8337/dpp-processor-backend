@@ -114,13 +114,12 @@ router.post<
     const beatmap = new BeatmapDecoder().decode(osuFile, gamemode).result;
 
     const calculationParams = new PerformanceCalculationParameters({
-        accuracy: new Accuracy({
+        accuracy: Accuracy.fromHitCounts({
             n300: Math.max(-1, parseInt(req.body.n300 ?? "-1")),
             n100: Math.max(0, parseInt(req.body.n100 ?? "0")),
             n50: Math.max(0, parseInt(req.body.n50 ?? "0")),
             nmiss: Math.max(0, parseInt(req.body.nmiss ?? "0")),
-            nobjects: beatmap.hitObjects.objects.length,
-        }),
+        }, beatmap.hitObjects.objects.length),
         combo: MathUtils.clamp(
             parseInt(req.body.maxcombo ?? beatmap.maxCombo.toString()),
             0,

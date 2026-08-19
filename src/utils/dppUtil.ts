@@ -307,19 +307,19 @@ export function isReplayValid(
         databaseScore instanceof Score
             ? databaseScore
             : new Score({
-                  ...databaseScore,
-                  username: "",
-                  mods: JSON.parse(databaseScore.mods) as SerializedMod[],
-                  mark: databaseScore.mark as ScoreRank,
-                  date: databaseScore.date.getTime(),
-              });
+                ...databaseScore,
+                username: "",
+                mods: JSON.parse(databaseScore.mods) as SerializedMod[],
+                mark: databaseScore.mark as ScoreRank,
+                date: databaseScore.date.getTime(),
+            });
 
     // For replay v1 and v2, there is not that much information - just check the accuracy and hash.
     if (
         score.hash !== replayData.hash ||
         !score.accuracy.equals(replayData.accuracy) ||
         // Also check if the accuracy is "empty", as in there are no hits at all.
-        Number.isNaN(replayData.accuracy.value())
+        replayData.accuracy.value === 0
     ) {
         return false;
     }

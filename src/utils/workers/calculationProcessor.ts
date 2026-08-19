@@ -56,11 +56,9 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
     const calculationParams = parameters
         ? PerformanceCalculationParameters.from(parameters)
         : new PerformanceCalculationParameters({
-              combo: beatmap.maxCombo,
-              accuracy: new Accuracy({
-                  nobjects: beatmap.hitObjects.objects.length,
-              }),
-          });
+            combo: beatmap.maxCombo,
+            accuracy: Accuracy.fromPercent(100, beatmap.hitObjects.objects.length),
+        });
 
     const analyzer = new ReplayAnalyzer({ map: beatmap });
 
@@ -92,9 +90,9 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
 
     let attributes:
         | CompleteCalculationAttributes<
-              RawDifficultyAttributes,
-              PerformanceAttributes
-          >
+            RawDifficultyAttributes,
+            PerformanceAttributes
+        >
         | undefined;
     let strainChart: Buffer | undefined;
 
@@ -133,10 +131,10 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
 
                     if (analyzer.data) {
                         const extendedDifficultyAttributes: IExtendedDroidDifficultyAttributes =
-                            {
-                                ...difficultyAttributes,
-                                mods: calculationParams.mods,
-                            };
+                        {
+                            ...difficultyAttributes,
+                            mods: calculationParams.mods,
+                        };
 
                         if (
                             !BeatmapDroidDifficultyCalculator.applyTapPenalty(
@@ -178,9 +176,9 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
 
                     const sliderInformation = analyzer.data
                         ? obtainSliderNestedObjectInformation(
-                              beatmap,
-                              analyzer.data,
-                          )
+                            beatmap,
+                            analyzer.data,
+                        )
                         : null;
 
                     attributes = {
@@ -201,14 +199,14 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                         replay:
                             analyzer.data && sliderInformation
                                 ? {
-                                      hitError:
-                                          analyzer.calculateHitError() ??
-                                          undefined,
-                                      sliderTickInformation:
-                                          sliderInformation.tick,
-                                      sliderEndInformation:
-                                          sliderInformation.end,
-                                  }
+                                    hitError:
+                                        analyzer.calculateHitError() ??
+                                        undefined,
+                                    sliderTickInformation:
+                                        sliderInformation.tick,
+                                    sliderEndInformation:
+                                        sliderInformation.end,
+                                }
                                 : undefined,
                     };
 
@@ -247,10 +245,10 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
 
                     if (analyzer.data) {
                         const extendedDifficultyAttributes: IRebalanceExtendedDroidDifficultyAttributes =
-                            {
-                                ...difficultyAttributes,
-                                mods: calculationParams.mods,
-                            };
+                        {
+                            ...difficultyAttributes,
+                            mods: calculationParams.mods,
+                        };
 
                         if (
                             !BeatmapDroidDifficultyCalculator.applyTwoHandPenalty(
@@ -305,9 +303,9 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
 
                     const sliderInformation = analyzer.data
                         ? obtainSliderNestedObjectInformation(
-                              beatmap,
-                              analyzer.data,
-                          )
+                            beatmap,
+                            analyzer.data,
+                        )
                         : null;
 
                     const hitError = analyzer.calculateHitError();
@@ -328,7 +326,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                             sliderCheesePenalty: perfCalc.sliderCheesePenalty,
                             calculatedUnstableRate: analyzer.data
                                 ? (hitError?.unstableRate ?? 0) /
-                                  difficultyAttributes.clockRate
+                                difficultyAttributes.clockRate
                                 : 0,
                             estimatedUnstableRate: perfCalc.deviation * 10,
                             estimatedSpeedUnstableRate:
@@ -337,14 +335,14 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                         replay:
                             analyzer.data && sliderInformation
                                 ? {
-                                      hitError:
-                                          analyzer.calculateHitError() ??
-                                          undefined,
-                                      sliderTickInformation:
-                                          sliderInformation.tick,
-                                      sliderEndInformation:
-                                          sliderInformation.end,
-                                  }
+                                    hitError:
+                                        analyzer.calculateHitError() ??
+                                        undefined,
+                                    sliderTickInformation:
+                                        sliderInformation.tick,
+                                    sliderEndInformation:
+                                        sliderInformation.end,
+                                }
                                 : undefined,
                     };
 

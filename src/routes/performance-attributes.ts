@@ -111,21 +111,20 @@ router.post<
 
     const calculationParams = new PerformanceCalculationParameters({
         mods: mods,
-        accuracy: new Accuracy({
+        accuracy: Accuracy.fromHitCounts({
             n300: Math.max(0, parseInt(req.body.n300 ?? "-1")),
             n100: Math.max(0, parseInt(req.body.n100 ?? "0")),
             n50: Math.max(0, parseInt(req.body.n50 ?? "0")),
             nmiss: Math.max(0, parseInt(req.body.nmiss ?? "0")),
-            nobjects: apiBeatmap.objectCount,
-        }),
+        }, apiBeatmap.objectCount),
         combo:
             typeof req.body.maxcombo === "string" &&
-            apiBeatmap.maxCombo !== null
+                apiBeatmap.maxCombo !== null
                 ? MathUtils.clamp(
-                      parseInt(req.body.maxcombo),
-                      0,
-                      apiBeatmap.maxCombo,
-                  )
+                    parseInt(req.body.maxcombo),
+                    0,
+                    apiBeatmap.maxCombo,
+                )
                 : (apiBeatmap.maxCombo ?? undefined),
         tapPenalty: parseInt(req.body.tappenalty ?? "1"),
         sliderCheesePenalty: parseInt(req.body.aimslidercheesepenalty ?? "1"),

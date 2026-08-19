@@ -104,7 +104,7 @@ router.post<
     const calculationParams = new PerformanceCalculationParameters({
         mods: mods,
         combo: beatmap.maxCombo ?? undefined,
-        accuracy: new Accuracy({ nobjects: beatmap.objectCount }),
+        accuracy: Accuracy.fromPercent(100, beatmap.objectCount),
     });
 
     switch (calculationMethod) {
@@ -150,15 +150,15 @@ router.post<
         const calculationResult = await (
             calculationMethod === PPCalculationMethod.Live
                 ? difficultyCalculator.calculateBeatmapPerformance(
-                      beatmap,
-                      calculationParams,
-                      generateStrainChart,
-                  )
+                    beatmap,
+                    calculationParams,
+                    generateStrainChart,
+                )
                 : difficultyCalculator.calculateBeatmapRebalancePerformance(
-                      beatmap,
-                      calculationParams,
-                      generateStrainChart,
-                  )
+                    beatmap,
+                    calculationParams,
+                    generateStrainChart,
+                )
         ).catch((e: unknown) => {
             console.log(
                 "Calculation failed for URL:",

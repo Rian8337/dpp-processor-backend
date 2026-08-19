@@ -75,7 +75,7 @@ export function getGrade(score: IDanCourseScore): number {
                 n100: score.good,
                 n50: score.bad,
                 nmiss: score.miss,
-            }).value();
+            }).value;
 
         case "combo":
             return score.maxCombo;

@@ -91,7 +91,7 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
     }
 
     // Modify this for ending point
-    while (id <= 5200000) {
+    while (id <= 25000000) {
         const scoreId = id++;
 
         await processorDb

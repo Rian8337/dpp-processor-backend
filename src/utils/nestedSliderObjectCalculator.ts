@@ -1,14 +1,37 @@
 import {
-    HitResult,
-    IBeatmap,
+    Beatmap,
+    BeatmapDifficulty,
+    DroidHitWindow,
+    DroidPlayableBeatmap,
+    HitWindow,
+    Modes,
+    ModMap,
+    ModPrecise,
+    ModUtil,
+    PreciseDroidHitWindow,
     Slider,
     SliderRepeat,
     SliderTail,
-    SliderTick,
+    SliderTick
 } from "@rian8337/osu-base";
 import { ReplayData } from "@rian8337/osu-droid-replay-analyzer";
-import { SliderTickInformation } from "../structures/SliderTickInformation";
 
+/**
+ * Represents information summary about obtained slider ticks in a replay.
+ */
+export interface SliderTickInformation {
+    /**
+     * The amount of ticks obtained.
+     */
+    obtained: number;
+
+    /**
+     * The total amount of ticks.
+     */
+    total: number;
+}
+
+// TODO: replace with osu-droid-replay-analyzer's built-in method after version bump
 /**
  * Obtains the nested object information for sliders in a replay.
  *
@@ -17,7 +40,7 @@ import { SliderTickInformation } from "../structures/SliderTickInformation";
  * @returns An object containing the tick and end information.
  */
 export function obtainSliderNestedObjectInformation(
-    beatmap: IBeatmap,
+    beatmap: Beatmap | DroidPlayableBeatmap,
     data: ReplayData,
 ): {
     readonly head: SliderTickInformation;
@@ -25,57 +48,73 @@ export function obtainSliderNestedObjectInformation(
     readonly repeat: SliderTickInformation;
     readonly end: SliderTickInformation;
 } {
-    const head: SliderTickInformation = {
-        obtained: 0,
-        total: beatmap.hitObjects.sliders,
-    };
+    let hitWindow: HitWindow;
 
-    const tick: SliderTickInformation = {
-        obtained: 0,
-        total: beatmap.hitObjects.sliderTicks,
-    };
+    if (beatmap instanceof DroidPlayableBeatmap) {
+        hitWindow = beatmap.hitWindow;
+    } else {
+        const mods = data.isReplayV3() ? data.convertedMods : new ModMap();
+        const adjustedDifficulty = new BeatmapDifficulty(beatmap.difficulty);
 
-    const repeat: SliderTickInformation = {
-        obtained: 0,
-        total: beatmap.hitObjects.sliderRepeatPoints,
-    };
+        ModUtil.applyModsToBeatmapDifficulty(adjustedDifficulty, Modes.Droid, mods);
 
-    const end: SliderTickInformation = {
-        obtained: 0,
-        total: beatmap.hitObjects.sliderEnds,
-    };
+        hitWindow = mods.has(ModPrecise)
+            ? new PreciseDroidHitWindow(adjustedDifficulty.od)
+            : new DroidHitWindow(adjustedDifficulty.od);
+    }
+
+    const head: SliderTickInformation = { obtained: 0, total: beatmap.hitObjects.sliders };
+    const tick: SliderTickInformation = { obtained: 0, total: 0 };
+    const repeat: SliderTickInformation = { obtained: 0, total: 0 };
+    const end: SliderTickInformation = { obtained: 0, total: 0 };
 
     for (let i = 0; i < data.hitObjectData.length; ++i) {
         const object = beatmap.hitObjects.objects[i];
         const objectData = data.hitObjectData[i];
 
-        if (
-            objectData.result === HitResult.Miss ||
-            !(object instanceof Slider)
-        ) {
+        if (!(object instanceof Slider)) {
             continue;
         }
 
-        // Exclude the head circle.
+        let lateHitThreshold = hitWindow.mehWindow;
+
+        // Before replay version 8, the slider head's hit window is capped to the duration of the slider.
+        if (data.replayVersion < 8) {
+            lateHitThreshold = Math.min(lateHitThreshold, object.duration);
+        }
+
+        if (
+            -hitWindow.mehWindow <= objectData.accuracy &&
+            objectData.accuracy <= lateHitThreshold
+        ) {
+            ++head.obtained;
+        }
+
         for (let j = 1; j < object.nestedHitObjects.length; ++j) {
             const nested = object.nestedHitObjects[j];
-
-            if (!objectData.tickset[j - 1]) {
-                continue;
-            }
+            let tickInformation: SliderTickInformation;
 
             switch (true) {
                 case nested instanceof SliderTick:
-                    ++tick.obtained;
+                    tickInformation = tick;
                     break;
 
                 case nested instanceof SliderRepeat:
-                    ++repeat.obtained;
+                    tickInformation = repeat;
                     break;
 
                 case nested instanceof SliderTail:
-                    ++end.obtained;
+                    tickInformation = end;
                     break;
+
+                default:
+                    continue;
+            }
+
+            ++tickInformation.total;
+
+            if (objectData.tickset[j - 1]) {
+                ++tickInformation.obtained;
             }
         }
     }

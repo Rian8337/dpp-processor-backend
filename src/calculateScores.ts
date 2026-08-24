@@ -99,8 +99,6 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
             .set({ score_id: id })
             .where(eq(scoreCalculationTable.process_id, processId));
 
-        await Utils.sleep(0.1);
-
         // Get the current score.
         const score = await obtainOfficialScore(scoreId);
         if (!score || score.score === 0) {
@@ -109,6 +107,8 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
             await invalidateScore(scoreId);
             continue;
         }
+
+        await Utils.sleep(0.1);
 
         // Obtain the beatmap of the score.
         const beatmap = await getBeatmap(score.hash);

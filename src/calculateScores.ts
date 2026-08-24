@@ -1,4 +1,4 @@
-import { RankedStatus } from "@rian8337/osu-base";
+import { RankedStatus, Utils } from "@rian8337/osu-base";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import "dotenv/config";
 import { eq } from "drizzle-orm";
@@ -98,6 +98,8 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
             .update(scoreCalculationTable)
             .set({ score_id: id })
             .where(eq(scoreCalculationTable.process_id, processId));
+
+        await Utils.sleep(0.1);
 
         // Get the current score.
         const score = await obtainOfficialScore(scoreId);

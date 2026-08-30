@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS live_droid_difficulty_attributes (
     difficult_sliders                       jsonb           NOT NULL,
     aim_top_weighted_slider_factor          float           NOT NULL,
     tap_top_weighted_slider_factor          float           NOT NULL,
-    maximum_score                           int             NOT NULL,
+    maximum_score                           bigint          NOT NULL,
 
     PRIMARY KEY (beatmap_id, mods),
     CONSTRAINT fk_live_droid_difficulty_attributes_beatmap_id FOREIGN KEY (beatmap_id) REFERENCES beatmap(id) ON DELETE CASCADE
@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS rebalance_droid_difficulty_attributes (
     difficult_sliders                       jsonb           NOT NULL,
     aim_top_weighted_slider_factor          float           NOT NULL,
     tap_top_weighted_slider_factor          float           NOT NULL,
-    maximum_score                           int             NOT NULL,
+    maximum_score                           bigint          NOT NULL,
 
     PRIMARY KEY (beatmap_id, mods),
     CONSTRAINT fk_rebalance_droid_difficulty_attributes_beatmap_id FOREIGN KEY (beatmap_id) REFERENCES beatmap(id) ON DELETE CASCADE

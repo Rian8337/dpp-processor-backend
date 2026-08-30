@@ -3,6 +3,7 @@ import {
     DifficultSlider,
     HighStrainSection,
 } from "@rian8337/osu-difficulty-calculator";
+import { bigint } from "drizzle-orm/pg-core";
 import { doublePrecision, integer, jsonb } from "drizzle-orm/pg-core";
 
 /**
@@ -149,7 +150,7 @@ export const baseDroidDifficultyAttributesColumns = {
     /**
      * The maximum score obtainable on the beatmap.
      */
-    maximumScore: integer().notNull(),
+    maximumScore: bigint({ mode: "number" }).notNull(),
 } as const;
 
 /**

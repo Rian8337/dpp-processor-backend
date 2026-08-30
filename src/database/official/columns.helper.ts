@@ -1,4 +1,5 @@
 import {
+    bigint,
     float,
     int,
     longtext,
@@ -18,7 +19,7 @@ export const baseScoreColumns = {
     filename: varchar({ length: 255 }).notNull(),
     hash: varchar({ length: 36 }).notNull(),
     mods: longtext().notNull().default("[]"),
-    score: int().notNull().default(0),
+    score: bigint({ mode: "number" }).notNull().default(0),
     combo: int().notNull().default(0),
     mark: varchar({ length: 2 }),
     geki: mediumint().notNull().default(0),

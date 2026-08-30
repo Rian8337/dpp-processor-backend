@@ -85,9 +85,11 @@ router.get<
         ? await getOfficialBestReplay(score.id)
         : await getOnlineReplay(score.id);
 
-    await analyzer.analyze().catch(() => {
-        console.error(`Score of ID ${score.id.toString()} cannot be parsed`);
-    });
+    if (analyzer.originalODR) {
+        await analyzer.analyze().catch(() => {
+            console.error(`Score of ID ${score.id.toString()} cannot be parsed`);
+        });
+    }
 
     const { data } = analyzer;
 

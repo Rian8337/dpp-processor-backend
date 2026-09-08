@@ -104,7 +104,10 @@ const difficultyCalculator = new BeatmapDroidDifficultyCalculator();
         if (!score || score.score === 0) {
             console.log("Score ID", scoreId, "does not exist");
 
-            await invalidateScore(scoreId);
+            if (score?.score === 0) {
+                await invalidateScore(scoreId);
+            }
+
             continue;
         }
 

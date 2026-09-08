@@ -33,7 +33,6 @@ import {
 } from "../calculator/LocalBeatmapDifficultyCalculator";
 import { PerformanceCalculationParameters } from "../calculator/PerformanceCalculationParameters";
 import { LimitedCapacityCollection } from "../LimitedCapacityCollection";
-import { obtainSliderNestedObjectInformation } from "../nestedSliderObjectCalculator";
 
 const beatmapCache = new LimitedCapacityCollection<string, Beatmap>(
     250,
@@ -174,12 +173,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                         difficultyAttributes,
                     ).calculate(calculationOptions);
 
-                    const sliderInformation = analyzer.data
-                        ? obtainSliderNestedObjectInformation(
-                            beatmap,
-                            analyzer.data,
-                        )
-                        : null;
+                    const sliderInformation = analyzer.obtainSliderHitInformation();
 
                     attributes = {
                         params: calculationParams.toCloneable(),
@@ -197,7 +191,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                             sliderCheesePenalty: perfCalc.sliderCheesePenalty,
                         } as DroidPerformanceAttributes,
                         replay:
-                            analyzer.data && sliderInformation
+                            sliderInformation
                                 ? {
                                     hitError:
                                         analyzer.calculateHitError() ??
@@ -301,13 +295,7 @@ parentPort?.on("message", async (data: CalculationWorkerData) => {
                         difficultyAttributes,
                     ).calculate(calculationOptions);
 
-                    const sliderInformation = analyzer.data
-                        ? obtainSliderNestedObjectInformation(
-                            beatmap,
-                            analyzer.data,
-                        )
-                        : null;
-
+                    const sliderInformation = analyzer.obtainSliderHitInformation();
                     const hitError = analyzer.calculateHitError();
 
                     attributes = {

@@ -1,4 +1,4 @@
-import { HitErrorInformation } from "@rian8337/osu-droid-replay-analyzer";
+import { HitErrorInformation, SliderNestedHitObjectInformation } from "@rian8337/osu-droid-replay-analyzer";
 import { CompleteCalculationAttributes } from "../../../structures/attributes/CompleteCalculationAttributes";
 import {
     DroidDifficultyAttributes,
@@ -6,7 +6,6 @@ import {
 } from "@rian8337/osu-difficulty-calculator";
 import { DroidPerformanceAttributes } from "../../../structures/attributes/DroidPerformanceAttributes";
 import { OsuPerformanceAttributes } from "../../../structures/attributes/OsuPerformanceAttributes";
-import { SliderTickInformation } from "../../../structures/SliderTickInformation";
 import { SerializedMod } from "@rian8337/osu-base";
 
 /**
@@ -86,12 +85,12 @@ export interface IRecentPlay {
     /**
      * Information about this play's slider tick collection.
      */
-    sliderTickInformation?: SliderTickInformation;
+    sliderTickInformation?: SliderNestedHitObjectInformation;
 
     /**
      * Information about this play's slider end collection.
      */
-    sliderEndInformation?: SliderTickInformation;
+    sliderEndInformation?: SliderNestedHitObjectInformation;
 
     /**
      * The osu!droid difficulty attributes of this play.

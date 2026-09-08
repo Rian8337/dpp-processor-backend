@@ -1,5 +1,4 @@
-import { HitErrorInformation } from "@rian8337/osu-droid-replay-analyzer";
-import { SliderTickInformation } from "../SliderTickInformation";
+import { HitErrorInformation, SliderNestedHitObjectInformation } from "@rian8337/osu-droid-replay-analyzer";
 
 /**
  * Represents data of a calculated replay.
@@ -13,10 +12,10 @@ export interface ReplayAttributes {
     /**
      * Information about slider tick hits.
      */
-    readonly sliderTickInformation: SliderTickInformation;
+    readonly sliderTickInformation: SliderNestedHitObjectInformation;
 
     /**
      * Information about slider end hits.
      */
-    readonly sliderEndInformation: SliderTickInformation;
+    readonly sliderEndInformation: SliderNestedHitObjectInformation;
 }

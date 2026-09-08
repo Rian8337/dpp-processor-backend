@@ -10,7 +10,6 @@ import { scoresTable } from "../../database/official/schema";
 import { RawDifficultyAttributes } from "../../structures/attributes/RawDifficultyAttributes";
 import { CloneablePerformanceCalculationParameters } from "./CloneablePerformanceCalculationParameters";
 import { DifficultyCalculationParameters } from "./DifficultyCalculationParameters";
-import { obtainSliderNestedObjectInformation } from "../nestedSliderObjectCalculator";
 
 /**
  * Represents a parameter to alter performance calculation result.
@@ -243,8 +242,7 @@ export class PerformanceCalculationParameters extends DifficultyCalculationParam
             }
 
             if (replay.beatmap) {
-                const { head, repeat, tick, end } =
-                    obtainSliderNestedObjectInformation(replay.beatmap, data);
+                const { head, repeat, tick, end } = replay.obtainSliderHitInformation()!;
 
                 const headsMissed = head.total - head.obtained;
                 const ticksMissed = tick.total - tick.obtained;

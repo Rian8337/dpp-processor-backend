@@ -11,7 +11,7 @@
     "update-osu-libraries-release": "pnpm i @rian8337/osu-base @rian8337/osu-difficulty-calculator @rian8337/osu-droid-replay-analyzer @rian8337/osu-droid-utilities @rian8337/osu-rebalance-difficulty-calculator @rian8337/osu-strain-graph-generator",
     "use-local-osu-module": "pnpm i ../osu-droid-module/packages/osu-base ../osu-droid-module/packages/osu-difficulty-calculator ../osu-droid-module/packages/osu-droid-replay-analyzer ../osu-droid-module/packages/osu-droid-utilities ../osu-droid-module/packages/osu-rebalance-difficulty-calculator ../osu-droid-module/packages/osu-strain-graph-generator"
   },
-  "packageManager": "pnpm@11.5.2",
+  "packageManager": "pnpm@12.3.4",
   "keywords": [],
   "author": "Rian8337",
   "license": "MIT",

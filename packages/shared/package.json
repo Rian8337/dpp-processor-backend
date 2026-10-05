@@ -1,0 +1,15 @@
+{
+  "name": "@dpp/shared",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Types and validators shared between the processor and the services that call it",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "author": "Rian8337",
+  "license": "MIT"
+}

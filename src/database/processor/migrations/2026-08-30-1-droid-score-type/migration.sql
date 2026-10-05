@@ -1,2 +1,0 @@
-ALTER TABLE live_droid_difficulty_attributes ALTER COLUMN maximum_score TYPE bigint;
-ALTER TABLE rebalance_droid_difficulty_attributes ALTER COLUMN maximum_score TYPE bigint;

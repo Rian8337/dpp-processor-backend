@@ -1,0 +1,72 @@
+{
+  "id": "0eba269e-92d3-4d08-8f9a-ac5992c54691",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.difficulty_attributes": {
+      "name": "difficulty_attributes",
+      "schema": "",
+      "columns": {
+        "calculator_version": {
+          "name": "calculator_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "beatmap_hash": {
+          "name": "beatmap_hash",
+          "type": "char(32)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mods": {
+          "name": "mods",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "attributes": {
+          "name": "attributes",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "difficulty_attributes_calculator_version_beatmap_hash_mods_pk": {
+          "name": "difficulty_attributes_calculator_version_beatmap_hash_mods_pk",
+          "columns": [
+            "calculator_version",
+            "beatmap_hash",
+            "mods"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

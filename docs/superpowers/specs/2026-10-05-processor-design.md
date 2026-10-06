@@ -126,7 +126,7 @@ It follows the structure of `PSB-SMAN2Tangsel/backend`: `@Injectable(token)` and
 | `CALCULATION_THREADS`                                                                   | worker pool size; `0` runs calculations inline            |
 | `CALCULATION_MAX_QUEUE`                                                                 | maximum queued worker tasks before returning `OVERLOADED` |
 
-**VariantManifest**. Loaded once from the snapshot's `manifest.json` (located relative to `import.meta.url`). Provides the variant id, mode, and calculator version. When running from source (development, tests), there is no `manifest.json`; the manifest is constructed from the `DEV_MODE` (`droid`/`osu`) and `DEV_ALGORITHM` (`live`/`rebalance`) environment variables and the installed npm packages. These variables are ignored when a `manifest.json` exists.
+**VariantManifest**. Loaded once from the snapshot's `manifest.json` (located relative to `import.meta.url`). Provides the variant id, mode, and calculator version. When running from source (development, tests), there is no `manifest.json`; the manifest is built from the `DEV_MODE` (`droid`/`osu`) environment variable and the installed npm live calculator. Running rebalance or local calculator code requires a variant build, since redirecting packages needs the bundler. `DEV_MODE` is ignored when a `manifest.json` exists.
 
 **Algorithm** (`DroidAlgorithm`, `OsuAlgorithm`). The only code that calls the calculator packages. Used by both the main thread and workers. Methods:
 

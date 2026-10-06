@@ -1,5 +1,7 @@
 import type { Algorithm } from "@/algorithms/types";
 import type { ICalculationRunner } from "@/calculation/ICalculationRunner";
+import type { Config } from "@/config/config";
+import type { VariantManifest } from "@/manifest/manifest";
 import type { InjectionToken } from "tsyringe";
 
 /**
@@ -12,4 +14,6 @@ export const dependencyTokens = {
     calculationRunner: Symbol.for(
         "calculationRunner",
     ) as InjectionToken<ICalculationRunner>,
+    config: Symbol.for("config") as InjectionToken<Config>,
+    manifest: Symbol.for("manifest") as InjectionToken<VariantManifest>,
 } satisfies Record<string, InjectionToken<unknown>>;

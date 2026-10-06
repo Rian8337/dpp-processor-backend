@@ -1,12 +1,20 @@
 import { createAlgorithm } from "@/algorithms/createAlgorithm";
-import type { ReplayAnalysis, ReplayHeader } from "@/algorithms/types";
+import type {
+    Algorithm,
+    ReplayAnalysis,
+    ReplayHeader,
+} from "@/algorithms/types";
 import type { ICalculationRunner } from "@/calculation/ICalculationRunner";
 import { InlineRunner } from "@/calculation/InlineRunner";
 import type { VariantManifest } from "@/manifest/manifest";
 import { BeatmapService } from "@/services/BeatmapService";
 import { CalculationService } from "@/services/CalculationService";
 import { DifficultyCacheService } from "@/services/DifficultyCacheService";
-import { BadRequestError, UnprocessableEntityError } from "@/types/errors";
+import {
+    BadRequestError,
+    CalculationFailedError,
+    UnprocessableEntityError,
+} from "@/types/errors";
 import { Modes } from "@rian8337/osu-base";
 import { FixtureBeatmapServiceClient } from "@test/utils/beatmaps";
 import {
@@ -19,8 +27,10 @@ import { describe, expect, it, vi } from "vitest";
 function createService(
     mode: Modes,
     configure: (runner: InlineRunner) => void = () => undefined,
+    configureAlgorithm: (algorithm: Algorithm) => void = () => undefined,
 ) {
     const algorithm = createAlgorithm(mode);
+    configureAlgorithm(algorithm);
     const runner = new InlineRunner(algorithm);
     configure(runner);
 
@@ -114,6 +124,37 @@ describe("CalculationService", () => {
                 strainChart: false,
             }),
         ).rejects.toBeInstanceOf(BadRequestError);
+    });
+
+    it("reports an unexpected calculator failure as CALCULATION_FAILED", async () => {
+        const error = vi
+            .spyOn(console, "error")
+            .mockImplementation(() => undefined);
+        const service = createService(Modes.Droid, undefined, (algorithm) => {
+            vi.spyOn(algorithm, "calculatePerformance").mockImplementation(
+                () => {
+                    throw new RangeError("calculator blew up");
+                },
+            );
+        });
+
+        const failure = service.calculatePerformance({
+            beatmap: loveLetter,
+            mods: [],
+            score: {},
+            strainChart: false,
+        });
+
+        await expect(failure).rejects.toBeInstanceOf(CalculationFailedError);
+        await expect(failure).rejects.toMatchObject({
+            statusCode: 500,
+            code: "CALCULATION_FAILED",
+            message: "calculator blew up",
+        });
+        expect(error).toHaveBeenCalledWith(
+            "Performance calculation failed:",
+            expect.any(RangeError),
+        );
     });
 
     it("rejects hit counts above the object count", async () => {

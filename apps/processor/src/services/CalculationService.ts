@@ -5,7 +5,11 @@ import { strainChartColor } from "@/calculation/strainChartColor";
 import { Injectable } from "@/decorators/injectable";
 import { dependencyTokens } from "@/dependencies/tokens";
 import type { VariantManifest } from "@/manifest/manifest";
-import { BadRequestError, UnprocessableEntityError } from "@/types/errors";
+import {
+    BadRequestError,
+    CalculationFailedError,
+    UnprocessableEntityError,
+} from "@/types/errors";
 import type {
     DifficultyRequest,
     DifficultyResponse,
@@ -151,7 +155,17 @@ export class CalculationService implements ICalculationService {
         try {
             return this.algorithm.calculatePerformance(difficulty, score);
         } catch (e) {
-            throw e instanceof AlgorithmInputError ? e.toApiError() : e;
+            if (e instanceof AlgorithmInputError) {
+                throw e.toApiError();
+            }
+
+            console.error("Performance calculation failed:", e);
+
+            throw new CalculationFailedError(
+                e instanceof Error
+                    ? e.message
+                    : "Performance calculation failed",
+            );
         }
     }
 

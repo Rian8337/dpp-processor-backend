@@ -29,6 +29,14 @@ import type {
 } from "./types";
 
 /**
+ * Difficulty attributes with the mods deserialized into a `ModMap`, as the replay analyzer expects.
+ */
+export type ReplayAttributes<TAttributes extends IDifficultyAttributes> = Omit<
+    TAttributes,
+    "mods" | "toCacheableAttributes"
+> & { mods: ModMap };
+
+/**
  * Calculator logic shared by all modes.
  *
  * @template TAttributes The difficulty attributes the mode's difficulty calculator produces.
@@ -127,7 +135,13 @@ export abstract class BaseAlgorithm<
         beatmap: Beatmap,
         difficulty: CacheableDifficultyAttributes<TAttributes>,
     ): Promise<ReplayAnalysis> {
-        const analyzer = new ReplayAnalyzer({ map: beatmap });
+        // The attributes must be set before any analysis: for replays that do not record their mods (v1/v2), hit
+        // windows are taken from them.
+        const attributes: ReplayAttributes<TAttributes> = {
+            ...difficulty,
+            mods: ModUtil.deserializeMods(difficulty.mods),
+        };
+        const analyzer = this.createReplayAnalyzer(beatmap, attributes);
         const data = await this.decodeReplay(analyzer, replay);
 
         const score: ScoreParameters = {
@@ -153,7 +167,7 @@ export abstract class BaseAlgorithm<
             score.sliderEndsDropped = sliders.end.total - sliders.end.obtained;
         }
 
-        this.applyReplayPenalties(analyzer, difficulty, score);
+        this.applyReplayPenalties(analyzer, attributes, score);
 
         return {
             score,
@@ -166,11 +180,19 @@ export abstract class BaseAlgorithm<
     }
 
     /**
+     * Creates the analyzer for a replay of `beatmap`, with `attributes` (carrying the mods as a `ModMap`) set.
+     */
+    protected abstract createReplayAnalyzer(
+        beatmap: Beatmap,
+        attributes: ReplayAttributes<TAttributes>,
+    ): ReplayAnalyzer;
+
+    /**
      * Applies mode-specific replay penalties to `score`. The default applies none.
      */
     protected applyReplayPenalties(
         _analyzer: ReplayAnalyzer,
-        _difficulty: CacheableDifficultyAttributes<TAttributes>,
+        _attributes: ReplayAttributes<TAttributes>,
         _score: ScoreParameters,
     ): void {
         // No penalties by default.

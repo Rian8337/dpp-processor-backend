@@ -1,4 +1,4 @@
-import { Modes } from "@rian8337/osu-base";
+import { Modes, type Beatmap } from "@rian8337/osu-base";
 import {
     OsuDifficultyCalculator,
     OsuPerformanceCalculator,
@@ -7,7 +7,8 @@ import {
     type IOsuPerformanceAttributes,
     type PerformanceCalculationOptions,
 } from "@rian8337/osu-difficulty-calculator";
-import { BaseAlgorithm } from "./BaseAlgorithm";
+import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
+import { BaseAlgorithm, type ReplayAttributes } from "./BaseAlgorithm";
 
 /**
  * The osu!standard algorithm.
@@ -24,5 +25,18 @@ export class OsuAlgorithm extends BaseAlgorithm<
         options: PerformanceCalculationOptions,
     ): IOsuPerformanceAttributes {
         return new OsuPerformanceCalculator(difficulty).calculate(options);
+    }
+
+    protected createReplayAnalyzer(
+        beatmap: Beatmap,
+        attributes: ReplayAttributes<IOsuDifficultyAttributes>,
+    ): ReplayAnalyzer {
+        return new ReplayAnalyzer({
+            map: beatmap,
+            // The analyzer's typings only accept droid attributes, but for osu it reads nothing from them except
+            // `mods` (hit windows), which osu attributes carry too.
+            difficultyAttributes:
+                attributes as unknown as ReplayAnalyzer["difficultyAttributes"],
+        });
     }
 }

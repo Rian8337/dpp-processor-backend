@@ -18,9 +18,15 @@ import type {
     PerformanceCalculationOptions,
     StrainPeaks,
 } from "@rian8337/osu-difficulty-calculator";
+import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
 import { AlgorithmInputError } from "./errors";
 import { resolveScore, toCalculationOptions } from "./score";
-import type { Algorithm, PerformanceResult } from "./types";
+import type {
+    Algorithm,
+    PerformanceResult,
+    ReplayAnalysis,
+    ReplayHeader,
+} from "./types";
 
 /**
  * Calculator logic shared by all modes.
@@ -105,5 +111,82 @@ export abstract class BaseAlgorithm<
 
     calculateStrainPeaks(beatmap: Beatmap, mods: ModMap): StrainPeaks {
         return this.difficultyCalculator.calculateStrainPeaks(beatmap, mods);
+    }
+
+    async readReplay(replay: Buffer): Promise<ReplayHeader> {
+        const data = await this.decodeReplay(new ReplayAnalyzer(), replay);
+
+        return {
+            beatmapHash: data.hash,
+            mods: data.isReplayV3() ? data.convertedMods.serializeMods() : null,
+        };
+    }
+
+    async analyzeReplay(
+        replay: Buffer,
+        beatmap: Beatmap,
+        difficulty: CacheableDifficultyAttributes<TAttributes>,
+    ): Promise<ReplayAnalysis> {
+        const analyzer = new ReplayAnalyzer({ map: beatmap });
+        const data = await this.decodeReplay(analyzer, replay);
+
+        const score: ScoreParameters = {
+            n300: data.accuracy.n300,
+            n100: data.accuracy.n100,
+            n50: data.accuracy.n50,
+            nmiss: data.accuracy.nmiss,
+        };
+
+        if (data.isReplayV3()) {
+            score.combo = data.maxCombo;
+            score.totalScore = data.score;
+        }
+
+        const sliders = analyzer.obtainSliderHitInformation();
+
+        if (sliders) {
+            score.sliderTicksMissed =
+                sliders.head.total -
+                sliders.head.obtained +
+                (sliders.tick.total - sliders.tick.obtained) +
+                (sliders.repeat.total - sliders.repeat.obtained);
+            score.sliderEndsDropped = sliders.end.total - sliders.end.obtained;
+        }
+
+        this.applyReplayPenalties(analyzer, difficulty, score);
+
+        return {
+            score,
+            replay: {
+                hitError: analyzer.calculateHitError(),
+                sliderTickInformation: sliders?.tick ?? null,
+                sliderEndInformation: sliders?.end ?? null,
+            },
+        };
+    }
+
+    /**
+     * Applies mode-specific replay penalties to `score`. The default applies none.
+     */
+    protected applyReplayPenalties(
+        _analyzer: ReplayAnalyzer,
+        _difficulty: CacheableDifficultyAttributes<TAttributes>,
+        _score: ScoreParameters,
+    ): void {
+        // No penalties by default.
+    }
+
+    private async decodeReplay(analyzer: ReplayAnalyzer, replay: Buffer) {
+        analyzer.originalODR = replay;
+        await analyzer.analyze().catch(() => undefined);
+
+        if (!analyzer.data) {
+            throw new AlgorithmInputError(
+                "INVALID_REPLAY",
+                "Replay could not be decoded",
+            );
+        }
+
+        return analyzer.data;
     }
 }

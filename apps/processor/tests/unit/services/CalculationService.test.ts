@@ -157,6 +157,23 @@ describe("CalculationService", () => {
         );
     });
 
+    it.each([
+        [[{ acronym: "ZZ" }], /unknown mods: ZZ/],
+        [[{ acronym: "HD" }, { acronym: "HD" }], /duplicate mods: HD/],
+        [[{ acronym: "DT" }, { acronym: "HT" }], /incompatible mods: DT, HT/],
+    ])("explains why mods %j are rejected", async (mods, message) => {
+        const service = createService(Modes.Droid);
+
+        const failure = service.calculateDifficulty({
+            beatmap: loveLetter,
+            mods,
+            strainChart: false,
+        });
+
+        await expect(failure).rejects.toBeInstanceOf(BadRequestError);
+        await expect(failure).rejects.toThrow(message);
+    });
+
     it("rejects hit counts above the object count", async () => {
         const service = createService(Modes.Droid);
 

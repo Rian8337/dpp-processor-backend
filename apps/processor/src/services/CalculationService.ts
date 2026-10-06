@@ -139,13 +139,52 @@ export class CalculationService implements ICalculationService {
     private parseMods(mods: SerializedMod[]): ModMap {
         const parsed = ModUtil.deserializeMods(mods);
 
-        if (parsed.size !== mods.length) {
-            throw new BadRequestError(
-                "mods contains unknown or duplicate mods",
-            );
+        if (parsed.size === mods.length) {
+            return parsed;
         }
 
-        return parsed;
+        const unknown = new Set<string>();
+        const duplicate = new Set<string>();
+        const seen = new Set<string>();
+
+        for (const mod of mods) {
+            if (ModUtil.deserializeMods([mod]).size === 0) {
+                unknown.add(mod.acronym);
+            } else if (seen.has(mod.acronym)) {
+                duplicate.add(mod.acronym);
+            }
+
+            seen.add(mod.acronym);
+        }
+
+        const problems: string[] = [];
+
+        if (unknown.size > 0) {
+            problems.push(`unknown mods: ${[...unknown].join(", ")}`);
+        }
+
+        if (duplicate.size > 0) {
+            problems.push(`duplicate mods: ${[...duplicate].join(", ")}`);
+        }
+
+        if (problems.length === 0) {
+            // Every acronym is known and unique, yet some were dropped: certain mods exclude each other, and the
+            // map keeps only one of them. Report the mods that conflict with another requested mod.
+            const incompatible = new Set<string>();
+
+            for (const [i, first] of mods.entries()) {
+                for (const second of mods.slice(i + 1)) {
+                    if (ModUtil.deserializeMods([first, second]).size < 2) {
+                        incompatible.add(first.acronym);
+                        incompatible.add(second.acronym);
+                    }
+                }
+            }
+
+            problems.push(`incompatible mods: ${[...incompatible].join(", ")}`);
+        }
+
+        throw new BadRequestError(`mods contains ${problems.join("; ")}`);
     }
 
     private calculatePerformanceAttributes(

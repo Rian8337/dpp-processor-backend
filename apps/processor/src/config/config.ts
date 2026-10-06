@@ -68,7 +68,11 @@ const schema = z.object({
  * @throws {ConfigError} If any variable is missing or invalid.
  */
 export function loadConfig(env: NodeJS.ProcessEnv): Config {
-    const result = schema.safeParse(env);
+    // An empty variable (`CALCULATION_THREADS=`) counts as unset, instead of being coerced to 0.
+    const present = Object.fromEntries(
+        Object.entries(env).filter(([, value]) => value !== ""),
+    );
+    const result = schema.safeParse(present);
 
     if (!result.success) {
         const problems = result.error.issues.map(

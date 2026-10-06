@@ -40,6 +40,23 @@ describe("loadConfig", () => {
         ).toBe(0);
     });
 
+    it("treats empty variables as unset", () => {
+        const config = loadConfig({
+            ...validEnv,
+            CALCULATION_THREADS: "",
+            CALCULATION_MAX_QUEUE: "",
+            DATABASE_PORT: "",
+            BEATMAP_SERVICE_KEY: "",
+        });
+
+        expect(config.calculation.threads).toBeGreaterThan(0);
+        expect(config.calculation.maxQueue).toBe(100);
+        expect(config.database.port).toBe(5432);
+        expect(config.beatmapService.key).toBe("");
+
+        expect(() => loadConfig({ ...validEnv, PORT: "" })).toThrow(/PORT/);
+    });
+
     it("reports every invalid setting at once, by name, without values", () => {
         const { PORT: _, ...missingPort } = validEnv;
         const load = () =>

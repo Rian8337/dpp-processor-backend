@@ -2,7 +2,8 @@ import { Modes } from "@rian8337/osu-base";
 import { existsSync } from "node:fs";
 import { mkdir, rename, rm, symlink, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import { join, resolve } from "node:path";
+import { isAbsolute, join, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 
 export type Algorithm = "live" | "rebalance";
@@ -25,6 +26,8 @@ export interface CalculatorSources {
     };
     readonly aliases: Record<string, string>;
 }
+
+const processorDirectory = fileURLToPath(new URL("../../", import.meta.url));
 
 const modes: readonly string[] = Object.values(Modes);
 
@@ -76,13 +79,27 @@ export function parseArguments(argv: string[]): VariantArguments {
         return fail("--algorithm must be live or rebalance.");
     }
 
+    // Snapshots keep `piscina` and `canvas` external and resolve them from apps/processor/node_modules.
+    const releasesDir = values["releases-dir"];
+    const fromProcessor = relative(processorDirectory, resolve(releasesDir));
+
+    if (
+        fromProcessor === "" ||
+        fromProcessor.startsWith("..") ||
+        isAbsolute(fromProcessor)
+    ) {
+        fail(
+            `--releases-dir must be inside ${processorDirectory}, because snapshots resolve piscina and canvas from its node_modules.`,
+        );
+    }
+
     return {
         name,
         mode,
         algorithm,
         ...(values.source !== undefined && { source: resolve(values.source) }),
         activate: values.activate,
-        releasesDir: values["releases-dir"],
+        releasesDir,
     };
 }
 

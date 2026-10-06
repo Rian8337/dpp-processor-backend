@@ -7,6 +7,7 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
     activateSnapshot,
@@ -42,6 +43,43 @@ describe("parseArguments", () => {
             releasesDir: "releases",
         });
     });
+
+    it("accepts a releases directory inside apps/processor", () => {
+        const inside = fileURLToPath(
+            new URL("../../../releases/e2e-x", import.meta.url),
+        );
+
+        for (const dir of ["releases", "other/releases", inside]) {
+            expect(
+                parseArguments([
+                    "ok",
+                    "--mode",
+                    Modes.Droid,
+                    "--algorithm",
+                    "live",
+                    "--releases-dir",
+                    dir,
+                ]).releasesDir,
+            ).toBe(dir);
+        }
+    });
+
+    it.each(["/tmp/releases", "../releases", "../../elsewhere", "."])(
+        "rejects the releases directory %s, which is outside apps/processor",
+        (dir) => {
+            expect(() =>
+                parseArguments([
+                    "ok",
+                    "--mode",
+                    Modes.Droid,
+                    "--algorithm",
+                    "live",
+                    "--releases-dir",
+                    dir,
+                ]),
+            ).toThrow(/--releases-dir must be inside .*apps\/processor/);
+        },
+    );
 
     it.each([
         [["Bad_Name", "--mode", Modes.Droid, "--algorithm", "live"]],

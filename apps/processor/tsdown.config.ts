@@ -1,10 +1,4 @@
 import { defineConfig } from "tsdown";
+import { createBuildOptions } from "./scripts/lib/buildOptions.ts";
 
-export default defineConfig({
-    entry: ["src/index.ts"],
-    format: "esm",
-    tsconfig: "tsconfig.build.json",
-    clean: true,
-    // Workspace packages are consumed from TypeScript source, so they must be bundled.
-    deps: { alwaysBundle: [/^@dpp\//] },
-});
+export default defineConfig(createBuildOptions({ outDir: "dist" }));

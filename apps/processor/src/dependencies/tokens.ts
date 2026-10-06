@@ -4,6 +4,8 @@ import type { Config } from "@/config/config";
 import type { VariantManifest } from "@/manifest/manifest";
 import type { Database } from "@/database/types";
 import type { IDifficultyAttributesRepository } from "@/repositories/IDifficultyAttributesRepository";
+import type { IBeatmapServiceClient } from "@/clients/IBeatmapServiceClient";
+import type { IBeatmapService } from "@/services/IBeatmapService";
 import type { InjectionToken } from "tsyringe";
 
 /**
@@ -22,4 +24,10 @@ export const dependencyTokens = {
     difficultyAttributesRepository: Symbol.for(
         "difficultyAttributesRepository",
     ) as InjectionToken<IDifficultyAttributesRepository>,
+    beatmapServiceClient: Symbol.for(
+        "beatmapServiceClient",
+    ) as InjectionToken<IBeatmapServiceClient>,
+    beatmapService: Symbol.for(
+        "beatmapService",
+    ) as InjectionToken<IBeatmapService>,
 } satisfies Record<string, InjectionToken<unknown>>;

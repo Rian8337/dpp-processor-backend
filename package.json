@@ -18,7 +18,9 @@
     "typecheck": "pnpm -r run typecheck",
     "test": "pnpm -r run test",
     "lint": "oxlint --fix",
-    "format": "oxfmt"
+    "format": "oxfmt",
+    "build:variant": "pnpm --filter @dpp/processor run build:variant",
+    "test:e2e": "pnpm --filter @dpp/processor run test:e2e"
   },
   "devDependencies": {
     "@types/node": "^24.19.1",

@@ -33,6 +33,8 @@ export function createBuildOptions(options: {
     alias?: Record<string, string>;
 }): UserConfig {
     return {
+        // `src/polyfills.ts` must be the first import of `index.ts` and `prune.ts`: the bundler evaluates
+        // reflect-metadata lazily, so a later import lets tsyringe load before the Reflect polyfill exists.
         entry: {
             index: "src/index.ts",
             worker: "src/calculation/worker.ts",

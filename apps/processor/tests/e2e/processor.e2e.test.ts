@@ -11,12 +11,18 @@ import {
     replayFixture,
 } from "@test/utils/fixtures";
 import { modMap } from "@test/utils/mods";
-import { execFileSync, spawn, type ChildProcess } from "node:child_process";
+import {
+    execFile,
+    execFileSync,
+    spawn,
+    type ChildProcess,
+} from "node:child_process";
 import { mkdir, mkdtempDisposable, readFile } from "node:fs/promises";
 import { Agent, createServer, request, type Server } from "node:http";
 import { createServer as createNetServer } from "node:net";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -84,6 +90,8 @@ describe("processor snapshot (e2e)", () => {
     let databasePort: number;
     let processor: ChildProcess;
     let baseUrl: string;
+    let snapshotDirectory: string;
+    let processorEnvironment: NodeJS.ProcessEnv;
     let output = "";
 
     const post = (path: string, body: unknown, key: string | null = apiKey) =>
@@ -141,25 +149,24 @@ describe("processor snapshot (e2e)", () => {
         const port = await freePort();
         baseUrl = `http://127.0.0.1:${port.toString()}`;
 
-        processor = spawn(
-            "node",
-            [join(releases.path, "e2e-droid", "current", "index.mjs")],
-            {
-                env: {
-                    ...process.env,
-                    CI: "1",
-                    PORT: port.toString(),
-                    DATABASE_HOST: "127.0.0.1",
-                    DATABASE_PORT: databasePort.toString(),
-                    DATABASE_NAME: "postgres",
-                    DATABASE_USER: "postgres",
-                    DATABASE_PASSWORD: "",
-                    BEATMAP_SERVICE_URL: `http://127.0.0.1:${beatmapPort.toString()}/api/beatmap`,
-                    API_KEY: apiKey,
-                    CALCULATION_THREADS: "2",
-                },
-            },
-        );
+        snapshotDirectory = join(releases.path, "e2e-droid", "current");
+        processorEnvironment = {
+            ...process.env,
+            CI: "1",
+            PORT: port.toString(),
+            DATABASE_HOST: "127.0.0.1",
+            DATABASE_PORT: databasePort.toString(),
+            DATABASE_NAME: "postgres",
+            DATABASE_USER: "postgres",
+            DATABASE_PASSWORD: "",
+            BEATMAP_SERVICE_URL: `http://127.0.0.1:${beatmapPort.toString()}/api/beatmap`,
+            API_KEY: apiKey,
+            CALCULATION_THREADS: "2",
+        };
+
+        processor = spawn("node", [join(snapshotDirectory, "index.mjs")], {
+            env: processorEnvironment,
+        });
 
         resources.defer(() => {
             if (processor.exitCode === null) {
@@ -303,6 +310,40 @@ describe("processor snapshot (e2e)", () => {
         const response = await post("/performance/replay", { replay });
 
         expect(response.status).toBe(200);
+    });
+
+    it("prunes attributes of other calculator versions with the built prune command", async () => {
+        await using connection = new AsyncDisposableStack();
+        const client = new pg.Client({
+            host: "127.0.0.1",
+            port: databasePort,
+            user: "postgres",
+            database: "postgres",
+        });
+
+        await client.connect();
+        connection.defer(() => client.end());
+
+        await client.query(
+            "insert into difficulty_attributes (calculator_version, beatmap_hash, mods, attributes) values ('0000000000000000', $1, '[]', '{}')",
+            ["f".repeat(32)],
+        );
+
+        // Runs the built prune.mjs, which catches bundling-order regressions (such as reflect-metadata) that only
+        // show when the file runs.
+        const { stdout } = await promisify(execFile)(
+            "node",
+            [join(snapshotDirectory, "prune.mjs")],
+            { env: processorEnvironment },
+        );
+
+        expect(stdout).toMatch(/Deleted 1 rows not from calculator version/);
+
+        const remaining = await client.query<{ count: string }>(
+            "select count(*) from difficulty_attributes where calculator_version = '0000000000000000'",
+        );
+
+        expect(remaining.rows[0]?.count).toBe("0");
     });
 
     it("shuts down cleanly on SIGTERM while keep-alive requests are in flight", async () => {

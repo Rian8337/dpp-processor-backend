@@ -79,13 +79,13 @@ describe("resolveScore", () => {
             resolveScore(limits, {
                 sliderTicksMissed: 3,
                 sliderEndsDropped: 4,
-                tapPenalty: 0.9,
+                tapPenalty: 1.1,
                 sliderCheesePenalty: 0.8,
             }),
         ).toMatchObject({
             sliderTicksMissed: 3,
             sliderEndsDropped: 4,
-            tapPenalty: 0.9,
+            tapPenalty: 1.1,
             sliderCheesePenalty: 0.8,
         });
     });

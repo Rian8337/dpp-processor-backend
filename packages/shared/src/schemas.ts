@@ -37,8 +37,10 @@ export const scoreParametersSchema = z.strictObject({
     sliderTicksMissed: hitCount.optional(),
     sliderEndsDropped: hitCount.optional(),
     totalScore: hitCount.optional(),
-    tapPenalty: z.number().positive().optional(),
-    sliderCheesePenalty: z.number().positive().optional(),
+    // A divisor of the tap performance, so at least 1.
+    tapPenalty: z.number().min(1).optional(),
+    // A multiplier of the slider performance, so in (0, 1].
+    sliderCheesePenalty: z.number().positive().max(1).optional(),
 });
 
 export const difficultyRequestSchema = z.strictObject({

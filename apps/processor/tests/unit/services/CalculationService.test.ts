@@ -215,7 +215,7 @@ describe("CalculationService", () => {
                 n50: 0,
                 nmiss: 0,
                 combo: 700,
-                tapPenalty: 0.9,
+                tapPenalty: 1.1,
             },
             replay: {
                 hitError: null,
@@ -266,7 +266,7 @@ describe("CalculationService", () => {
                 n300: 590,
                 n100: 2,
                 combo: 700,
-                tapPenalty: 0.9,
+                tapPenalty: 1.1,
             });
             expect(response.replay).toEqual(analysis.replay);
         });
@@ -295,7 +295,7 @@ describe("CalculationService", () => {
             expect(response.score).toMatchObject({
                 n300: 590,
                 combo: 100,
-                tapPenalty: 0.9,
+                tapPenalty: 1.1,
             });
             // The analysis must see the mods the score is calculated with.
             expect(analyzeReplay.mock.calls[0]?.[0].difficulty.mods).toEqual([

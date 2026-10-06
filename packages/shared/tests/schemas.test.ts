@@ -74,8 +74,8 @@ describe("performanceRequestSchema", () => {
         ).toEqual({});
     });
 
-    it("rejects negative or fractional hit counts and non-positive penalties", () => {
-        for (const score of [{ n300: -1 }, { n100: 1.5 }, { tapPenalty: 0 }]) {
+    it("rejects negative or fractional hit counts", () => {
+        for (const score of [{ n300: -1 }, { n100: 1.5 }]) {
             expect(
                 performanceRequestSchema.safeParse({
                     beatmap: { id: 1 },
@@ -83,6 +83,23 @@ describe("performanceRequestSchema", () => {
                 }).success,
             ).toBe(false);
         }
+    });
+
+    // The tap penalty is a divisor of at least 1; the slider cheese penalty is a multiplier in (0, 1].
+    it.each([
+        [{ tapPenalty: 0.5 }, false],
+        [{ tapPenalty: 0 }, false],
+        [{ tapPenalty: 1 }, true],
+        [{ tapPenalty: 1.5 }, true],
+        [{ sliderCheesePenalty: 0 }, false],
+        [{ sliderCheesePenalty: 1.5 }, false],
+        [{ sliderCheesePenalty: 0.5 }, true],
+        [{ sliderCheesePenalty: 1 }, true],
+    ])("validates penalties %j: %s", (score, valid) => {
+        expect(
+            performanceRequestSchema.safeParse({ beatmap: { id: 1 }, score })
+                .success,
+        ).toBe(valid);
     });
 });
 

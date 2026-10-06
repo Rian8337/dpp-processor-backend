@@ -185,7 +185,7 @@ Common shapes:
 
 - `beatmap`: one of `{ id: number }`, `{ hash: string }`, `{ file: string }` (`.osu` text).
 - `mods`: `SerializedMod[]`.
-- `score` (all optional): `n300`, `n100`, `n50`, `nmiss`, `combo`, `sliderTicksMissed`, `sliderEndsDropped`, `totalScore`, `tapPenalty`, `sliderCheesePenalty`. Missing values default to a full combo at 100% accuracy; combo is clamped to the beatmap's maximum.
+- `score` (all optional): `n300`, `n100`, `n50`, `nmiss`, `combo`, `sliderTicksMissed`, `sliderEndsDropped`, `totalScore`, `tapPenalty` (a divisor, at least 1), `sliderCheesePenalty` (a multiplier, above 0 and at most 1). Missing values default to a full combo at 100% accuracy; combo is clamped to the beatmap's maximum.
 
 | Route                      | Body                                               | Response                                                   |
 | -------------------------- | -------------------------------------------------- | ---------------------------------------------------------- |

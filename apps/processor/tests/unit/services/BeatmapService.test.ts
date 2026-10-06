@@ -68,15 +68,22 @@ describe("BeatmapService", () => {
     });
 
     it("refuses a file whose hash differs from the metadata, and forgets the stale metadata", async () => {
-        getBeatmapFile.mockResolvedValueOnce(
-            Buffer.from(readBeatmapFixture("loveLetter")),
-        );
+        const warn = vi
+            .spyOn(console, "warn")
+            .mockImplementation(() => undefined);
+        const other = Buffer.from(readBeatmapFixture("loveLetter"));
+
+        getBeatmapFile.mockResolvedValueOnce(other);
 
         const beatmap = await service.resolve({ id: 3 });
 
         await expect(beatmap.getFile()).rejects.toBeInstanceOf(
             ServiceUnavailableError,
         );
+        expect(warn).toHaveBeenCalledTimes(1);
+        expect(warn.mock.calls[0]?.join(" ")).toContain("3");
+        expect(warn.mock.calls[0]?.join(" ")).toContain(metadata.hash);
+        expect(warn.mock.calls[0]?.join(" ")).toContain(md5Of(other));
 
         await service.resolve({ id: 3 });
         expect(getBeatmap).toHaveBeenCalledTimes(2);

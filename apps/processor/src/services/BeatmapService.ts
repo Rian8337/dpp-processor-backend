@@ -88,7 +88,12 @@ export class BeatmapService implements IBeatmapService {
         }
 
         // Hash the bytes, not decoded text: decoding can drop a byte order mark and change the hash.
-        if (md5(bytes) !== metadata.hash) {
+        const actualHash = md5(bytes);
+
+        if (actualHash !== metadata.hash) {
+            console.warn(
+                `Beatmap ${metadata.id.toString()} changed between the metadata and file fetches: metadata hash ${metadata.hash}, file hash ${actualHash}`,
+            );
             this.metadata.delete(`id:${metadata.id.toString()}`);
             this.metadata.delete(`hash:${metadata.hash}`);
 

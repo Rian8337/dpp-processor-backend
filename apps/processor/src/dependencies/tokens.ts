@@ -6,6 +6,7 @@ import type { Database } from "@/database/types";
 import type { IDifficultyAttributesRepository } from "@/repositories/IDifficultyAttributesRepository";
 import type { IBeatmapServiceClient } from "@/clients/IBeatmapServiceClient";
 import type { IBeatmapService } from "@/services/IBeatmapService";
+import type { IDifficultyCacheService } from "@/services/IDifficultyCacheService";
 import type { InjectionToken } from "tsyringe";
 
 /**
@@ -30,4 +31,7 @@ export const dependencyTokens = {
     beatmapService: Symbol.for(
         "beatmapService",
     ) as InjectionToken<IBeatmapService>,
+    difficultyCacheService: Symbol.for(
+        "difficultyCacheService",
+    ) as InjectionToken<IDifficultyCacheService>,
 } satisfies Record<string, InjectionToken<unknown>>;

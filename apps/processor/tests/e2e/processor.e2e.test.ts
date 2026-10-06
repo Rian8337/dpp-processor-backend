@@ -13,12 +13,12 @@ import {
 import { modMap } from "@test/utils/mods";
 import { execFileSync, spawn, type ChildProcess } from "node:child_process";
 import { mkdir, mkdtempDisposable, readFile } from "node:fs/promises";
-import { createServer, type Server } from "node:http";
+import { Agent, createServer, request, type Server } from "node:http";
 import { createServer as createNetServer } from "node:net";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 const processorDir = fileURLToPath(new URL("../../", import.meta.url));
 const apiKey = "e2e-api-key-0123456789";
@@ -305,7 +305,37 @@ describe("processor snapshot (e2e)", () => {
         expect(response.status).toBe(200);
     });
 
-    it("shuts down cleanly on SIGTERM", async () => {
+    it("shuts down cleanly on SIGTERM while keep-alive requests are in flight", async () => {
+        const agent = new Agent({ keepAlive: true, maxSockets: 2 });
+        const url = new URL("/info", baseUrl);
+        let sent = 0;
+        let stop = false;
+
+        const getInfo = () =>
+            new Promise<void>((resolve, reject) => {
+                request(url, { agent }, (res) => {
+                    res.resume();
+                    res.on("end", resolve);
+                })
+                    .on("error", reject)
+                    .end();
+            });
+
+        // Two clients that send requests back to back on kept-alive connections, like the broker would.
+        const clients = [0, 1].map(async () => {
+            while (!stop) {
+                try {
+                    await getInfo();
+                    sent++;
+                } catch {
+                    // The processor stops accepting connections once it has shut down.
+                    return;
+                }
+            }
+        });
+
+        await vi.waitFor(() => expect(sent).toBeGreaterThan(10));
+
         const exited = new Promise<number | null>((resolve) =>
             processor.once("exit", (code) => resolve(code)),
         );
@@ -314,5 +344,10 @@ describe("processor snapshot (e2e)", () => {
 
         expect(await exited).toBe(0);
         expect(output).toContain("Received SIGTERM");
+        expect(output).not.toContain("did not finish within");
+
+        stop = true;
+        await Promise.all(clients);
+        agent.destroy();
     });
 });

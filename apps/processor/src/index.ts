@@ -1,7 +1,5 @@
 import "./polyfills";
 import { sql } from "drizzle-orm";
-import type { Express } from "express";
-import type { Server } from "node:http";
 import { fileURLToPath } from "node:url";
 import { createAlgorithm } from "./algorithms/createAlgorithm";
 import { createApp } from "./app";
@@ -14,20 +12,9 @@ import { getContainer } from "./dependencies/container";
 import { registerDependencies } from "./dependencies/register";
 import { loadEnvironmentVariables } from "./env";
 import { loadManifest } from "./manifest/manifest";
+import { GracefulServer } from "./runtime/GracefulServer";
 import { installLogPrefix } from "./runtime/logging";
 import { createShutdownHandler } from "./runtime/shutdown";
-
-function listen(app: Express, port: number): Promise<Server> {
-    return new Promise((resolve, reject) => {
-        const server = app.listen(port, (error) => {
-            if (error) {
-                reject(error);
-            } else {
-                resolve(server);
-            }
-        });
-    });
-}
 
 async function main(): Promise<void> {
     loadEnvironmentVariables();
@@ -76,8 +63,13 @@ async function main(): Promise<void> {
             db: database.db,
         });
 
-        resources.use(await listen(createApp(), config.port));
-        console.log(`Listening on port ${config.port.toString()}`);
+        const server = resources.use(new GracefulServer());
+        const port = await server.listen(
+            createApp(getContainer(), server.middleware),
+            config.port,
+        );
+
+        console.log(`Listening on port ${port.toString()}`);
     } catch (e) {
         await resources.disposeAsync().catch((disposeError: unknown) => {
             console.error(

@@ -106,4 +106,57 @@ describe("BeatmapServiceClient", () => {
             ServiceUnavailableError,
         );
     });
+
+    it.each([
+        ["a non-JSON body", new Response("<html>oops</html>")],
+        ["a missing hash", Response.json({ beatmap_id: "1" })],
+        [
+            "an invalid hash",
+            Response.json({ beatmap_id: "1", file_md5: "XYZ" }),
+        ],
+        [
+            "an uppercase hash",
+            Response.json({ beatmap_id: "1", file_md5: "A".repeat(32) }),
+        ],
+        [
+            "a non-numeric beatmap ID",
+            Response.json({ beatmap_id: "abc", file_md5: "a".repeat(32) }),
+        ],
+        [
+            "a non-positive beatmap ID",
+            Response.json({ beatmap_id: "0", file_md5: "a".repeat(32) }),
+        ],
+    ])("throws BEATMAP_SERVICE_UNAVAILABLE on %s", async (_, response) => {
+        stubFetch(response);
+
+        await expect(client.getBeatmap({ id: 1 })).rejects.toMatchObject({
+            code: "BEATMAP_SERVICE_UNAVAILABLE",
+        });
+    });
+
+    it("throws BEATMAP_SERVICE_UNAVAILABLE when reading the body fails", async () => {
+        const body = new ReadableStream<Uint8Array>({
+            pull: (controller) => {
+                controller.error(new TypeError("terminated"));
+            },
+        });
+
+        stubFetch(new Response(body));
+        await expect(client.getBeatmap({ id: 1 })).rejects.toBeInstanceOf(
+            ServiceUnavailableError,
+        );
+
+        stubFetch(
+            new Response(
+                new ReadableStream<Uint8Array>({
+                    pull: (controller) => {
+                        controller.error(new TypeError("terminated"));
+                    },
+                }),
+            ),
+        );
+        await expect(client.getBeatmapFile(1)).rejects.toBeInstanceOf(
+            ServiceUnavailableError,
+        );
+    });
 });

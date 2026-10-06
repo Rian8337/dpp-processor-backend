@@ -1,4 +1,5 @@
 import type { Algorithm } from "@/algorithms/types";
+import type { ICalculationRunner } from "@/calculation/ICalculationRunner";
 import type { InjectionToken } from "tsyringe";
 
 /**
@@ -8,4 +9,7 @@ import type { InjectionToken } from "tsyringe";
  */
 export const dependencyTokens = {
     algorithm: Symbol.for("algorithm") as InjectionToken<Algorithm>,
+    calculationRunner: Symbol.for(
+        "calculationRunner",
+    ) as InjectionToken<ICalculationRunner>,
 } satisfies Record<string, InjectionToken<unknown>>;

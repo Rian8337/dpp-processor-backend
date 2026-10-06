@@ -1,9 +1,11 @@
+import type { Algorithm } from "@/algorithms/types";
 import type { InjectionToken } from "tsyringe";
 
 /**
  * Tokens for dependency injection. Each token is added by the task that introduces its interface.
+ *
+ * `Symbol.for(...) as InjectionToken<T>` is how tsyringe gives a symbol token its type.
  */
-export const dependencyTokens = {} satisfies Record<
-    string,
-    InjectionToken<unknown>
->;
+export const dependencyTokens = {
+    algorithm: Symbol.for("algorithm") as InjectionToken<Algorithm>,
+} satisfies Record<string, InjectionToken<unknown>>;

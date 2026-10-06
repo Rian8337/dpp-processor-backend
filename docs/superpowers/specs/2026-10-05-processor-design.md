@@ -133,7 +133,7 @@ It follows the structure of `PSB-SMAN2Tangsel/backend`: `@Injectable(token)` and
 - `decodeBeatmap(osuFile)`: decodes a `.osu` file for this mode.
 - `retainDifficultyAdjustmentMods(mods)`: keeps only mods that affect difficulty.
 - `calculateDifficulty(beatmap, mods)`: returns cacheable difficulty attributes.
-- `calculatePerformance(attributes, score)`: returns performance values and the resolved score parameters. Performance values are read generically from the performance calculator (its own numeric fields), so variants that add skills need no processor change.
+- `calculatePerformance(attributes, score)`: returns the performance attributes from the library's `PerformanceCalculator.calculate()` (`IDroidPerformanceAttributes` / `IOsuPerformanceAttributes`, plain interfaces) and the resolved score parameters.
 - `analyzeReplay(replay, beatmap)`: returns replay-derived score parameters (including tap and slider-cheese penalties) and replay information (hit error, slider tick and slider end information).
 - `calculateStrainPeaks(beatmap, mods)`: returns strain peaks for chart rendering.
 
@@ -195,7 +195,7 @@ Common shapes:
 | `POST /performance/replay` | `{ replay, mods?, score?, strainChart?: boolean }` | `{ difficulty, performance, score, replay, strainChart? }` |
 
 - `difficulty`: cacheable difficulty attributes, with `mods` set to the requested mods.
-- `performance`: an object of numeric performance values.
+- `performance`: the performance attributes returned by the calculator library.
 - `score` in responses: the parameters actually used, after defaults, clamping, and replay analysis.
 - `/performance/replay`: the beatmap is taken from the hash in the replay. `mods` and `score` default to the values derived from the replay; when given, they override them. The score service uses the overrides for old or mismatched replays, as the old online-score route did.
 

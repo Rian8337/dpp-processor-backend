@@ -186,6 +186,47 @@ describe("controllers", () => {
         });
     });
 
+    it("describes body errors accurately", async () => {
+        const malformed = await request(app)
+            .post("/performance")
+            .set("X-Api-Key", testApiKey)
+            .set("Content-Type", "application/json")
+            .send("{ not json");
+
+        expect(malformed.body.error.message).toBe(
+            "Request body is not valid JSON",
+        );
+
+        const charset = await request(app)
+            .post("/performance")
+            .set("X-Api-Key", testApiKey)
+            .set("Content-Type", "application/json; charset=iso-8859-1")
+            .send("{}");
+
+        expect(charset.status).toBe(415);
+        expect(charset.body).toEqual({
+            error: {
+                code: "INVALID_REQUEST",
+                message: "Unsupported request body charset",
+            },
+        });
+
+        const encoding = await request(app)
+            .post("/performance")
+            .set("X-Api-Key", testApiKey)
+            .set("Content-Type", "application/json")
+            .set("Content-Encoding", "compress")
+            .send("{}");
+
+        expect(encoding.status).toBe(415);
+        expect(encoding.body).toEqual({
+            error: {
+                code: "INVALID_REQUEST",
+                message: "Unsupported request body encoding",
+            },
+        });
+    });
+
     it("registers real services by default", async () => {
         await using defaults = await createTestContainer();
 

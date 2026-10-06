@@ -13,6 +13,15 @@ function isBodyParserError(
     );
 }
 
+const bodyParserMessages: Record<string, string> = {
+    "entity.too.large": "Request body is too large",
+    "entity.parse.failed": "Request body is not valid JSON",
+    "charset.unsupported": "Unsupported request body charset",
+    "encoding.unsupported": "Unsupported request body encoding",
+    "request.aborted": "Request was aborted before its body was read",
+    "request.size.invalid": "Request body size does not match its length",
+};
+
 /**
  * Responds to unknown routes with the JSON error shape.
  */
@@ -28,9 +37,7 @@ export const notFoundHandler: RequestHandler = (_req, res) => {
 export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
     if (isBodyParserError(error)) {
         const message =
-            error.type === "entity.too.large"
-                ? "Request body is too large"
-                : "Request body is not valid JSON";
+            bodyParserMessages[error.type] ?? "Request body could not be read";
 
         res.status(error.status).json({
             error: { code: "INVALID_REQUEST", message },

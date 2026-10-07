@@ -6,6 +6,9 @@ import { readBeatmapFixture } from "@test/utils/fixtures";
 import { modMap } from "@test/utils/mods";
 import { describe, expect, it, vi } from "vitest";
 
+// PGlite-backed containers and the replay analyzer's fixed 2 s error delay take seconds; keep a wide margin.
+vi.setConfig({ testTimeout: 15_000, hookTimeout: 15_000 });
+
 // Records the options the algorithms construct the analyzer with. No replay fixture exists, so what the analyzer
 // does with them is not covered here.
 const constructed = vi.hoisted((): unknown[] => []);

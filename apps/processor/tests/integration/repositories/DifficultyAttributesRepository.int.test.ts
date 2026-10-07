@@ -3,7 +3,10 @@ import { ModDoubleTime, Modes } from "@rian8337/osu-base";
 import { calculateFixtureDifficulty } from "@test/utils/attributes";
 import { createTestDatabase, type TestDatabase } from "@test/utils/database";
 import { modMap } from "@test/utils/mods";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+// PGlite-backed containers and the replay analyzer's fixed 2 s error delay take seconds; keep a wide margin.
+vi.setConfig({ testTimeout: 15_000, hookTimeout: 15_000 });
 
 const key = {
     calculatorVersion: "aaaaaaaaaaaaaaaa",

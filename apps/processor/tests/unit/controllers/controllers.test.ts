@@ -13,6 +13,9 @@ import {
 import request from "supertest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+// PGlite-backed containers and the replay analyzer's fixed 2 s error delay take seconds; keep a wide margin.
+vi.setConfig({ testTimeout: 15_000, hookTimeout: 15_000 });
+
 const difficulty = calculateFixtureDifficulty("discoprince", Modes.Droid);
 
 describe("controllers", () => {

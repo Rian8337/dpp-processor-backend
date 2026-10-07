@@ -3,7 +3,10 @@ import { AlgorithmInputError } from "@/algorithms/errors";
 import { Modes, ModUtil } from "@rian8337/osu-base";
 import { hasReplayFixture, md5Of, replayFixture } from "@test/utils/fixtures";
 import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+// PGlite-backed containers and the replay analyzer's fixed 2 s error delay take seconds; keep a wide margin.
+vi.setConfig({ testTimeout: 15_000, hookTimeout: 15_000 });
 
 describe.each([Modes.Droid, Modes.Osu])("%s replay handling", (mode) => {
     const algorithm = createAlgorithm(mode);

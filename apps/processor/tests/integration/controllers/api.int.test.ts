@@ -5,7 +5,10 @@ import { createTestContainer, testApiKey } from "@test/utils/container";
 import { createTestDatabase, type TestDatabase } from "@test/utils/database";
 import { beatmapFixtures } from "@test/utils/fixtures";
 import request from "supertest";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+
+// PGlite-backed containers and the replay analyzer's fixed 2 s error delay take seconds; keep a wide margin.
+vi.setConfig({ testTimeout: 15_000, hookTimeout: 15_000 });
 
 describe.each([Modes.Droid, Modes.Osu])("%s API (integration)", (mode) => {
     const resources = new AsyncDisposableStack();

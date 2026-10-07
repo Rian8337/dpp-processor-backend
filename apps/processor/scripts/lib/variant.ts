@@ -1,8 +1,8 @@
 import { Modes } from "@rian8337/osu-base";
-import { existsSync } from "node:fs";
+import { existsSync, realpathSync } from "node:fs";
 import { mkdir, rename, rm, symlink, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import { isAbsolute, join, relative, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 
@@ -28,6 +28,51 @@ export interface CalculatorSources {
 }
 
 const processorDirectory = fileURLToPath(new URL("../../", import.meta.url));
+
+/**
+ * Resolves symlinks in a path that may not exist yet, by resolving its nearest existing ancestor and re-appending
+ * the rest.
+ */
+function realPathOfNearestAncestor(path: string): string {
+    const missing: string[] = [];
+    let current = resolve(path);
+
+    for (;;) {
+        try {
+            return join(realpathSync(current), ...missing.reverse());
+        } catch (e) {
+            const parent = dirname(current);
+
+            if (
+                !(e instanceof Error && "code" in e && e.code === "ENOENT") ||
+                parent === current
+            ) {
+                throw e;
+            }
+
+            missing.push(current.slice(parent.length + 1));
+            current = parent;
+        }
+    }
+}
+
+/**
+ * Whether a directory resolves to a place strictly inside apps/processor. Node resolves modules from real paths,
+ * so symlinks are followed before checking.
+ */
+function isInsideProcessor(directory: string): boolean {
+    const fromProcessor = relative(
+        realpathSync(processorDirectory),
+        realPathOfNearestAncestor(directory),
+    );
+
+    return (
+        fromProcessor !== "" &&
+        fromProcessor !== ".." &&
+        !fromProcessor.startsWith(`..${sep}`) &&
+        !isAbsolute(fromProcessor)
+    );
+}
 
 const modes: readonly string[] = Object.values(Modes);
 
@@ -81,13 +126,8 @@ export function parseArguments(argv: string[]): VariantArguments {
 
     // Snapshots keep `piscina` and `canvas` external and resolve them from apps/processor/node_modules.
     const releasesDir = values["releases-dir"];
-    const fromProcessor = relative(processorDirectory, resolve(releasesDir));
 
-    if (
-        fromProcessor === "" ||
-        fromProcessor.startsWith("..") ||
-        isAbsolute(fromProcessor)
-    ) {
+    if (!isInsideProcessor(releasesDir)) {
         fail(
             `--releases-dir must be inside ${processorDirectory}, because snapshots resolve piscina and canvas from its node_modules.`,
         );

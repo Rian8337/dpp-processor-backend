@@ -3,6 +3,7 @@ import {
     mkdir,
     mkdtempDisposable,
     readlink,
+    symlink,
     writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -49,7 +50,7 @@ describe("parseArguments", () => {
             new URL("../../../releases/e2e-x", import.meta.url),
         );
 
-        for (const dir of ["releases", "other/releases", inside]) {
+        for (const dir of ["releases", "other/releases", "..foo", inside]) {
             expect(
                 parseArguments([
                     "ok",
@@ -80,6 +81,33 @@ describe("parseArguments", () => {
             ).toThrow(/--releases-dir must be inside .*apps\/processor/);
         },
     );
+
+    it("rejects a releases directory that is a symlink to outside apps/processor", async () => {
+        await using outside = await createTemporaryDirectory();
+        const processorDirectory = fileURLToPath(
+            new URL("../../../", import.meta.url),
+        );
+        await using inside = await mkdtempDisposable(
+            join(processorDirectory, ".variant-test-"),
+        );
+        const link = join(inside.path, "releases");
+
+        await symlink(outside.path, link);
+
+        for (const dir of [link, join(link, "not-yet-created")]) {
+            expect(() =>
+                parseArguments([
+                    "ok",
+                    "--mode",
+                    Modes.Droid,
+                    "--algorithm",
+                    "live",
+                    "--releases-dir",
+                    dir,
+                ]),
+            ).toThrow(/--releases-dir must be inside/);
+        }
+    });
 
     it.each([
         [["Bad_Name", "--mode", Modes.Droid, "--algorithm", "live"]],

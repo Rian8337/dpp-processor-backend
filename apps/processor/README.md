@@ -20,8 +20,8 @@ Each build writes a new, never-modified snapshot to `apps/processor/releases/<va
 ln -sfn <timestamp> apps/processor/releases/<variant>/current
 ```
 
-Snapshots must stay under `apps/processor`. They bundle everything except Node built-ins, `canvas`, and
-`piscina`, which they resolve from `apps/processor/node_modules`; `build:variant` rejects a `--releases-dir`
+Snapshots must stay under `apps/processor`. They bundle everything except Node built-ins, `canvas`,
+`piscina`, and `pg-native` (optional, not installed by default), which they resolve from `apps/processor/node_modules`; `build:variant` rejects a `--releases-dir`
 outside that directory. This also means every snapshot, including running ones, depends on that `node_modules`:
 reinstalling or deleting it affects all of them, so rebuild or restart variants afterwards if the installed versions
 changed.

@@ -87,10 +87,14 @@ export class BeatmapServiceClient implements IBeatmapServiceClient {
             const response = await fetch(requestUrl, { signal });
 
             if (response.status === 404) {
+                await response.body?.cancel();
+
                 return null;
             }
 
             if (!response.ok) {
+                await response.body?.cancel();
+
                 throw new ServiceUnavailableError(
                     "BEATMAP_SERVICE_UNAVAILABLE",
                     `Beatmap service responded with status ${response.status.toString()}`,

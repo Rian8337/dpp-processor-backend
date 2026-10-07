@@ -85,6 +85,24 @@ describe("BeatmapServiceClient", () => {
         expect(await client.getBeatmapFile(1)).toBeNull();
     });
 
+    it.each([404, 500])(
+        "cancels the unread body of a %i response",
+        async (status) => {
+            let cancelled = false;
+            const body = new ReadableStream<Uint8Array>({
+                cancel: () => {
+                    cancelled = true;
+                },
+            });
+
+            stubFetch(new Response(body, { status }));
+
+            await client.getBeatmapFile(1).catch(() => null);
+
+            expect(cancelled).toBe(true);
+        },
+    );
+
     it("returns file bytes unchanged", async () => {
         const bytes = Buffer.from("﻿osu file format v14");
         stubFetch(new Response(bytes));

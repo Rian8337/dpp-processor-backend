@@ -36,11 +36,15 @@ export const notFoundHandler: RequestHandler = (_req, res) => {
  */
 export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
     if (isBodyParserError(error)) {
-        const message =
-            bodyParserMessages[error.type] ?? "Request body could not be read";
+        const message = Object.hasOwn(bodyParserMessages, error.type)
+            ? bodyParserMessages[error.type]
+            : undefined;
 
         res.status(error.status).json({
-            error: { code: "INVALID_REQUEST", message },
+            error: {
+                code: "INVALID_REQUEST",
+                message: message ?? "Request body could not be read",
+            },
         } satisfies ErrorResponse);
 
         return;

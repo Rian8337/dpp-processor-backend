@@ -15,44 +15,52 @@ function get(agent: Agent, port: number): Promise<string | undefined> {
 }
 
 describe("GracefulServer", () => {
-    it("shuts down while a keep-alive client keeps sending requests", async () => {
+    it("shuts down while keep-alive clients keep sending requests", async () => {
         const server = new GracefulServer();
+        let stop = false;
+        let requests = 0;
+        let disposed: Promise<void> | undefined;
         const app = express()
             .use(server.middleware)
             .get("/slow", (_req, res) => {
-                setTimeout(() => res.send("ok"), 20);
+                // Shutdown starts while this request is in flight, so its connection finishes the response as
+                // keep-alive and then sits idle (the clients stop sending); only the server can close it. Doing it
+                // from the handler makes this happen on every run instead of depending on timing.
+                if (++requests === 5) {
+                    stop = true;
+                    disposed = server[Symbol.asyncDispose]();
+                }
+
+                setTimeout(() => res.send("ok"), 0);
             });
 
         const port = await server.listen(app, 0);
 
-        using agent = keepAliveAgent();
-        let stop = false;
-        let served = 0;
+        // Two sockets, so that the other one being idle or closed cannot mask a connection that stays open.
+        using agent = keepAliveAgent(2);
 
-        const client = (async () => {
+        const loop = async () => {
             while (!stop) {
                 try {
                     await get(agent, port);
-                    served++;
                 } catch {
                     return;
                 }
             }
-        })();
+        };
 
-        await expect.poll(() => served).toBeGreaterThan(2);
+        const clients = [loop(), loop()];
 
-        const disposed = server[Symbol.asyncDispose]();
+        await expect.poll(() => stop).toBe(true);
 
         await expect(
             Promise.race([
-                disposed.then(() => "closed"),
-                new Promise((resolve) => setTimeout(resolve, 2000, "timeout")),
+                disposed,
+                new Promise((resolve) => setTimeout(resolve, 1000, "timeout")),
             ]),
-        ).resolves.toBe("closed");
+        ).resolves.toBeUndefined();
 
-        stop = true;
-        await client;
+        await Promise.all(clients);
     });
 
     it("finishes the in-flight request, then closes its keep-alive connection", async () => {
@@ -84,9 +92,14 @@ describe("GracefulServer", () => {
 
         const disposed = server[Symbol.asyncDispose]();
 
-        // The in-flight request still completes, and the connection is closed afterwards.
-        await expect(inFlight).resolves.toBeDefined();
-        await expect(disposed).resolves.toBeUndefined();
+        // The in-flight request still completes (it began before shutdown, so it says keep-alive), and disposal
+        // finishes because the connection is closed afterwards.
+        await expect(
+            Promise.race([
+                Promise.all([inFlight, disposed]).then(([header]) => header),
+                new Promise((resolve) => setTimeout(resolve, 1000, "timeout")),
+            ]),
+        ).resolves.toBe("keep-alive");
     });
 
     it("disposing a server that never listened does nothing", async () => {
@@ -96,8 +109,8 @@ describe("GracefulServer", () => {
     });
 });
 
-function keepAliveAgent(): Agent & Disposable {
-    const agent = new Agent({ keepAlive: true, maxSockets: 1 });
+function keepAliveAgent(maxSockets = 1): Agent & Disposable {
+    const agent = new Agent({ keepAlive: true, maxSockets });
 
     return Object.assign(agent, { [Symbol.dispose]: () => agent.destroy() });
 }

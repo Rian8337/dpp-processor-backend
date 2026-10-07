@@ -8,7 +8,7 @@ import { describe, expect, it, vi } from "vitest";
 
 // Records the options the algorithms construct the analyzer with. No replay fixture exists, so what the analyzer
 // does with them is not covered here.
-const constructed = vi.hoisted(() => [] as unknown[]);
+const constructed = vi.hoisted((): unknown[] => []);
 
 vi.mock("@rian8337/osu-droid-replay-analyzer", async (importOriginal) => {
     const original =

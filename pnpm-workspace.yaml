@@ -9,7 +9,9 @@ allowBuilds:
 
 minimumReleaseAgeExclude:
     - "@rian8337/osu-base@4.0.0-beta.100"
-    - "@rian8337/osu-difficulty-calculator@4.0.0-beta.100"
     - "@rian8337/osu-droid-replay-analyzer@4.0.0-beta.100"
+    - "@rian8337/osu-difficulty-calculator@4.0.0-beta.100"
+    - "@rian8337/osu-difficulty-calculator@4.0.0-beta.101"
     - "@rian8337/osu-rebalance-difficulty-calculator@4.0.0-beta.100"
-    - "@rian8337/osu-strain-graph-generator@4.0.0-beta.100"
+    - "@rian8337/osu-rebalance-difficulty-calculator@4.0.0-beta.101"
+    - "@rian8337/osu-strain-graph-generator@4.0.0-beta.101"

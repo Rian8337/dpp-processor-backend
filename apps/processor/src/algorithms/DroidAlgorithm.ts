@@ -13,7 +13,10 @@ import {
     ReplayAnalyzer,
     ThreeFingerChecker,
 } from "@rian8337/osu-droid-replay-analyzer";
-import { BaseAlgorithm, type AnalyzerDifficultyAttributes } from "./BaseAlgorithm";
+import {
+    BaseAlgorithm,
+    type AnalyzerDifficultyAttributes,
+} from "./BaseAlgorithm";
 
 /**
  * The osu!droid algorithm.

@@ -31,10 +31,9 @@ import type {
 /**
  * Difficulty attributes with the mods deserialized into a `ModMap`, as the replay analyzer expects.
  */
-export type AnalyzerDifficultyAttributes<TAttributes extends IDifficultyAttributes> = Omit<
-    TAttributes,
-    "mods" | "toCacheableAttributes"
-> & { mods: ModMap };
+export type AnalyzerDifficultyAttributes<
+    TAttributes extends IDifficultyAttributes,
+> = Omit<TAttributes, "mods" | "toCacheableAttributes"> & { mods: ModMap };
 
 /**
  * Calculator logic shared by all modes.

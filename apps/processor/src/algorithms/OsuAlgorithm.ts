@@ -8,7 +8,10 @@ import {
     type PerformanceCalculationOptions,
 } from "@rian8337/osu-difficulty-calculator";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
-import { BaseAlgorithm, type AnalyzerDifficultyAttributes } from "./BaseAlgorithm";
+import {
+    BaseAlgorithm,
+    type AnalyzerDifficultyAttributes,
+} from "./BaseAlgorithm";
 
 /**
  * The osu!standard algorithm.

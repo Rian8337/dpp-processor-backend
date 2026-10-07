@@ -106,6 +106,7 @@ api_keys (
   key_hash               char(64) not null unique,
   key_prefix             text not null,
   rate_limit_per_minute  integer,
+  all_variants           boolean not null default false,
   created_at             timestamptz not null default now(),
   revoked_at             timestamptz
 )
@@ -120,7 +121,7 @@ api_key_variants (
 - **`variant_instances.url`** is a base URL without a trailing slash (for example `http://127.0.0.1:3101`). It allows processors on other machines, `https`, or a path prefix behind a reverse proxy.
 - **Names**: variant and alias names share one namespace, enforced by the CLI (the CLI is the only writer). Names match `^[a-z0-9][a-z0-9-]*$`.
 - **Keys**: 32 random bytes, base64url-encoded. Only the SHA-256 hash (hex) is stored; `key_prefix` is the key's first 8 characters, for identification in the CLI. `rate_limit_per_minute` null means unlimited. A key with `revoked_at` set is rejected.
-- **Grants** (`api_key_variants`) give a key access to private variants. Public variants need no grant.
+- **Grants** (`api_key_variants`) give a key access to specific private variants. Public variants need no grant. A key with `all_variants` set can reach every variant, including private ones added later; its grants are kept but ignored while the flag is set.
 - Mode, algorithm, and calculator version are not stored. They come from each instance's `GET /info`.
 
 ## Architecture
@@ -178,7 +179,7 @@ Same structure as the processor: `@Injectable(token)` and `@Controller(path)`, t
 **RegistryService** (`IRegistryService`). Holds an immutable snapshot of the registry: variants with their instances, aliases, and keys (indexed by hash) with their grants. Loads at startup, reloads every `REGISTRY_RELOAD_INTERVAL_SECONDS` and on `SIGHUP`. A failed reload logs an error and keeps the previous snapshot. Requests never query the database. Methods:
 
 - `authenticate(key)`: the key record for a raw key (hashed for lookup), or nothing if unknown or revoked.
-- `resolve(name, caller)`: the variant for a variant name or alias, or nothing if it does not exist or the caller cannot see it (private and not granted).
+- `resolve(name, caller)`: the variant for a variant name or alias, or nothing if it does not exist or the caller cannot see it (private, not granted, and the key does not have `all_variants`).
 - `visibleVariants(caller)`: the variants the caller can see.
 
 When a reload adds, removes, or changes instances, it tells `HealthMonitor`.
@@ -228,7 +229,7 @@ All responses are JSON; errors are `{ error: { code, message } }`.
 ### Authentication and access
 
 - No `X-Api-Key` header: anonymous. Sees public variants; rate-limited per IP.
-- A valid key: sees public variants and the private variants granted to it; rate-limited by its own limit.
+- A valid key: sees public variants and the private variants granted to it, or every variant if the key has `all_variants`; rate-limited by its own limit.
 - An unknown or revoked key: `401 UNAUTHORIZED`. Not downgraded to anonymous.
 
 Middleware order: `GracefulServer` middleware, helmet, CORS, authentication, rate limiting, routes. Every route counts toward the rate limit.
@@ -303,19 +304,20 @@ instance remove <variant> (--port <n> | --url <url>)
 alias set <alias> <variant>               creates the alias or repoints it
 alias remove <alias>
 
-key create <name> [--limit <per-minute> | --unlimited] [--grant <variant>]...
-key update <name> (--limit <per-minute> | --unlimited)
+key create <name> (--limit <per-minute> | --unlimited) [--all-variants | --grant <variant>...]
+key update <name> [--limit <per-minute> | --unlimited] [--all-variants | --granted-only]
 key grant <name> <variant>
 key ungrant <name> <variant>
 key revoke <name>
-key list                                  name, prefix, limit, grants, created, revoked
+key list                                  name, prefix, limit, access (all or grants), created, revoked
 key show <name>
 
 status
 ```
 
 - `--port <n>` stores `http://127.0.0.1:<n>`; `--url` is stored as given, without a trailing slash.
-- `key create` and `key update` require one of `--limit` or `--unlimited`; there is no default limit for keys.
+- `key create` requires one of `--limit` or `--unlimited`; there is no default limit for keys. `key update` requires at least one option.
+- `--all-variants` sets `all_variants`; `--granted-only` clears it, so the key falls back to its grants.
 - `key create` prints the key once; it cannot be shown again.
 - `status` loads the registry, calls every instance's public `GET /info` itself, and prints a table: variant, aliases, public, instance URL, state (`healthy`, `down`, `mismatch`), mode, algorithm, calculator version.
 - Every command that changes the registry ends by reminding that the running broker applies changes within `REGISTRY_RELOAD_INTERVAL_SECONDS`, or immediately after `pm2 sendSignal SIGHUP <app>`.
@@ -340,7 +342,7 @@ apps/broker/tests/
 ```
 
 - **Unit** (mocked dependencies, child DI container per test):
-    - `RegistryService`: name and alias resolution, visibility of public and private variants with and without grants, key lookup, revoked keys, failed reload keeps the previous snapshot.
+    - `RegistryService`: name and alias resolution, visibility of public and private variants with and without grants and with `all_variants`, key lookup, revoked keys, failed reload keeps the previous snapshot.
     - `HealthMonitor` (fake timers, stub client): state changes, mismatch detection, `markDown` and recovery, last known `/info` per variant.
     - `InstanceSelector`: round-robin, skipping unhealthy and excluded instances.
     - `ProxyService`: retry only on connection failure, timeout → 504, processor 401 → 502, non-JSON → 502, other errors passed through.

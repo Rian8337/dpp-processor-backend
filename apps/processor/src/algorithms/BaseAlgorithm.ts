@@ -31,7 +31,7 @@ import type {
 /**
  * Difficulty attributes with the mods deserialized into a `ModMap`, as the replay analyzer expects.
  */
-export type ReplayAttributes<TAttributes extends IDifficultyAttributes> = Omit<
+export type AnalyzerDifficultyAttributes<TAttributes extends IDifficultyAttributes> = Omit<
     TAttributes,
     "mods" | "toCacheableAttributes"
 > & { mods: ModMap };
@@ -137,7 +137,7 @@ export abstract class BaseAlgorithm<
     ): Promise<ReplayAnalysis> {
         // The attributes must be set before any analysis: for replays that do not record their mods (v1/v2), hit
         // windows are taken from them.
-        const attributes: ReplayAttributes<TAttributes> = {
+        const attributes: AnalyzerDifficultyAttributes<TAttributes> = {
             ...difficulty,
             mods: ModUtil.deserializeMods(difficulty.mods),
         };
@@ -184,7 +184,7 @@ export abstract class BaseAlgorithm<
      */
     protected abstract createReplayAnalyzer(
         beatmap: Beatmap,
-        attributes: ReplayAttributes<TAttributes>,
+        attributes: AnalyzerDifficultyAttributes<TAttributes>,
     ): ReplayAnalyzer;
 
     /**
@@ -192,7 +192,7 @@ export abstract class BaseAlgorithm<
      */
     protected applyReplayPenalties(
         _analyzer: ReplayAnalyzer,
-        _attributes: ReplayAttributes<TAttributes>,
+        _attributes: AnalyzerDifficultyAttributes<TAttributes>,
         _score: ScoreParameters,
     ): void {
         // No penalties by default.

@@ -13,7 +13,7 @@ import {
     ReplayAnalyzer,
     ThreeFingerChecker,
 } from "@rian8337/osu-droid-replay-analyzer";
-import { BaseAlgorithm, type ReplayAttributes } from "./BaseAlgorithm";
+import { BaseAlgorithm, type AnalyzerDifficultyAttributes } from "./BaseAlgorithm";
 
 /**
  * The osu!droid algorithm.
@@ -34,7 +34,7 @@ export class DroidAlgorithm extends BaseAlgorithm<
 
     protected createReplayAnalyzer(
         beatmap: Beatmap,
-        attributes: ReplayAttributes<IExtendedDroidDifficultyAttributes>,
+        attributes: AnalyzerDifficultyAttributes<IExtendedDroidDifficultyAttributes>,
     ): ReplayAnalyzer {
         return new ReplayAnalyzer({
             map: beatmap,
@@ -48,7 +48,7 @@ export class DroidAlgorithm extends BaseAlgorithm<
      */
     protected override applyReplayPenalties(
         analyzer: ReplayAnalyzer,
-        attributes: ReplayAttributes<IExtendedDroidDifficultyAttributes>,
+        attributes: AnalyzerDifficultyAttributes<IExtendedDroidDifficultyAttributes>,
         score: ScoreParameters,
     ): void {
         // Type-checking uses the live package, whose `mode` is always "live"; a rebalance build bundles the

@@ -8,7 +8,7 @@ import {
     type PerformanceCalculationOptions,
 } from "@rian8337/osu-difficulty-calculator";
 import { ReplayAnalyzer } from "@rian8337/osu-droid-replay-analyzer";
-import { BaseAlgorithm, type ReplayAttributes } from "./BaseAlgorithm";
+import { BaseAlgorithm, type AnalyzerDifficultyAttributes } from "./BaseAlgorithm";
 
 /**
  * The osu!standard algorithm.
@@ -29,7 +29,7 @@ export class OsuAlgorithm extends BaseAlgorithm<
 
     protected createReplayAnalyzer(
         beatmap: Beatmap,
-        attributes: ReplayAttributes<IOsuDifficultyAttributes>,
+        attributes: AnalyzerDifficultyAttributes<IOsuDifficultyAttributes>,
     ): ReplayAnalyzer {
         return new ReplayAnalyzer({
             map: beatmap,

@@ -88,3 +88,28 @@ export interface ReplayPerformanceResponse<
 > extends PerformanceResponse<TAttributes, TPerformance> {
     readonly replay: ReplayAttributes;
 }
+
+/**
+ * A variant as the broker describes it to clients.
+ */
+export interface VariantSummary {
+    /**
+     * The variant name, also when the variant was looked up by alias.
+     */
+    readonly name: string;
+    readonly aliases: readonly string[];
+    readonly description: string | null;
+
+    /**
+     * Whether at least one of the variant's processor instances is healthy.
+     */
+    readonly available: boolean;
+
+    /**
+     * From the latest successful `GET /info` of any instance; `null` if none has succeeded since the broker started.
+     */
+    readonly mode: Modes | null;
+    readonly algorithm: CalculatorAlgorithm | null;
+    readonly calculatorVersion: string | null;
+    readonly builtAt: string | null;
+}

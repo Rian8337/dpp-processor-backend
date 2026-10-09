@@ -1,7 +1,7 @@
 /**
- * Machine-readable error codes returned by the processor.
+ * Machine-readable error codes returned by processors. The broker passes them through.
  */
-export const errorCodes = [
+export const processorErrorCodes = [
     "INVALID_REQUEST",
     "UNAUTHORIZED",
     "BEATMAP_NOT_FOUND",
@@ -13,6 +13,27 @@ export const errorCodes = [
     "INTERNAL_ERROR",
 ] as const;
 
+/**
+ * Machine-readable error codes that only the broker returns.
+ */
+export const brokerErrorCodes = [
+    "VARIANT_NOT_FOUND",
+    "RATE_LIMITED",
+    "VARIANT_UNAVAILABLE",
+    "PROCESSOR_ERROR",
+    "PROCESSOR_TIMEOUT",
+] as const;
+
+/**
+ * Every error code a client can receive.
+ */
+export const errorCodes = [
+    ...processorErrorCodes,
+    ...brokerErrorCodes,
+] as const;
+
+export type ProcessorErrorCode = (typeof processorErrorCodes)[number];
+export type BrokerErrorCode = (typeof brokerErrorCodes)[number];
 export type ErrorCode = (typeof errorCodes)[number];
 
 /**

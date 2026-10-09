@@ -1,5 +1,6 @@
 import { createApp } from "@/app";
 import { difficultyAttributesTable } from "@/database/schema";
+import { processorRoutes } from "@dpp/shared";
 import { Modes } from "@rian8337/osu-base";
 import { createTestContainer, testApiKey } from "@test/utils/container";
 import { createTestDatabase, type TestDatabase } from "@test/utils/database";
@@ -76,4 +77,20 @@ describe.each([Modes.Droid, Modes.Osu])("%s API (integration)", (mode) => {
             error: { code: "INVALID_BEATMAP" },
         });
     });
+
+    it.each(processorRoutes)(
+        "serves %s, the route the broker forwards to",
+        async (route) => {
+            // An empty body fails validation, which proves the route exists (an unknown route would be 404).
+            const response = await request(app)
+                .post(route)
+                .set("X-Api-Key", testApiKey)
+                .send({});
+
+            expect(response.status).toBe(400);
+            expect(response.body).toMatchObject({
+                error: { code: "INVALID_REQUEST" },
+            });
+        },
+    );
 });

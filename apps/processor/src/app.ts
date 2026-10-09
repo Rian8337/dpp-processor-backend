@@ -4,6 +4,7 @@ import {
     getContainer,
     notFoundHandler,
 } from "@dpp/server";
+import { maxRequestBodyBytes } from "@dpp/shared";
 import express, { type RequestHandler } from "express";
 import helmet from "helmet";
 // Load controllers so their metadata is registered before the router is built.
@@ -29,7 +30,7 @@ export function createApp(
         .use(first)
         .use(helmet())
         .use(createApiKeyMiddleware(config.apiKey))
-        .use(express.json({ limit: "1mb" }))
+        .use(express.json({ limit: maxRequestBodyBytes }))
         .use(createRouter(container))
         .use(notFoundHandler)
         .use(errorHandler);

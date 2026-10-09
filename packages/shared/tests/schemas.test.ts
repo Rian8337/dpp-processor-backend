@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+    brokerErrorCodes,
     difficultyRequestSchema,
     errorCodes,
     performanceRequestSchema,
+    processorErrorCodes,
     replayPerformanceRequestSchema,
 } from "../src";
 
@@ -127,9 +129,9 @@ describe("replayPerformanceRequestSchema", () => {
     });
 });
 
-describe("errorCodes", () => {
-    it("lists every code the processor can return", () => {
-        expect(errorCodes).toEqual([
+describe("error codes", () => {
+    it("lists the processor codes, then the broker codes", () => {
+        expect(processorErrorCodes).toEqual([
             "INVALID_REQUEST",
             "UNAUTHORIZED",
             "BEATMAP_NOT_FOUND",
@@ -139,6 +141,17 @@ describe("errorCodes", () => {
             "OVERLOADED",
             "CALCULATION_FAILED",
             "INTERNAL_ERROR",
+        ]);
+        expect(brokerErrorCodes).toEqual([
+            "VARIANT_NOT_FOUND",
+            "RATE_LIMITED",
+            "VARIANT_UNAVAILABLE",
+            "PROCESSOR_ERROR",
+            "PROCESSOR_TIMEOUT",
+        ]);
+        expect(errorCodes).toEqual([
+            ...processorErrorCodes,
+            ...brokerErrorCodes,
         ]);
     });
 });

@@ -266,7 +266,7 @@ Instance URLs, instance counts, and the public flag are not exposed.
 ### Forwarding
 
 - The forwardable routes come from `processorRoutes` in `@dpp/shared`; other paths return `404 INVALID_REQUEST` ("Route not found"), like the processor.
-- The body is buffered as raw bytes (`express.raw`) up to `maxRequestBodyBytes`, not parsed. A request whose `Content-Type` is not `application/json` gets `400 INVALID_REQUEST`; a body over the limit gets `400 INVALID_REQUEST` through the shared error handler.
+- The body is buffered as raw bytes (`express.raw`) up to `maxRequestBodyBytes`, not parsed. A request whose `Content-Type` is not `application/json` gets `400 INVALID_REQUEST`; a body over the limit gets `413 INVALID_REQUEST` through the shared error handler, as on the processor.
 - The variant is resolved and access is checked before forwarding; the body is read before forwarding, so a rejected request never reaches a processor.
 - Only `Content-Type` and the processor `X-Api-Key` are sent to the processor.
 - The response carries the processor's status and body, plus `X-Variant: <variant name>`.
@@ -275,7 +275,8 @@ Instance URLs, instance counts, and the public flag are not exposed.
 
 | Status | Code                  | Cause                                                                                                          |
 | ------ | --------------------- | -------------------------------------------------------------------------------------------------------------- |
-| 400    | `INVALID_REQUEST`     | body is not `application/json`, or is too large                                                                |
+| 400    | `INVALID_REQUEST`     | body is not `application/json`                                                                                 |
+| 413    | `INVALID_REQUEST`     | body is larger than 1 MiB                                                                                      |
 | 404    | `INVALID_REQUEST`     | unknown route                                                                                                  |
 | 401    | `UNAUTHORIZED`        | unknown or revoked key, or no key while anonymous access is off                                                |
 | 404    | `VARIANT_NOT_FOUND`   | no such variant or alias, or a private variant the caller is not granted                                       |

@@ -19,6 +19,15 @@ function fakeTimeoutTimers(): void {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
 }
 
+/**
+ * Lets real socket I/O progress. `setImmediate` is not faked by {@link fakeTimeoutTimers}.
+ */
+async function realTicks(count = 20): Promise<void> {
+    for (let i = 0; i < count; i++) {
+        await new Promise((resolve) => setImmediate(resolve));
+    }
+}
+
 function readBody(req: IncomingMessage): Promise<string> {
     return new Promise((resolve) => {
         const chunks: Buffer[] = [];
@@ -157,8 +166,12 @@ describe("ProcessorClient.forward", () => {
     });
 
     it("reports a slow processor as a timeout", async () => {
+        let markReceived = (): void => undefined;
+        const received = new Promise<void>((r) => (markReceived = r));
+
         await using server = await startHttpServer(() => {
             // Never respond.
+            markReceived();
         });
 
         fakeTimeoutTimers();
@@ -170,6 +183,7 @@ describe("ProcessorClient.forward", () => {
             3000,
         );
 
+        await received;
         await vi.advanceTimersByTimeAsync(2999);
 
         let settled = false;
@@ -185,9 +199,12 @@ describe("ProcessorClient.forward", () => {
     });
 
     it("counts a slow body against the same timeout", async () => {
+        let markSent = (): void => undefined;
+        const sent = new Promise<void>((r) => (markSent = r));
+
         await using server = await startHttpServer((_req, res) => {
             res.writeHead(200, { "Content-Type": "application/json" });
-            res.write("{");
+            res.write("{", () => markSent());
             // Never finish the body.
         });
 
@@ -200,7 +217,18 @@ describe("ProcessorClient.forward", () => {
             3000,
         );
 
-        await vi.advanceTimersByTimeAsync(3000);
+        // Let the client receive the headers, so the timeout fires during the body read.
+        await sent;
+        await realTicks();
+
+        let settled = false;
+
+        void result.then(() => (settled = true));
+        await vi.advanceTimersByTimeAsync(2999);
+
+        expect(settled).toBe(false);
+
+        await vi.advanceTimersByTimeAsync(1);
 
         expect(await result).toEqual({ kind: "timeout" });
     });

@@ -3,3 +3,7 @@ export * from "./IHealthMonitor";
 export * from "./probe";
 export * from "./IRegistryService";
 export * from "./RegistryService";
+export * from "./IInstanceSelector";
+export * from "./InstanceSelector";
+export * from "./IProxyService";
+export * from "./ProxyService";

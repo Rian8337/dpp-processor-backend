@@ -24,7 +24,8 @@ async function main(): Promise<number> {
         fileURLToPath(new URL("./drizzle", import.meta.url)),
     );
 
-    return runCli(process.argv.slice(2), {
+    // Awaited so the connection stays open until the command finishes.
+    return await runCli(process.argv.slice(2), {
         repository: new RegistryRepository(database.db),
         processors: { getInfo: fetchInfo },
         healthCheckTimeoutMs: 3000,

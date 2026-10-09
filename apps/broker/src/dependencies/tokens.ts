@@ -2,6 +2,7 @@ import type { IProcessorClient } from "@/clients/IProcessorClient";
 import type { Config } from "@/config/config";
 import type { Database } from "@/database/types";
 import type { IRegistryRepository } from "@/repositories/IRegistryRepository";
+import type { IHealthMonitor } from "@/services/IHealthMonitor";
 import type { InjectionToken } from "tsyringe";
 
 /**
@@ -12,6 +13,9 @@ import type { InjectionToken } from "tsyringe";
 export const dependencyTokens = {
     config: Symbol.for("config") as InjectionToken<Config>,
     db: Symbol.for("db") as InjectionToken<Database>,
+    healthMonitor: Symbol.for(
+        "healthMonitor",
+    ) as InjectionToken<IHealthMonitor>,
     processorClient: Symbol.for(
         "processorClient",
     ) as InjectionToken<IProcessorClient>,

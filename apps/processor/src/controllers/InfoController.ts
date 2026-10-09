@@ -1,11 +1,9 @@
-import { Controller } from "@/decorators/controller";
-import { Get } from "@/decorators/routes";
 import { dependencyTokens } from "@/dependencies/tokens";
 import type { VariantManifest } from "@/manifest/manifest";
 import type { InfoResponse } from "@dpp/shared";
 import type { Request, Response } from "express";
 import { inject } from "tsyringe";
-import { BaseController } from "./BaseController";
+import { BaseController, Controller, Get } from "@dpp/server";
 
 /**
  * Reports which variant this process runs. Public, so the broker can check its registry against it.

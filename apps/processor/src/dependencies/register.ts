@@ -3,8 +3,8 @@ import type { ICalculationRunner } from "@/calculation/ICalculationRunner";
 import type { Config } from "@/config/config";
 import type { Database } from "@/database/types";
 import type { VariantManifest } from "@/manifest/manifest";
-import type { DependencyContainer, InjectionToken } from "tsyringe";
-import type { constructor } from "tsyringe/dist/typings/types";
+import { registerInjectables } from "@dpp/server";
+import type { DependencyContainer } from "tsyringe";
 // Load injectable classes so their metadata is registered.
 import "../clients";
 import "../repositories";
@@ -37,24 +37,5 @@ export function registerDependencies(
         instances.runner,
     );
     container.registerInstance(dependencyTokens.db, instances.db);
-
-    // Reflect metadata is untyped; `Injectable` writes these values.
-    const classes =
-        (Reflect.getMetadata("classes", globalThis) as
-            | constructor<unknown>[]
-            | undefined) ?? [];
-
-    for (const cls of classes) {
-        const token = Reflect.getMetadata("registrationToken", cls) as
-            | InjectionToken<unknown>
-            | undefined;
-
-        if (!token) {
-            throw new Error(
-                `Class ${cls.name} has no registration token; decorate it with @Injectable`,
-            );
-        }
-
-        container.registerSingleton(token, cls);
-    }
+    registerInjectables(container);
 }

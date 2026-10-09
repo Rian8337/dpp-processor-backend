@@ -1,4 +1,12 @@
 import "./polyfills";
+import {
+    createShutdownHandler,
+    DatabaseConnection,
+    getContainer,
+    GracefulServer,
+    installLogPrefix,
+    loadEnvironmentVariables,
+} from "@dpp/server";
 import { sql } from "drizzle-orm";
 import { fileURLToPath } from "node:url";
 import { createAlgorithm } from "./algorithms/createAlgorithm";
@@ -7,14 +15,9 @@ import type { ICalculationRunner } from "./calculation/ICalculationRunner";
 import { InlineRunner } from "./calculation/InlineRunner";
 import { PiscinaRunner } from "./calculation/PiscinaRunner";
 import { ConfigError, loadConfig } from "./config/config";
-import { DatabaseConnection } from "./database/DatabaseConnection";
-import { getContainer } from "./dependencies/container";
+import { schema } from "./database/schema";
 import { registerDependencies } from "./dependencies/register";
-import { loadEnvironmentVariables } from "./env";
 import { loadManifest } from "./manifest/manifest";
-import { GracefulServer } from "./runtime/GracefulServer";
-import { installLogPrefix } from "./runtime/logging";
-import { createShutdownHandler } from "./runtime/shutdown";
 
 async function main(): Promise<void> {
     loadEnvironmentVariables();
@@ -36,7 +39,9 @@ async function main(): Promise<void> {
     const resources = new AsyncDisposableStack();
 
     try {
-        const database = resources.use(new DatabaseConnection(config.database));
+        const database = resources.use(
+            new DatabaseConnection(config.database, schema),
+        );
 
         await database.db.execute(sql`select 1`);
         await database.migrate(

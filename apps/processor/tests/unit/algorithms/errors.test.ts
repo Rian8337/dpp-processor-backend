@@ -1,5 +1,6 @@
 import { AlgorithmInputError } from "@/algorithms/errors";
-import { BadRequestError, UnprocessableEntityError } from "@/types/errors";
+import { UnprocessableEntityError } from "@/types/errors";
+import { BadRequestError } from "@dpp/server";
 import { describe, expect, it } from "vitest";
 
 describe("AlgorithmInputError.toApiError", () => {

@@ -1,4 +1,4 @@
-import { createShutdownHandler } from "@/runtime/shutdown";
+import { createShutdownHandler } from "../../src/runtime/shutdown";
 import { describe, expect, it, vi } from "vitest";
 
 describe("createShutdownHandler", () => {

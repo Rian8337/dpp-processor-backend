@@ -1,15 +1,12 @@
-import { Controller } from "@/decorators/controller";
-import { Post } from "@/decorators/routes";
 import { dependencyTokens } from "@/dependencies/tokens";
 import type { ICalculationService } from "@/services/ICalculationService";
-import { parseBody } from "@/validators/parseBody";
 import {
     performanceRequestSchema,
     replayPerformanceRequestSchema,
 } from "@dpp/shared";
 import type { Request, Response } from "express";
 import { inject } from "tsyringe";
-import { BaseController } from "./BaseController";
+import { BaseController, Controller, parseBody, Post } from "@dpp/server";
 
 @Controller("/performance")
 export class PerformanceController extends BaseController {

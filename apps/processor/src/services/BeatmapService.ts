@@ -2,7 +2,7 @@ import type {
     BeatmapMetadata,
     IBeatmapServiceClient,
 } from "@/clients/IBeatmapServiceClient";
-import { Injectable } from "@/decorators/injectable";
+import { Injectable } from "@dpp/server";
 import { dependencyTokens } from "@/dependencies/tokens";
 import { NotFoundError, ServiceUnavailableError } from "@/types/errors";
 import { LruCache } from "@/utils/LruCache";

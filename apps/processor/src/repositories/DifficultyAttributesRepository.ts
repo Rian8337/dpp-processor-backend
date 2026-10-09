@@ -1,6 +1,6 @@
 import { difficultyAttributesTable as table } from "@/database/schema";
 import type { Database } from "@/database/types";
-import { Injectable } from "@/decorators/injectable";
+import { Injectable } from "@dpp/server";
 import { dependencyTokens } from "@/dependencies/tokens";
 import type {
     CacheableDifficultyAttributes,

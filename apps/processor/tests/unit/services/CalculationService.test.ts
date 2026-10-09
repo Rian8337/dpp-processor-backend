@@ -11,10 +11,10 @@ import { BeatmapService } from "@/services/BeatmapService";
 import { CalculationService } from "@/services/CalculationService";
 import { DifficultyCacheService } from "@/services/DifficultyCacheService";
 import {
-    BadRequestError,
     CalculationFailedError,
     UnprocessableEntityError,
 } from "@/types/errors";
+import { BadRequestError } from "@dpp/server";
 import { Modes } from "@rian8337/osu-base";
 import { FixtureBeatmapServiceClient } from "@test/utils/beatmaps";
 import {

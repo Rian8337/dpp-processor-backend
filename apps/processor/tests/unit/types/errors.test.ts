@@ -1,17 +1,13 @@
 import {
-    BadRequestError,
     CalculationFailedError,
     NotFoundError,
     ServiceUnavailableError,
-    UnauthorizedError,
     UnprocessableEntityError,
 } from "@/types/errors";
 import { describe, expect, it } from "vitest";
 
-describe("API errors", () => {
+describe("processor API errors", () => {
     it.each([
-        [new BadRequestError("bad"), 400, "INVALID_REQUEST"],
-        [new UnauthorizedError(), 401, "UNAUTHORIZED"],
         [
             new NotFoundError("BEATMAP_NOT_FOUND", "missing"),
             404,

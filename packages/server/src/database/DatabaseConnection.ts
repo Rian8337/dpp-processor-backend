@@ -1,24 +1,36 @@
-import type { Config } from "@/config/config";
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
-import { schema } from "./schema";
-import type { Database } from "./types";
 
 /**
- * A connection pool to the variant's Postgres database. Disposing closes the pool.
+ * Connection settings for a Postgres database.
  */
-export class DatabaseConnection implements AsyncDisposable {
+export interface DatabaseSettings {
+    readonly host: string;
+    readonly port: number;
+    readonly name: string;
+    readonly user: string;
+    readonly password: string;
+}
+
+/**
+ * A connection pool to a Postgres database with a Drizzle schema. Disposing closes the pool.
+ */
+export class DatabaseConnection<
+    TSchema extends Record<string, unknown>,
+> implements AsyncDisposable {
     private readonly pool: Pool;
-    private readonly nodePgDb: NodePgDatabase<typeof schema>;
+    private readonly nodePgDb: NodePgDatabase<TSchema>;
 
     /**
      * @param settings The connection settings.
+     * @param schema The Drizzle schema.
      * @param pool The pool to use. Only tests pass this, to reach the pool without a server; it defaults to a pool
      * built from `settings`.
      */
     constructor(
-        settings: Config["database"],
+        settings: DatabaseSettings,
+        schema: TSchema,
         pool = new Pool({
             host: settings.host,
             port: settings.port,
@@ -41,7 +53,7 @@ export class DatabaseConnection implements AsyncDisposable {
     /**
      * The database, for repositories.
      */
-    get db(): Database {
+    get db(): NodePgDatabase<TSchema> {
         return this.nodePgDb;
     }
 

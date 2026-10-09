@@ -1,6 +1,6 @@
 import type { Algorithm } from "@/algorithms/types";
 import type { ICalculationRunner } from "@/calculation/ICalculationRunner";
-import { Injectable } from "@/decorators/injectable";
+import { Injectable } from "@dpp/server";
 import { dependencyTokens } from "@/dependencies/tokens";
 import type { VariantManifest } from "@/manifest/manifest";
 import type {

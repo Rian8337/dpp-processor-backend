@@ -2,7 +2,7 @@ const methods = ["log", "info", "warn", "error"] as const;
 
 /**
  * Prefixes all console output with `[<id>]`, so the logs of different variants are easy to tell apart. Disposing
- * restores the original console methods; the processor keeps the prefix for its whole lifetime.
+ * restores the original console methods; the apps keep the prefix for its whole lifetime.
  */
 export function installLogPrefix(id: string): Disposable {
     const prefix = `[${id}]`;

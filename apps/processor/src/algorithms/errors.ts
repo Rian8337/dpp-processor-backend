@@ -1,8 +1,5 @@
-import {
-    BadRequestError,
-    UnprocessableEntityError,
-    type APIError,
-} from "@/types/errors";
+import { UnprocessableEntityError } from "@/types/errors";
+import { BadRequestError, type APIError } from "@dpp/server/errors";
 
 /**
  * Codes for invalid input detected by an algorithm.

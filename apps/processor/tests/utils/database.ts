@@ -1,8 +1,6 @@
 import { schema } from "@/database/schema";
 import type { Database } from "@/database/types";
-import { PGlite } from "@electric-sql/pglite";
-import { drizzle } from "drizzle-orm/pglite";
-import { migrate } from "drizzle-orm/pglite/migrator";
+import { createTestDatabase as createDatabase } from "@dpp/server/testing";
 import { fileURLToPath } from "node:url";
 
 export const migrationsFolder = fileURLToPath(
@@ -19,11 +17,6 @@ export interface TestDatabase extends AsyncDisposable {
 /**
  * Creates an in-memory Postgres (PGlite) database with all migrations applied.
  */
-export async function createTestDatabase(): Promise<TestDatabase> {
-    const client = new PGlite();
-    const db = drizzle(client, { schema, casing: "snake_case" });
-
-    await migrate(db, { migrationsFolder });
-
-    return { db, [Symbol.asyncDispose]: () => client[Symbol.asyncDispose]() };
+export function createTestDatabase(): Promise<TestDatabase> {
+    return createDatabase({ schema, migrationsFolder });
 }

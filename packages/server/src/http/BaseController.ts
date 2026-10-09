@@ -1,4 +1,4 @@
-import { APIError } from "@/types/errors";
+import { APIError } from "../errors";
 import type { ErrorResponse } from "@dpp/shared";
 import type { Response } from "express";
 

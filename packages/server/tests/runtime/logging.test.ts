@@ -1,4 +1,4 @@
-import { installLogPrefix } from "@/runtime/logging";
+import { installLogPrefix } from "../../src/runtime/logging";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 describe("installLogPrefix", () => {

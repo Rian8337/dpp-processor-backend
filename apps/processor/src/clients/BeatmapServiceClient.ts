@@ -1,5 +1,5 @@
 import type { Config } from "@/config/config";
-import { Injectable } from "@/decorators/injectable";
+import { Injectable } from "@dpp/server";
 import { dependencyTokens } from "@/dependencies/tokens";
 import { ServiceUnavailableError } from "@/types/errors";
 import { inject } from "tsyringe";

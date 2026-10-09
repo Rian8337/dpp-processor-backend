@@ -1,4 +1,5 @@
 import { EnvironmentVariableKey as Key } from "@/types/env";
+import type { DatabaseSettings } from "@dpp/server";
 import { availableParallelism } from "node:os";
 import { z } from "zod";
 
@@ -7,13 +8,7 @@ import { z } from "zod";
  */
 export interface Config {
     readonly port: number;
-    readonly database: {
-        readonly host: string;
-        readonly port: number;
-        readonly name: string;
-        readonly user: string;
-        readonly password: string;
-    };
+    readonly database: DatabaseSettings;
     readonly beatmapService: {
         /**
          * Base URL without a trailing slash, e.g. `http://localhost:3017/api/beatmap`.

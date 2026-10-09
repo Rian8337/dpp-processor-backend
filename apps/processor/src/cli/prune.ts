@@ -1,9 +1,9 @@
 import "@/polyfills";
 import { loadConfig } from "@/config/config";
-import { DatabaseConnection } from "@/database/DatabaseConnection";
-import { loadEnvironmentVariables } from "@/env";
+import { schema } from "@/database/schema";
 import { loadManifest } from "@/manifest/manifest";
 import { DifficultyAttributesRepository } from "@/repositories/DifficultyAttributesRepository";
+import { DatabaseConnection, loadEnvironmentVariables } from "@dpp/server";
 
 /**
  * Deletes difficulty attributes calculated by other calculator versions. Run it from the snapshot whose
@@ -18,7 +18,7 @@ async function main(): Promise<void> {
         process.env,
     );
 
-    await using database = new DatabaseConnection(config.database);
+    await using database = new DatabaseConnection(config.database, schema);
 
     const deleted = await new DifficultyAttributesRepository(
         database.db,

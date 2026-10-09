@@ -1,4 +1,4 @@
-import { Injectable } from "@/decorators/injectable";
+import { Injectable } from "../../src/decorators/injectable";
 import { container, type InjectionToken } from "tsyringe";
 import { describe, expect, it } from "vitest";
 

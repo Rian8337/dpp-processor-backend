@@ -1,4 +1,4 @@
-import { BadRequestError } from "@/types/errors";
+import { BadRequestError } from "../errors";
 import type { z } from "zod";
 
 /**

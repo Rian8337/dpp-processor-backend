@@ -19,6 +19,7 @@
   "author": "Rian8337",
   "license": "MIT",
   "dependencies": {
+    "@dpp/server": "workspace:*",
     "@dpp/shared": "workspace:*",
     "@rian8337/osu-base": "4.0.0-beta.100",
     "@rian8337/osu-difficulty-calculator": "4.0.0-beta.101",

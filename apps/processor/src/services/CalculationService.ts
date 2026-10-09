@@ -2,14 +2,13 @@ import { AlgorithmInputError } from "@/algorithms/errors";
 import type { Algorithm, PerformanceResult } from "@/algorithms/types";
 import type { ICalculationRunner } from "@/calculation/ICalculationRunner";
 import { strainChartColor } from "@/calculation/strainChartColor";
-import { Injectable } from "@/decorators/injectable";
 import { dependencyTokens } from "@/dependencies/tokens";
 import type { VariantManifest } from "@/manifest/manifest";
 import {
-    BadRequestError,
     CalculationFailedError,
     UnprocessableEntityError,
 } from "@/types/errors";
+import { BadRequestError, Injectable } from "@dpp/server";
 import type {
     DifficultyRequest,
     DifficultyResponse,

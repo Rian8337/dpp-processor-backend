@@ -1,4 +1,4 @@
-import { UnauthorizedError } from "@/types/errors";
+import { UnauthorizedError } from "@dpp/server";
 import type { RequestHandler } from "express";
 import { timingSafeEqual } from "node:crypto";
 

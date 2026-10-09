@@ -1,4 +1,4 @@
-import { GracefulServer } from "@/runtime/GracefulServer";
+import { GracefulServer } from "../../src/runtime/GracefulServer";
 import express from "express";
 import { Agent, request } from "node:http";
 import { describe, expect, it } from "vitest";

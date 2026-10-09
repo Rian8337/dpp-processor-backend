@@ -1,9 +1,11 @@
-import type { Config } from "@/config/config";
-import { DatabaseConnection } from "@/database/DatabaseConnection";
 import { Pool } from "pg";
 import { describe, expect, it, vi } from "vitest";
+import {
+    DatabaseConnection,
+    type DatabaseSettings,
+} from "../../src/database/DatabaseConnection";
 
-const settings: Config["database"] = {
+const settings: DatabaseSettings = {
     host: "127.0.0.1",
     port: 1,
     name: "postgres",
@@ -18,7 +20,7 @@ describe("DatabaseConnection", () => {
             .mockImplementation(() => undefined);
         const pool = new Pool();
 
-        await using _connection = new DatabaseConnection(settings, pool);
+        await using _connection = new DatabaseConnection(settings, {}, pool);
 
         expect(() =>
             pool.emit("error", new Error("terminating connection")),

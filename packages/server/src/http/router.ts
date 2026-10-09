@@ -1,13 +1,12 @@
 import { Router, type RequestHandler } from "express";
-// Load controllers so their metadata is registered.
-import "./controllers";
-import type { RouteDefinition } from "./decorators/routes";
-import { getContainer } from "./dependencies/container";
+import type { RouteDefinition } from "../decorators/routes";
+import { getContainer } from "../dependencies/container";
 
 type ControllerClass = new () => Record<string, RequestHandler>;
 
 /**
- * Creates a router from the routes declared on controllers.
+ * Creates a router from the routes declared on controllers. Import the app's controllers before calling this, so
+ * their decorators have registered them.
  */
 export function createRouter(container = getContainer()): Router {
     const router = Router();

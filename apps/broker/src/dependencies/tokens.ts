@@ -1,4 +1,6 @@
 import type { Config } from "@/config/config";
+import type { Database } from "@/database/types";
+import type { IRegistryRepository } from "@/repositories/IRegistryRepository";
 import type { InjectionToken } from "tsyringe";
 
 /**
@@ -8,4 +10,8 @@ import type { InjectionToken } from "tsyringe";
  */
 export const dependencyTokens = {
     config: Symbol.for("config") as InjectionToken<Config>,
+    db: Symbol.for("db") as InjectionToken<Database>,
+    registryRepository: Symbol.for(
+        "registryRepository",
+    ) as InjectionToken<IRegistryRepository>,
 } satisfies Record<string, InjectionToken<unknown>>;

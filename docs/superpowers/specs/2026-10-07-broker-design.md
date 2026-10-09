@@ -14,7 +14,7 @@ Status: Draft, pending review
 ## Goals
 
 - Clients reach any variant through one service, by variant name or by an alias that the operator can repoint without client changes.
-- Server-side services, browsers, and third parties can all call the broker. Anonymous callers are allowed, rate-limited per IP, and see only public variants. Per-client API keys get their own rate limits (or none) and can be granted private variants. Keys can be revoked.
+- Server-side services, browsers, and third parties can all call the broker. Anonymous callers are allowed (unless turned off with `ANON_RATE_LIMIT=0`), rate-limited per IP, and see only public variants. Per-client API keys get their own rate limits (or none) and can be granted private variants. Keys can be revoked.
 - A variant can have several processor instances. The broker routes only to healthy instances and detects a registry entry that points at the wrong variant.
 - Processor API changes do not require broker changes: the broker forwards calculation requests without parsing them.
 - The operator manages the registry and keys with a CLI on the server. There are no admin routes over HTTP.
@@ -104,7 +104,6 @@ api_keys (
   id                     serial primary key,
   name                   text not null unique,
   key_hash               char(64) not null unique,
-  key_prefix             text not null,
   rate_limit_per_minute  integer,
   all_variants           boolean not null default false,
   created_at             timestamptz not null default now(),
@@ -120,7 +119,7 @@ api_key_variants (
 
 - **`variant_instances.url`** is a base URL without a trailing slash (for example `http://127.0.0.1:3101`). It allows processors on other machines, `https`, or a path prefix behind a reverse proxy.
 - **Names**: variant and alias names share one namespace, enforced by the CLI (the CLI is the only writer). Names match `^[a-z0-9][a-z0-9-]*$`.
-- **Keys**: 32 random bytes, base64url-encoded. Only the SHA-256 hash (hex) is stored; `key_prefix` is the key's first 8 characters, for identification in the CLI. `rate_limit_per_minute` null means unlimited. A key with `revoked_at` set is rejected.
+- **Keys**: 32 random bytes, base64url-encoded. Only the SHA-256 hash (hex) is stored. Keys are identified by their unique name; no part of a key is stored or shown, and the raw key appears only once, in the output of `key create`. `rate_limit_per_minute` null means unlimited. A key with `revoked_at` set is rejected.
 - **Grants** (`api_key_variants`) give a key access to specific private variants. Public variants need no grant. A key with `all_variants` set can reach every variant, including private ones added later; its grants are kept but ignored while the flag is set.
 - Mode, algorithm, and calculator version are not stored. They come from each instance's `GET /info`.
 
@@ -157,18 +156,18 @@ Same structure as the processor: `@Injectable(token)` and `@Controller(path)`, t
 
 **Config** (`IConfigService`). Environment variables, validated at startup; invalid values stop the process with a message naming the variables but not their values.
 
-| Variable                                                                                | Default                                       |
-| --------------------------------------------------------------------------------------- | --------------------------------------------- |
-| `PORT`                                                                                  | required                                      |
-| `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_NAME`, `DATABASE_USER`, `DATABASE_PASSWORD` | required, except port 5432 and password empty |
-| `PROCESSOR_API_KEY`                                                                     | required, at least 16 characters              |
-| `PROCESSOR_TIMEOUT_SECONDS`                                                             | 30                                            |
-| `HEALTH_CHECK_INTERVAL_SECONDS`                                                         | 10                                            |
-| `HEALTH_CHECK_TIMEOUT_SECONDS`                                                          | 3                                             |
-| `REGISTRY_RELOAD_INTERVAL_SECONDS`                                                      | 30                                            |
-| `ANON_RATE_LIMIT`                                                                       | 30 (requests per minute per IP)               |
-| `TRUST_PROXY`                                                                           | `false`                                       |
-| `USAGE_SUMMARY_INTERVAL_SECONDS`                                                        | 300; 0 disables summaries                     |
+| Variable                                                                                | Default                                                       |
+| --------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `PORT`                                                                                  | required                                                      |
+| `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_NAME`, `DATABASE_USER`, `DATABASE_PASSWORD` | required, except port 5432 and password empty                 |
+| `PROCESSOR_API_KEY`                                                                     | required, at least 16 characters                              |
+| `PROCESSOR_TIMEOUT_SECONDS`                                                             | 30                                                            |
+| `HEALTH_CHECK_INTERVAL_SECONDS`                                                         | 10                                                            |
+| `HEALTH_CHECK_TIMEOUT_SECONDS`                                                          | 3                                                             |
+| `REGISTRY_RELOAD_INTERVAL_SECONDS`                                                      | 30                                                            |
+| `ANON_RATE_LIMIT`                                                                       | 30 (requests per minute per IP); 0 turns anonymous access off |
+| `TRUST_PROXY`                                                                           | `false`                                                       |
+| `USAGE_SUMMARY_INTERVAL_SECONDS`                                                        | 300; 0 disables summaries                                     |
 
 `TRUST_PROXY` accepts what Express's `trust proxy` setting accepts: `true`, `false`, a hop count, or a comma-separated list of addresses or subnets. It must match the deployment, or anonymous callers behind a reverse proxy all share the proxy's IP for rate limiting.
 
@@ -228,7 +227,7 @@ All responses are JSON; errors are `{ error: { code, message } }`.
 
 ### Authentication and access
 
-- No `X-Api-Key` header: anonymous. Sees public variants; rate-limited per IP.
+- No `X-Api-Key` header: anonymous. Sees public variants; rate-limited per IP. With `ANON_RATE_LIMIT=0`, anonymous access is off and such requests get `401 UNAUTHORIZED` ("An API key is required").
 - A valid key: sees public variants and the private variants granted to it, or every variant if the key has `all_variants`; rate-limited by its own limit.
 - An unknown or revoked key: `401 UNAUTHORIZED`. Not downgraded to anonymous.
 
@@ -278,7 +277,7 @@ Instance URLs, instance counts, and the public flag are not exposed.
 | ------ | --------------------- | -------------------------------------------------------------------------------------------------------------- |
 | 400    | `INVALID_REQUEST`     | body is not `application/json`, or is too large                                                                |
 | 404    | `INVALID_REQUEST`     | unknown route                                                                                                  |
-| 401    | `UNAUTHORIZED`        | unknown or revoked key                                                                                         |
+| 401    | `UNAUTHORIZED`        | unknown or revoked key, or no key while anonymous access is off                                                |
 | 404    | `VARIANT_NOT_FOUND`   | no such variant or alias, or a private variant the caller is not granted                                       |
 | 429    | `RATE_LIMITED`        | rate limit exceeded                                                                                            |
 | 502    | `PROCESSOR_ERROR`     | connection failed after the retry, the processor responded with a non-JSON body, or the processor answered 401 |
@@ -309,7 +308,7 @@ key update <name> [--limit <per-minute> | --unlimited] [--all-variants | --grant
 key grant <name> <variant>
 key ungrant <name> <variant>
 key revoke <name>
-key list                                  name, prefix, limit, access (all or grants), created, revoked
+key list                                  name, limit, access (all or grants), created, revoked
 key show <name>
 
 status

@@ -14,8 +14,10 @@ access and rate limits. See `docs/superpowers/specs/2026-10-07-broker-design.md`
 | `POST /variants/:name/performance/replay` | forwarded to `POST /performance/replay`            |
 
 Without an `X-Api-Key` header, callers are anonymous: they see public variants only and are limited per IP. To turn
-anonymous access off (for example while the beatmap service is near osu!'s rate limit), set `ANON_RATE_LIMIT=0` and
-`pm2 restart dpp-broker`; requests without a key then get `401 UNAUTHORIZED`. Request
+anonymous access off (for example while the beatmap service is near osu!'s rate limit), set `ANON_RATE_LIMIT=0` (change it
+in the ecosystem file and run `pm2 restart ecosystem.config.cjs --only dpp-broker --update-env`, since a plain
+`pm2 restart dpp-broker` does not re-read `env`; or set it in `apps/broker/.env.production` and
+`pm2 restart dpp-broker`); requests without a key then get `401 UNAUTHORIZED`. Request
 bodies are the processor's (see `packages/shared`); responses carry an `X-Variant` header naming the variant that
 answered.
 
@@ -37,7 +39,9 @@ module.exports = {
             name: "dpp-broker",
             script: "apps/broker/dist/index.mjs",
             exp_backoff_restart_delay: 1000,
-            // Above PROCESSOR_TIMEOUT_SECONDS + 5 s, so in-flight requests can finish.
+            // Above PROCESSOR_TIMEOUT_SECONDS + 5 s, so in-flight requests can finish. A request whose first
+            // instance fails to connect late and is retried can take up to about twice PROCESSOR_TIMEOUT_SECONDS;
+            // the broker waits only PROCESSOR_TIMEOUT_SECONDS + 5 s on shutdown, so such a request may be cut off.
             kill_timeout: 40000,
             env: {
                 NODE_ENV: "production",
@@ -82,7 +86,8 @@ pnpm cli status
 ```
 
 Run `pnpm cli` without arguments for every command. The running broker applies changes within
-`REGISTRY_RELOAD_INTERVAL_SECONDS`, or immediately after `pm2 sendSignal SIGHUP dpp-broker`.
+`REGISTRY_RELOAD_INTERVAL_SECONDS`, or immediately after `pm2 sendSignal SIGHUP dpp-broker`. New instances are probed as soon as the broker applies the
+change, so they do not wait for the next health check.
 
 ## Environment variables
 

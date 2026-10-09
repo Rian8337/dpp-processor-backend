@@ -40,6 +40,8 @@ export class ProcessorClient implements IProcessorClient {
                     "X-Api-Key": this.config.processor.apiKey,
                 },
                 body,
+                // A redirect would turn the POST into a GET and re-send the key to the redirect target.
+                redirect: "error",
                 signal: timeout.signal,
             });
         } catch (e) {

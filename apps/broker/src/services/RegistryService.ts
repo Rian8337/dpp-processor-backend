@@ -17,6 +17,10 @@ import type { IRegistryService } from "./IRegistryService";
 @Injectable(dependencyTokens.registryService)
 export class RegistryService implements IRegistryService {
     private snapshot: RegistrySnapshot = emptySnapshot;
+    /** Number of loads started so far. */
+    private started = 0;
+    /** The generation of the loaded snapshot; a load that finishes with an older one is stale. */
+    private applied = 0;
 
     constructor(
         @inject(dependencyTokens.registryRepository)
@@ -28,8 +32,15 @@ export class RegistryService implements IRegistryService {
     ) {}
 
     async load(): Promise<void> {
+        // Loads can overlap (timer and SIGHUP); one that started earlier must not replace a newer snapshot.
+        const generation = ++this.started;
         const snapshot = await this.repository.loadSnapshot();
 
+        if (generation < this.applied) {
+            return;
+        }
+
+        this.applied = generation;
         this.snapshot = snapshot;
         this.health.sync(snapshot);
     }

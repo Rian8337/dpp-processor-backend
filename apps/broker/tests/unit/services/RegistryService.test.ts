@@ -154,6 +154,28 @@ describe("RegistryService", () => {
         expect(sync).toHaveBeenLastCalledWith(empty);
     });
 
+    it("does not let a load that finishes late replace a newer snapshot", async () => {
+        const resolvers: ((snapshot: RegistrySnapshot) => void)[] = [];
+
+        loadSnapshot.mockImplementation(
+            () => new Promise((resolve) => resolvers.push(resolve)),
+        );
+
+        const older = service.load();
+        const newer = service.load();
+        const empty: RegistrySnapshot = testSnapshot({});
+
+        // The later-started load finishes first, then the earlier one with the old data.
+        resolvers[1]?.(empty);
+        await newer;
+        resolvers[0]?.(snapshot);
+        await older;
+
+        expect(service.resolve("droid-live", anonymousCaller)).toBeUndefined();
+        expect(sync).toHaveBeenLastCalledWith(empty);
+        expect(sync).toHaveBeenCalledTimes(2);
+    });
+
     it("reloads on an interval until disposed", async () => {
         vi.useFakeTimers();
 

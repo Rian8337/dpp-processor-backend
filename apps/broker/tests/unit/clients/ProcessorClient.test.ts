@@ -83,6 +83,23 @@ describe("ProcessorClient.getInfo", () => {
         expect(result.kind).toBe("failed");
     });
 
+    it("does not follow redirects", async () => {
+        let targetRequested = false;
+
+        await using target = await startHttpServer((_req, res) => {
+            targetRequested = true;
+            res.writeHead(200).end();
+        });
+        await using server = await startHttpServer((_req, res) => {
+            res.writeHead(302, { Location: `${target.url}/info` }).end();
+        });
+
+        const result = await client.getInfo(server.url, 1000);
+
+        expect(result.kind).toBe("failed");
+        expect(targetRequested).toBe(false);
+    });
+
     it("fails with 'timed out' when the processor does not answer in time", async () => {
         await using server = await startHttpServer(() => {
             // Never respond.
@@ -102,6 +119,28 @@ describe("ProcessorClient.getInfo", () => {
 });
 
 describe("ProcessorClient.forward", () => {
+    it("does not follow redirects, so the key is never sent to the target", async () => {
+        let targetRequested = false;
+
+        await using target = await startHttpServer((_req, res) => {
+            targetRequested = true;
+            res.writeHead(200).end();
+        });
+        await using server = await startHttpServer((_req, res) => {
+            res.writeHead(302, { Location: `${target.url}/difficulty` }).end();
+        });
+
+        const result = await client.forward(
+            server.url,
+            "/difficulty",
+            Buffer.from("{}"),
+            1000,
+        );
+
+        expect(result.kind).toBe("connection-failed");
+        expect(targetRequested).toBe(false);
+    });
+
     it("posts the body with the processor key and returns the response unchanged", async () => {
         const seen: {
             method?: string;

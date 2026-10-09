@@ -151,6 +151,10 @@ describe("ProxyService", () => {
     });
 
     it("reports a timeout as PROCESSOR_TIMEOUT without retrying or marking down", async () => {
+        const warn = vi
+            .spyOn(console, "warn")
+            .mockImplementation(() => undefined);
+
         forward.mockResolvedValue({ kind: "timeout" });
 
         await expect(
@@ -158,6 +162,11 @@ describe("ProxyService", () => {
         ).rejects.toThrow(ProcessorTimeoutError);
         expect(forward).toHaveBeenCalledTimes(1);
         expect(markDown).not.toHaveBeenCalled();
+        expect(warn).toHaveBeenCalledWith(
+            expect.stringMatching(
+                /^Processor at http:\/\/\S+ \(\S+\) did not respond within \d+ s$/,
+            ),
+        );
     });
 
     it("reports a broken response as PROCESSOR_ERROR without retrying", async () => {

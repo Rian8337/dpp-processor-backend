@@ -1,5 +1,5 @@
 {
-  "id": "a639c7cf-b340-411c-aff5-091cf3c23a70",
+  "id": "1fe204d5-a8d7-4cb2-aeb8-afff5348cc1a",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -163,8 +163,8 @@
             "name"
           ]
         },
-        "api_keys_keyHash_unique": {
-          "name": "api_keys_keyHash_unique",
+        "api_keys_key_hash_unique": {
+          "name": "api_keys_key_hash_unique",
           "nullsNotDistinct": false,
           "columns": [
             "key_hash"
@@ -216,8 +216,8 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "variant_instances_variantName_url_unique": {
-          "name": "variant_instances_variantName_url_unique",
+        "variant_instances_variant_name_url_unique": {
+          "name": "variant_instances_variant_name_url_unique",
           "nullsNotDistinct": false,
           "columns": [
             "variant_name",

@@ -18,14 +18,14 @@ CREATE TABLE "api_keys" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"revoked_at" timestamp with time zone,
 	CONSTRAINT "api_keys_name_unique" UNIQUE("name"),
-	CONSTRAINT "api_keys_keyHash_unique" UNIQUE("key_hash")
+	CONSTRAINT "api_keys_key_hash_unique" UNIQUE("key_hash")
 );
 --> statement-breakpoint
 CREATE TABLE "variant_instances" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"variant_name" text NOT NULL,
 	"url" text NOT NULL,
-	CONSTRAINT "variant_instances_variantName_url_unique" UNIQUE("variant_name","url")
+	CONSTRAINT "variant_instances_variant_name_url_unique" UNIQUE("variant_name","url")
 );
 --> statement-breakpoint
 CREATE TABLE "variants" (

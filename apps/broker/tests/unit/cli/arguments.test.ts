@@ -70,5 +70,11 @@ describe("CLI arguments", () => {
         expect(() => instanceUrl({ url: "ftp://x" })).toThrow("http or https");
         expect(() => instanceUrl({ url: "not a url" })).toThrow("Invalid URL");
         expect(() => instanceUrl({ url: "http://x/?a=1" })).toThrow("query");
+        expect(() => instanceUrl({ url: "http://user:secret@host:1" })).toThrow(
+            "credentials",
+        );
+        expect(() =>
+            instanceUrl({ url: "http://user:secret@host:1" }),
+        ).not.toThrow(/secret/);
     });
 });

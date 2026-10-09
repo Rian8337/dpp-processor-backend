@@ -9,6 +9,12 @@ import { inject } from "tsyringe";
 import type { IHealthMonitor } from "./IHealthMonitor";
 import { probeInstance, type InstanceState } from "./probe";
 
+/**
+ * How long after an instance is marked down it is probed again, so one spurious failure does not keep a variant
+ * unavailable until the next health round.
+ */
+const recheckDelayMs = 1000;
+
 @Injectable(dependencyTokens.healthMonitor)
 export class HealthMonitor implements IHealthMonitor {
     private instances: readonly Instance[] = [];
@@ -16,6 +22,8 @@ export class HealthMonitor implements IHealthMonitor {
     private readonly states = new Map<string, InstanceState>();
     private readonly lastInfoByVariant = new Map<string, InfoResponse>();
     private round: Promise<void> | undefined;
+    private readonly rechecks = new Map<string, NodeJS.Timeout>();
+    private stopped = false;
 
     constructor(
         @inject(dependencyTokens.processorClient)
@@ -25,6 +33,8 @@ export class HealthMonitor implements IHealthMonitor {
     ) {}
 
     sync(snapshot: RegistrySnapshot): void {
+        const previous = this.current;
+
         this.instances = [...snapshot.variants.values()].flatMap(
             (variant) => variant.instances,
         );
@@ -36,9 +46,23 @@ export class HealthMonitor implements IHealthMonitor {
             }
         }
 
+        for (const [key, timer] of this.rechecks) {
+            if (!this.current.has(key)) {
+                clearTimeout(timer);
+                this.rechecks.delete(key);
+            }
+        }
+
         for (const name of this.lastInfoByVariant.keys()) {
             if (!snapshot.variants.has(name)) {
                 this.lastInfoByVariant.delete(name);
+            }
+        }
+
+        // New instances are probed right away rather than waiting for the next round. check() never throws.
+        for (const instance of this.instances) {
+            if (!previous.has(instanceKey(instance))) {
+                void this.check(instance);
             }
         }
     }
@@ -65,7 +89,19 @@ export class HealthMonitor implements IHealthMonitor {
 
         timer.unref();
 
-        return { [Symbol.dispose]: () => clearInterval(timer) };
+        return {
+            [Symbol.dispose]: () => {
+                clearInterval(timer);
+
+                this.stopped = true;
+
+                for (const recheck of this.rechecks.values()) {
+                    clearTimeout(recheck);
+                }
+
+                this.rechecks.clear();
+            },
+        };
     }
 
     stateOf(instance: Instance): InstanceState {
@@ -78,10 +114,30 @@ export class HealthMonitor implements IHealthMonitor {
 
     markDown(instance: Instance, reason: string): void {
         this.setState(instance, "down", reason);
+        this.scheduleRecheck(instance);
     }
 
     lastInfo(variantName: string): InfoResponse | undefined {
         return this.lastInfoByVariant.get(variantName);
+    }
+
+    private scheduleRecheck(instance: Instance): void {
+        const key = instanceKey(instance);
+
+        if (this.stopped || !this.current.has(key) || this.rechecks.has(key)) {
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            this.rechecks.delete(key);
+
+            if (this.current.has(key)) {
+                void this.check(instance);
+            }
+        }, recheckDelayMs);
+
+        timer.unref();
+        this.rechecks.set(key, timer);
     }
 
     private async check(instance: Instance): Promise<void> {

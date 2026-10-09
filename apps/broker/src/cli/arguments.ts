@@ -117,6 +117,12 @@ export function instanceUrl(values: { port?: string; url?: string }): string {
             throw new CliError(`The URL must use http or https: "${url}"`);
         }
 
+        if (parsed.username || parsed.password) {
+            throw new CliError(
+                `The URL must not contain credentials: "${parsed.host}"`,
+            );
+        }
+
         if (parsed.search || parsed.hash) {
             throw new CliError(
                 `The URL must not have a query or fragment: "${url}"`,

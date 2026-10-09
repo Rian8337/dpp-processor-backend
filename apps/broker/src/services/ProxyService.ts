@@ -91,6 +91,10 @@ export class ProxyService implements IProxyService {
 
         switch (result.kind) {
             case "timeout":
+                console.warn(
+                    `${source} did not respond within ${this.config.processor.timeoutSeconds.toString()} s`,
+                );
+
                 throw new ProcessorTimeoutError(variant.name);
             case "broken":
                 console.error(

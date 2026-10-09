@@ -33,7 +33,12 @@ export const variantInstancesTable = pgTable(
             .references(() => variantsTable.name, { onDelete: "cascade" }),
         url: text().notNull(),
     },
-    (table) => [unique().on(table.variantName, table.url)],
+    (table) => [
+        unique("variant_instances_variant_name_url_unique").on(
+            table.variantName,
+            table.url,
+        ),
+    ],
 );
 
 /**
@@ -51,8 +56,8 @@ export const aliasesTable = pgTable("aliases", {
  */
 export const apiKeysTable = pgTable("api_keys", {
     id: serial().primaryKey(),
-    name: text().notNull().unique(),
-    keyHash: char({ length: 64 }).notNull().unique(),
+    name: text().notNull().unique("api_keys_name_unique"),
+    keyHash: char({ length: 64 }).notNull().unique("api_keys_key_hash_unique"),
     rateLimitPerMinute: integer(),
     allVariants: boolean().notNull().default(false),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),

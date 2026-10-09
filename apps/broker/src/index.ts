@@ -14,6 +14,7 @@ import { ConfigError, loadConfig } from "./config/config";
 import { schema } from "./database/schema";
 import { registerDependencies } from "./dependencies/register";
 import { dependencyTokens } from "./dependencies/tokens";
+import type { IRegistryService } from "./services/IRegistryService";
 
 async function main(): Promise<void> {
     loadEnvironmentVariables();
@@ -22,6 +23,24 @@ async function main(): Promise<void> {
 
     // Kept for the process's whole lifetime, so never disposed.
     installLogPrefix("broker");
+
+    // Installed first so a SIGHUP during startup does not hit Node's default action (exit); it is ignored until
+    // the registry has loaded.
+    let registry: IRegistryService | undefined;
+
+    process.on("SIGHUP", () => {
+        const loaded = registry;
+
+        if (!loaded) {
+            return;
+        }
+
+        void loaded.reload().then((reloaded) => {
+            if (reloaded) {
+                console.log(`Reloaded registry: ${loaded.summary()}`);
+            }
+        });
+    });
 
     // Released in reverse order on shutdown: server, timers, usage summaries, then database.
     const resources = new AsyncDisposableStack();
@@ -39,18 +58,21 @@ async function main(): Promise<void> {
 
         registerDependencies(container, { config, db: database.db });
 
-        const registry = container.resolve(dependencyTokens.registryService);
+        const registryService = container.resolve(
+            dependencyTokens.registryService,
+        );
         const health = container.resolve(dependencyTokens.healthMonitor);
         const usage = container.resolve(dependencyTokens.usageStats);
 
-        await registry.load();
-        console.log(`Loaded registry: ${registry.summary()}`);
+        await registryService.load();
+        registry = registryService;
+        console.log(`Loaded registry: ${registryService.summary()}`);
 
         // Down processors do not stop startup; they become available once a later check succeeds.
         await health.checkAll();
 
         resources.use(usage.start());
-        resources.use(registry.startReloading());
+        resources.use(registryService.startReloading());
         resources.use(health.start());
 
         const server = resources.use(new GracefulServer());
@@ -79,15 +101,6 @@ async function main(): Promise<void> {
 
     process.once("SIGINT", shutdown);
     process.once("SIGTERM", shutdown);
-    process.on("SIGHUP", () => {
-        const registry = container.resolve(dependencyTokens.registryService);
-
-        void registry.reload().then((reloaded) => {
-            if (reloaded) {
-                console.log(`Reloaded registry: ${registry.summary()}`);
-            }
-        });
-    });
 }
 
 main().catch((e: unknown) => {

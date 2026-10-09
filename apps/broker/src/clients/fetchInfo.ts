@@ -54,7 +54,10 @@ export async function fetchInfo(
     let response: Response;
 
     try {
-        response = await fetch(`${baseUrl}/info`, { signal: timeout.signal });
+        response = await fetch(`${baseUrl}/info`, {
+            redirect: "error",
+            signal: timeout.signal,
+        });
     } catch (e) {
         return { kind: "failed", reason: describeFetchError(e) };
     }

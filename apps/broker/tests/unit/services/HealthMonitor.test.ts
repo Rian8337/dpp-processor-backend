@@ -44,10 +44,18 @@ describe("HealthMonitor", () => {
             { getInfo, forward: vi.fn<IProcessorClient["forward"]>() },
             testConfig,
         );
+
+        // sync probes new instances in the background; hold those probes so each test starts from "unchecked".
+        getInfo.mockImplementationOnce(() => new Promise(() => undefined));
+        getInfo.mockImplementationOnce(() => new Promise(() => undefined));
+        getInfo.mockImplementationOnce(() => new Promise(() => undefined));
         monitor.sync(snapshot);
+        getInfo.mockClear();
     });
 
     afterEach(() => {
+        // Clears any pending re-probe timers.
+        monitor.start()[Symbol.dispose]();
         vi.useRealTimers();
     });
 
@@ -141,6 +149,80 @@ describe("HealthMonitor", () => {
         await round;
 
         expect(monitor.lastInfo("a")).toBeUndefined();
+    });
+
+    it("probes an instance again shortly after it is marked down", async () => {
+        vi.useFakeTimers();
+
+        await monitor.checkAll();
+        monitor.markDown(a1, "connect ECONNRESET");
+        monitor.markDown(a1, "connect ECONNRESET");
+
+        expect(monitor.isHealthy(a1)).toBe(false);
+        expect(getInfo).toHaveBeenCalledTimes(3);
+
+        await vi.advanceTimersByTimeAsync(1000);
+
+        // One probe, although markDown was called twice.
+        expect(getInfo).toHaveBeenCalledTimes(4);
+        expect(monitor.isHealthy(a1)).toBe(true);
+    });
+
+    it("does not recreate state when an instance is removed before its re-probe", async () => {
+        vi.useFakeTimers();
+
+        await monitor.checkAll();
+        monitor.markDown(a1, "connect ECONNRESET");
+        monitor.sync(testSnapshot({}));
+        await vi.advanceTimersByTimeAsync(5000);
+
+        expect(getInfo).toHaveBeenCalledTimes(3);
+        expect(monitor.stateOf(a1)).toBe("down");
+        expect(monitor.lastInfo("a")).toBeUndefined();
+    });
+
+    it("does not re-probe after being disposed", async () => {
+        vi.useFakeTimers();
+
+        const timer = monitor.start();
+
+        await monitor.checkAll();
+        monitor.markDown(a1, "connect ECONNRESET");
+        timer[Symbol.dispose]();
+        await vi.advanceTimersByTimeAsync(5000);
+
+        expect(getInfo).toHaveBeenCalledTimes(3);
+    });
+
+    it("probes instances added by a sync right away, and only those", async () => {
+        vi.useFakeTimers();
+
+        await monitor.checkAll();
+        getInfo.mockClear();
+
+        const added: Instance = {
+            variantName: "b",
+            url: "http://127.0.0.1:2002",
+        };
+
+        answers.set(added.url, { kind: "ok", info: testInfo("b") });
+        monitor.sync(
+            testSnapshot({
+                variants: [
+                    { name: "a", public: true, description: null },
+                    { name: "b", public: true, description: null },
+                ],
+                instances: [a1, a2, b1, added],
+            }),
+        );
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(getInfo).toHaveBeenCalledTimes(1);
+        expect(getInfo).toHaveBeenCalledWith(
+            added.url,
+            testConfig.healthCheck.timeoutSeconds * 1000,
+        );
+        expect(monitor.isHealthy(added)).toBe(true);
     });
 
     it("shares one round between concurrent calls", async () => {

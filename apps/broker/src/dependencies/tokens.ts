@@ -3,6 +3,7 @@ import type { Config } from "@/config/config";
 import type { Database } from "@/database/types";
 import type { IRegistryRepository } from "@/repositories/IRegistryRepository";
 import type { IHealthMonitor } from "@/services/IHealthMonitor";
+import type { IRegistryService } from "@/services/IRegistryService";
 import type { InjectionToken } from "tsyringe";
 
 /**
@@ -22,4 +23,7 @@ export const dependencyTokens = {
     registryRepository: Symbol.for(
         "registryRepository",
     ) as InjectionToken<IRegistryRepository>,
+    registryService: Symbol.for(
+        "registryService",
+    ) as InjectionToken<IRegistryService>,
 } satisfies Record<string, InjectionToken<unknown>>;

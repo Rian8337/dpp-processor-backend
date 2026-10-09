@@ -7,3 +7,5 @@ export * from "./IInstanceSelector";
 export * from "./InstanceSelector";
 export * from "./IProxyService";
 export * from "./ProxyService";
+export * from "./IUsageStats";
+export * from "./UsageStats";

@@ -6,6 +6,7 @@ import type { IHealthMonitor } from "@/services/IHealthMonitor";
 import type { IInstanceSelector } from "@/services/IInstanceSelector";
 import type { IProxyService } from "@/services/IProxyService";
 import type { IRegistryService } from "@/services/IRegistryService";
+import type { IUsageStats } from "@/services/IUsageStats";
 import type { InjectionToken } from "tsyringe";
 
 /**
@@ -32,4 +33,5 @@ export const dependencyTokens = {
     registryService: Symbol.for(
         "registryService",
     ) as InjectionToken<IRegistryService>,
+    usageStats: Symbol.for("usageStats") as InjectionToken<IUsageStats>,
 } satisfies Record<string, InjectionToken<unknown>>;

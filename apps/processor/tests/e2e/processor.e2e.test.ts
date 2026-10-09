@@ -1,5 +1,9 @@
-import { PGlite } from "@electric-sql/pglite";
-import { PGLiteSocketServer } from "@electric-sql/pglite-socket";
+import {
+    freePort,
+    startProcess,
+    startTestPostgres,
+    type StartedProcess,
+} from "@dpp/server/testing";
 import { BeatmapDecoder, ModHidden, Modes } from "@rian8337/osu-base";
 import { DroidDifficultyCalculator } from "@rian8337/osu-difficulty-calculator";
 import {
@@ -11,15 +15,9 @@ import {
     replayFixture,
 } from "@test/utils/fixtures";
 import { modMap } from "@test/utils/mods";
-import {
-    execFile,
-    execFileSync,
-    spawn,
-    type ChildProcess,
-} from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
 import { mkdir, mkdtempDisposable, readFile } from "node:fs/promises";
 import { Agent, createServer, request, type Server } from "node:http";
-import { createServer as createNetServer } from "node:net";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
@@ -28,20 +26,6 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 const processorDir = fileURLToPath(new URL("../../", import.meta.url));
 const apiKey = "e2e-api-key-0123456789";
-
-function freePort(): Promise<number> {
-    return new Promise((resolve, reject) => {
-        const server = createNetServer().listen(0, "127.0.0.1", () => {
-            const address = server.address();
-
-            server.close(() =>
-                typeof address === "object" && address
-                    ? resolve(address.port)
-                    : reject(new Error("no port")),
-            );
-        });
-    });
-}
 
 /**
  * A stand-in for the beatmap service, serving the fixtures.
@@ -88,11 +72,10 @@ function startBeatmapService(port: number): Promise<Server> {
 describe("processor snapshot (e2e)", () => {
     const resources = new AsyncDisposableStack();
     let databasePort: number;
-    let processor: ChildProcess;
+    let processor: StartedProcess;
     let baseUrl: string;
     let snapshotDirectory: string;
     let processorEnvironment: NodeJS.ProcessEnv;
-    let output = "";
 
     const post = (path: string, body: unknown, key: string | null = apiKey) =>
         fetch(`${baseUrl}${path}`, {
@@ -131,17 +114,9 @@ describe("processor snapshot (e2e)", () => {
             { cwd: processorDir, stdio: "inherit" },
         );
 
-        databasePort = await freePort();
-        const database = resources.use(new PGlite());
-        const databaseServer = new PGLiteSocketServer({
-            db: database,
-            host: "127.0.0.1",
-            port: databasePort,
-            maxConnections: 10,
-        });
+        const postgres = resources.use(await startTestPostgres());
 
-        await databaseServer.start();
-        resources.defer(() => databaseServer.stop());
+        databasePort = postgres.port;
 
         const beatmapPort = await freePort();
         resources.use(await startBeatmapService(beatmapPort));
@@ -164,40 +139,13 @@ describe("processor snapshot (e2e)", () => {
             CALCULATION_THREADS: "2",
         };
 
-        processor = spawn("node", [join(snapshotDirectory, "index.mjs")], {
-            env: processorEnvironment,
-        });
-
-        resources.defer(() => {
-            if (processor.exitCode === null) {
-                processor.kill("SIGKILL");
-            }
-        });
-
-        processor.stdout?.on(
-            "data",
-            (chunk: Buffer) => (output += chunk.toString()),
+        processor = resources.use(
+            await startProcess({
+                script: join(snapshotDirectory, "index.mjs"),
+                env: processorEnvironment,
+                readyUrl: `${baseUrl}/info`,
+            }),
         );
-        processor.stderr?.on(
-            "data",
-            (chunk: Buffer) => (output += chunk.toString()),
-        );
-
-        for (let attempt = 0; ; attempt++) {
-            const ready = await fetch(`${baseUrl}/info`)
-                .then((r) => r.ok)
-                .catch(() => false);
-
-            if (ready) {
-                break;
-            }
-
-            if (attempt > 100 || processor.exitCode !== null) {
-                throw new Error(`Processor did not start:\n${output}`);
-            }
-
-            await new Promise((resolve) => setTimeout(resolve, 200));
-        }
     });
 
     afterAll(() => resources.disposeAsync());
@@ -211,7 +159,7 @@ describe("processor snapshot (e2e)", () => {
             algorithm: "live",
             calculatorVersion: expect.stringMatching(/^[0-9a-f]{16}$/),
         });
-        expect(output).toContain("[e2e-droid]");
+        expect(processor.output()).toContain("[e2e-droid]");
     });
 
     it("rejects requests without the API key", async () => {
@@ -377,15 +325,11 @@ describe("processor snapshot (e2e)", () => {
 
         await vi.waitFor(() => expect(sent).toBeGreaterThan(10));
 
-        const exited = new Promise<number | null>((resolve) =>
-            processor.once("exit", (code) => resolve(code)),
-        );
+        processor.child.kill("SIGTERM");
 
-        processor.kill("SIGTERM");
-
-        expect(await exited).toBe(0);
-        expect(output).toContain("Received SIGTERM");
-        expect(output).not.toContain("did not finish within");
+        expect(await processor.exited).toBe(0);
+        expect(processor.output()).toContain("Received SIGTERM");
+        expect(processor.output()).not.toContain("did not finish within");
 
         stop = true;
         await Promise.all(clients);

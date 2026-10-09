@@ -2,6 +2,7 @@ import { UsageStats } from "@/services/UsageStats";
 import { testConfig } from "@test/utils/config";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const disabled = { ...testConfig, usageSummaryIntervalSeconds: 0 };
 const enabled = { ...testConfig, usageSummaryIntervalSeconds: 300 };
 
 describe("UsageStats", () => {
@@ -83,7 +84,7 @@ describe("UsageStats", () => {
         const log = vi
             .spyOn(console, "log")
             .mockImplementation(() => undefined);
-        const stats = new UsageStats(testConfig);
+        const stats = new UsageStats(disabled);
         const timer = stats.start();
 
         stats.record({
@@ -96,5 +97,19 @@ describe("UsageStats", () => {
         timer[Symbol.dispose]();
 
         expect(log).not.toHaveBeenCalled();
+    });
+
+    it("records nothing when summaries are disabled", () => {
+        const stats = new UsageStats(disabled);
+
+        stats.record({
+            variant: "droid-live",
+            caller: "bot",
+            status: 200,
+            durationMs: 5,
+        });
+        stats.recordRateLimited("bot");
+
+        expect(stats.takeSummary()).toEqual([]);
     });
 });

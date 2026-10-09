@@ -37,6 +37,11 @@ export class UsageStats implements IUsageStats {
     ) {}
 
     record(request: RequestRecord): void {
+        // With summaries disabled nothing would ever drain the buffers.
+        if (this.config.usageSummaryIntervalSeconds === 0) {
+            return;
+        }
+
         this.callerUsage(request.caller).requests++;
 
         if (request.variant === null) {
@@ -60,6 +65,11 @@ export class UsageStats implements IUsageStats {
     }
 
     recordRateLimited(caller: string): void {
+        // With summaries disabled nothing would ever drain the buffers.
+        if (this.config.usageSummaryIntervalSeconds === 0) {
+            return;
+        }
+
         this.callerUsage(caller).rateLimited++;
     }
 

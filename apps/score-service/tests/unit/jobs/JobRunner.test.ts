@@ -184,6 +184,59 @@ describe("JobRunner", () => {
         expect(second).toEqual(range(1501, 2500));
     });
 
+    it("resumes at a different concurrency, processing every ID", async () => {
+        const controller = new AbortController();
+        const first: number[] = [];
+
+        const interrupted = await runner.run(
+            options(
+                (id) => {
+                    first.push(id);
+
+                    if (first.length === 1200) {
+                        controller.abort();
+                    }
+
+                    return Promise.resolve();
+                },
+                { concurrency: 3, signal: controller.signal },
+            ),
+        );
+
+        expect(interrupted).toBe("interrupted");
+
+        const second: number[] = [];
+        const finished = await runner.run(
+            options(
+                (id) => {
+                    second.push(id);
+                    return Promise.resolve();
+                },
+                { concurrency: 1 },
+            ),
+        );
+
+        expect(finished).toBe("finished");
+
+        const all = [...first, ...second];
+
+        expect(new Set(all)).toEqual(new Set(range(1, 2500)));
+        // Only IDs in flight when the abort hit may be done twice.
+        expect(all.length - 2500).toBeLessThanOrEqual(3);
+        expect((await repository.status("rescore"))?.chunks).toEqual({
+            done: 3,
+            inProgress: 0,
+            pending: 0,
+        });
+    });
+
+    it("rejects a concurrency below 1 before touching the repository", async () => {
+        await expect(
+            runner.run(options(() => Promise.resolve(), { concurrency: 0 })),
+        ).rejects.toThrow(new RangeError("concurrency must be at least 1"));
+        expect(await repository.status("rescore")).toBeNull();
+    });
+
     it("stops during a retry wait without recording the failed ID", async () => {
         const controller = new AbortController();
 

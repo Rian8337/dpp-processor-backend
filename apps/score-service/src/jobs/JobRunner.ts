@@ -25,6 +25,11 @@ export class JobRunner implements IJobRunner {
 
     async run(options: JobRunOptions): Promise<JobRunResult> {
         const { job, signal } = options;
+
+        if (options.concurrency < 1) {
+            throw new RangeError("concurrency must be at least 1");
+        }
+
         const created = await this.repository.createJob(job);
 
         if (!created) {

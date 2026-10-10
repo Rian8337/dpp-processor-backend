@@ -1,4 +1,6 @@
 import type { CliConfig, Config } from "@/config/config";
+import type { Database } from "@/database/types";
+import type { IJobProgressRepository } from "@/repositories/IJobProgressRepository";
 import type { InjectionToken } from "tsyringe";
 
 /**
@@ -12,4 +14,8 @@ export const dependencyTokens = {
      */
     config: Symbol.for("config") as InjectionToken<Config>,
     cliConfig: Symbol.for("cliConfig") as InjectionToken<CliConfig>,
+    db: Symbol.for("db") as InjectionToken<Database>,
+    jobProgressRepository: Symbol.for(
+        "jobProgressRepository",
+    ) as InjectionToken<IJobProgressRepository>,
 } satisfies Record<string, InjectionToken<unknown>>;

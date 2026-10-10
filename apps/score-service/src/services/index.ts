@@ -5,3 +5,5 @@ export * from "./GamePPService";
 export * from "./DanCourseService";
 export * from "./ReplaySubmissionService";
 export * from "./UncalculatedReplayService";
+export * from "./ScoreRecalculationService";
+export * from "./TotalPPService";

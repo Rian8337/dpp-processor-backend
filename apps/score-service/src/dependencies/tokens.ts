@@ -2,6 +2,7 @@ import type { CliConfig, Config } from "@/config/config";
 import type { IBeatmapServiceClient } from "@/clients/IBeatmapServiceClient";
 import type { IBrokerClient } from "@/clients/IBrokerClient";
 import type { IDiscordMetadataClient } from "@/clients/IDiscordMetadataClient";
+import type { IJobRunner } from "@/jobs/IJobRunner";
 import type { Database } from "@/database/types";
 import type { OfficialDatabase } from "@/official/connection";
 import type { OfficialTables } from "@/official/schema";
@@ -16,6 +17,8 @@ import type { IGamePPService } from "@/services/IGamePPService";
 import type { IReplaySubmissionService } from "@/services/IReplaySubmissionService";
 import type { IBestScoreWriter } from "@/services/IBestScoreWriter";
 import type { IOnlineScoreService } from "@/services/IOnlineScoreService";
+import type { IScoreRecalculationService } from "@/services/IScoreRecalculationService";
+import type { ITotalPPService } from "@/services/ITotalPPService";
 import type { IScoreCalculator } from "@/services/IScoreCalculator";
 import type { IUserBindRepository } from "@/repositories/IUserBindRepository";
 import type { ReplayWatcher } from "@/runtime/ReplayWatcher";
@@ -91,4 +94,11 @@ export const dependencyTokens = {
     uncalculatedScheduler: Symbol.for(
         "uncalculatedScheduler",
     ) as InjectionToken<UncalculatedScheduler>,
+    scoreRecalculationService: Symbol.for(
+        "scoreRecalculationService",
+    ) as InjectionToken<IScoreRecalculationService>,
+    totalPPService: Symbol.for(
+        "totalPPService",
+    ) as InjectionToken<ITotalPPService>,
+    jobRunner: Symbol.for("jobRunner") as InjectionToken<IJobRunner>,
 } satisfies Record<string, InjectionToken<unknown>>;

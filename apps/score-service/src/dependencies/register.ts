@@ -6,8 +6,9 @@ import { parseReplay } from "@/replays/parseReplay";
 import { registerInjectables } from "@dpp/server";
 import type { Db } from "mongodb";
 import type { DependencyContainer } from "tsyringe";
-// Load injectable classes so their metadata is registered. Task 16 adds `../jobs/JobRunner` here.
+// Load injectable classes so their metadata is registered.
 import "../clients";
+import "../jobs/JobRunner";
 import "../replays/ReplayStore";
 import "../repositories";
 import "../runtime/ReplayWatcher";

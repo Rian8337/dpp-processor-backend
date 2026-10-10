@@ -95,3 +95,28 @@ describe("UpstreamError", () => {
         });
     });
 });
+
+describe("requireValue configuration errors", () => {
+    const rejected = (
+        code: "UNAUTHORIZED" | "VARIANT_NOT_FOUND" | "BEATMAP_NOT_FOUND",
+    ) =>
+        ({
+            ok: false,
+            kind: "rejected",
+            status: 401,
+            code,
+            message: "m",
+        }) as const;
+
+    it.each(["UNAUTHORIZED", "VARIANT_NOT_FOUND"] as const)(
+        "retries later on rejected %s",
+        (code) => {
+            expect(() => requireValue(rejected(code))).toThrow(RetryLaterError);
+            expect(() => requireValue(rejected(code))).toThrow(code);
+        },
+    );
+
+    it("keeps other rejections permanent", () => {
+        expect(requireValue(rejected("BEATMAP_NOT_FOUND"))).toBeNull();
+    });
+});

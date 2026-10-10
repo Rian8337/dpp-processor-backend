@@ -67,7 +67,19 @@ export function malformed(code: ErrorCode, message: string): UpstreamFailure {
 }
 
 /**
+ * Rejections caused by this service's own configuration (bad key, wrong variant name): retrying later, after the
+ * operator fixes it, loses nothing, while treating them as permanent would drop data.
+ */
+const configurationCodes = new Set<string>([
+    "UNAUTHORIZED",
+    "VARIANT_NOT_FOUND",
+]);
+
+/**
  * For background work: the value, `null` for a permanent failure, or a thrown {@link RetryLaterError}.
+ *
+ * Retry failures and configuration rejections (`UNAUTHORIZED`, `VARIANT_NOT_FOUND`) throw; every other rejection
+ * (such as `BEATMAP_NOT_FOUND` or `INVALID_REPLAY`) is permanent and gives `null`.
  */
 export function requireValue<T>(result: UpstreamResult<T>): T | null {
     if (result.ok) {
@@ -76,6 +88,13 @@ export function requireValue<T>(result: UpstreamResult<T>): T | null {
 
     if (result.kind === "retry") {
         throw new RetryLaterError(result.message, result.retryAfterMs);
+    }
+
+    if (configurationCodes.has(result.code)) {
+        throw new RetryLaterError(
+            `Configuration problem (${result.code}): ${result.message}`,
+            result.retryAfterMs,
+        );
     }
 
     return null;

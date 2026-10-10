@@ -239,6 +239,21 @@ describe("ReplaySubmissionService", () => {
         });
     });
 
+    it("keeps the replay on a broker configuration error", async () => {
+        broker.onReplay = () => ({
+            ok: false,
+            kind: "rejected",
+            status: 401,
+            code: "UNAUTHORIZED",
+            message: "bad key",
+        });
+
+        const result = await service.process("99_a.odr", file);
+
+        expect(result.action).toBe("keep");
+        expect(recentPlays.plays).toEqual([]);
+    });
+
     it("keeps the replay when the beatmap service asks to retry", async () => {
         beatmaps.answer = () => retryLater;
 

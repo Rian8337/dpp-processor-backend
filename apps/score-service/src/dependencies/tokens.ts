@@ -10,6 +10,7 @@ import type { IOfficialScoreRepository } from "@/repositories/IOfficialScoreRepo
 import type { IDanCourseRepository } from "@/repositories/IDanCourseRepository";
 import type { IRecentPlayRepository } from "@/repositories/IRecentPlayRepository";
 import type { IReplayStore } from "@/replays/IReplayStore";
+import type { IScoreCalculator } from "@/services/IScoreCalculator";
 import type { IUserBindRepository } from "@/repositories/IUserBindRepository";
 import type { Db } from "mongodb";
 import type { InjectionToken } from "tsyringe";
@@ -55,4 +56,7 @@ export const dependencyTokens = {
         "discordMetadataClient",
     ) as InjectionToken<IDiscordMetadataClient>,
     replayStore: Symbol.for("replayStore") as InjectionToken<IReplayStore>,
+    scoreCalculator: Symbol.for(
+        "scoreCalculator",
+    ) as InjectionToken<IScoreCalculator>,
 } satisfies Record<string, InjectionToken<unknown>>;

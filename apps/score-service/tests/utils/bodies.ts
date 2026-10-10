@@ -1,11 +1,18 @@
+import {
+    performanceBodySchema,
+    replayPerformanceBodySchema,
+    type PerformanceBody,
+    type ReplayPerformanceBody,
+} from "@/clients/schemas";
+
 /**
- * A processor's `/performance` response body, as the broker returns it.
+ * A processor's `/performance` response body, validated as the broker client validates it.
  */
 export function performanceBody(
     total: number,
     extra: Record<string, unknown> = {},
-) {
-    return {
+): PerformanceBody {
+    return performanceBodySchema.parse({
         difficulty: { mods: [], starRating: 5 },
         performance: { total, aim: 1 },
         score: {
@@ -18,17 +25,18 @@ export function performanceBody(
             sliderCheesePenalty: 1,
         },
         ...extra,
-    };
+    });
 }
 
 /**
- * A processor's `/performance/replay` response body.
+ * A processor's `/performance/replay` response body, validated as the broker client validates it.
  */
 export function replayPerformanceBody(
     total: number,
     extra: Record<string, unknown> = {},
-) {
-    return performanceBody(total, {
+): ReplayPerformanceBody {
+    return replayPerformanceBodySchema.parse({
+        ...performanceBody(total),
         replay: {
             hitError: null,
             sliderTickInformation: null,

@@ -17,7 +17,7 @@ import {
     scoreRow,
     testHash,
 } from "@test/utils/rows";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const query = {
     uid: 7,
@@ -154,6 +154,20 @@ describe("OnlineScoreService", () => {
             expect(response.pp).toBe(120 * expected);
         },
     );
+
+    it("treats an unreadable replay as missing", async () => {
+        repository.scores.push(scoreRow({ id: 10 }));
+        vi.spyOn(replays, "readScoreReplay").mockRejectedValue(
+            Object.assign(new Error("EACCES"), { code: "EACCES" }),
+        );
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+        const response = await service.lookup(query);
+
+        expect(response.source).toBe("score");
+        expect(broker.calls.map((c) => c.kind)).toEqual(["performance"]);
+        expect(warn).toHaveBeenCalledOnce();
+    });
 
     it("ignores the multiplier for an osu variant", async () => {
         repository.scores.push(scoreRow({ id: 10, ppMultiplier: 0.5 }));

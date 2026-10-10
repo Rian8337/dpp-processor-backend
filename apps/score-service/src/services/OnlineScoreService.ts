@@ -40,10 +40,7 @@ export class OnlineScoreService implements IOnlineScoreService {
             throw new ScoreNotFoundError();
         }
 
-        const file = await this.replays.readScoreReplay(
-            best ? "best" : "online",
-            score.id,
-        );
+        const file = await this.readReplay(best ? "best" : "online", score.id);
         const replay = file ? await this.parse(file) : null;
         const header = { id: score.id, uid, hash, best };
 
@@ -77,6 +74,24 @@ export class OnlineScoreService implements IOnlineScoreService {
                 : 1;
 
         return respond(header, "score", multiplier, result);
+    }
+
+    /**
+     * An unreadable replay counts as a missing one; other callers of the store still see the error.
+     */
+    private async readReplay(
+        folder: "online" | "best",
+        scoreId: number,
+    ): Promise<Buffer | null> {
+        try {
+            return await this.replays.readScoreReplay(folder, scoreId);
+        } catch (e) {
+            console.warn(
+                `Could not read the replay of score ${scoreId.toString()}: ${e instanceof Error ? e.message : String(e)}`,
+            );
+
+            return null;
+        }
     }
 }
 

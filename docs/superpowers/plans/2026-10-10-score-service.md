@@ -26,7 +26,7 @@
 
 ## Review Focus
 
-1. **Official MySQL columns that may not exist.** The Drizzle schema lists `total_score` and `score_multiplier` on all three score tables (`pp-processor-node` reads and writes them on `score_best` and `score_uncalculated`). If `bbl_score` lacks them, every query fails. Task 5's opt-in integration test creates the tables from the same column list; before production, run `SHOW CREATE TABLE` on all four tables and compare (README step in Task 18).
+1. **The generated `total_score` column.** In production, `total_score` on `bbl_score` and `bbl_score_best` is `GENERATED ALWAYS AS (round(score * score_multiplier)) STORED`, and `bbl_score_uncalculated` has no `total_score` (and no `id`). Writing it fails the insert, so best rows are inserted without it. Task 5's integration test runs against the production DDL (`tests/fixtures/official-schema.sql`) and inserts a best row through the repository; nullable hit counts are covered there too.
 2. **A replay file that is still being written.** The watcher must only pick up a file after `awaitWriteFinish`; the backlog at startup may contain half-written files from a crash, which must fail parsing and be deleted (they can never become valid). Task 14 tests a file that appears in two writes.
 3. **The same file offered twice** (backlog scan and the watcher's `add` event overlap at startup, or a retry timer fires while the file is in flight). Task 14 tests that a path is processed at most once at a time.
 4. **A recalculation interrupted mid-chunk and resumed with a different `--concurrency`.** Chunks are claimed from Postgres, not assigned by worker number, so resuming with any concurrency must process every ID exactly once more at most. Task 16 tests resume after abort with a different concurrency.
@@ -2598,10 +2598,10 @@ export type ScoreRow = OfficialTables["scores"]["$inferSelect"];
 export type BestScoreRow = OfficialTables["bestScores"]["$inferSelect"];
 export type BestScoreInsert = OfficialTables["bestScores"]["$inferInsert"];
 export type UncalculatedScoreRow = OfficialTables["uncalculatedScores"]["$inferSelect"];
-/** What a calculation from stored stats reads. `score` is sent as the processor's `totalScore`. */
-export type ScoreStats = Pick<ScoreRow, "hash" | "mods" | "score" | "combo" | "perfect" | "good" | "bad" | "miss" | "sliderHeadHit" | "sliderTickHit" | "sliderRepeatHit" | "sliderEndHit">;
-/** A score's own columns: a best row without `pp`, `ppMultiplier`, and `filename` (the title). */
-export type ScoreColumns = Omit<BestScoreRow, "pp" | "ppMultiplier" | "filename">;
+/** What a calculation from stored stats reads. `totalScore` (the generated `round(score × score_multiplier)`) is sent as the processor's `totalScore`, as the game sends `total_score` to `/calculate-score`. */
+export type ScoreStats = Pick<ScoreRow, "hash" | "mods" | "totalScore" | "combo" | "perfect" | "good" | "bad" | "miss" | "sliderHeadHit" | "sliderTickHit" | "sliderRepeatHit" | "sliderEndHit">;
+/** A score's own columns: a best row without `pp`, `ppMultiplier`, `filename` (the title), and the generated `totalScore`. An uncalculated row has exactly these, minus `id`. */
+export type ScoreColumns = Omit<BestScoreRow, "pp" | "ppMultiplier" | "filename" | "totalScore">;
 export function scoreColumns(row: ScoreRow | BestScoreRow): ScoreColumns;
 export interface UserTotals { readonly pp: number; readonly accuracy: number }
 
@@ -2641,8 +2641,10 @@ export interface IOfficialScoreRepository {
 `src/official/schema.ts`:
 
 ```ts
+import { sql } from "drizzle-orm";
 import {
     bigint,
+    double,
     float,
     int,
     longtext,
@@ -2653,11 +2655,11 @@ import {
 } from "drizzle-orm/mysql-core";
 
 /**
- * Columns every score table shares, with the official database's names (Drizzle maps them to snake_case).
- * A function, so each table gets its own column builders.
+ * Columns every score table shares, as in the production schema (`tests/fixtures/official-schema.sql`), with the
+ * official database's names (Drizzle maps them to snake_case). A function, so each table gets its own column
+ * builders.
  *
- * `total_score` and `score_multiplier` are not in the old backend's schema, but `pp-processor-node` reads and writes
- * them; check `SHOW CREATE TABLE` before the first deployment (see the README).
+ * The hit counts, `combo`, and `accuracy` default to 0 but are nullable in production; readers treat `null` as 0.
  */
 function sharedScoreColumns() {
     return {
@@ -2667,23 +2669,32 @@ function sharedScoreColumns() {
         // Serialized mods as a JSON string. The connection uses `jsonStrings`, so it is never auto-parsed.
         mods: longtext().notNull().default("[]"),
         score: bigint({ mode: "number" }).notNull().default(0),
-        combo: int().notNull().default(0),
+        combo: int().default(0),
         mark: varchar({ length: 2 }),
-        geki: mediumint().notNull().default(0),
-        perfect: mediumint().notNull().default(0),
-        katu: mediumint().notNull().default(0),
-        good: mediumint().notNull().default(0),
-        bad: mediumint().notNull().default(0),
-        miss: mediumint().notNull().default(0),
+        geki: mediumint().default(0),
+        perfect: mediumint().default(0),
+        katu: mediumint().default(0),
+        good: mediumint().default(0),
+        bad: mediumint().default(0),
+        miss: mediumint().default(0),
+        sliderHeadHit: mediumint(),
+        sliderTickHit: mediumint(),
+        sliderRepeatHit: mediumint(),
+        sliderEndHit: mediumint(),
         date: timestamp().notNull().defaultNow(),
-        sliderHeadHit: int(),
-        sliderTickHit: int(),
-        sliderRepeatHit: int(),
-        sliderEndHit: int(),
-        accuracy: float().notNull().default(0),
-        totalScore: bigint({ mode: "number" }).notNull().default(0),
-        scoreMultiplier: float().notNull().default(1),
+        accuracy: float().default(0),
+        scoreMultiplier: double().notNull().default(1),
     };
+}
+
+/**
+ * `round(score * score_multiplier)`, generated by the database: read, never written.
+ */
+function totalScoreColumn() {
+    return bigint({ mode: "number" }).generatedAlwaysAs(
+        sql`round(\`score\` * \`score_multiplier\`)`,
+        { mode: "stored" },
+    );
 }
 
 /**
@@ -2702,18 +2713,21 @@ export function createOfficialTables(prefix: string) {
         scores: mysqlTable(`${prefix}score`, {
             id: int().primaryKey().autoincrement(),
             ...sharedScoreColumns(),
+            totalScore: totalScoreColumn(),
             pp: float(),
             ppMultiplier: float(),
         }),
         bestScores: mysqlTable(`${prefix}score_best`, {
             id: int().primaryKey(),
             ...sharedScoreColumns(),
+            totalScore: totalScoreColumn(),
             pp: float().notNull(),
             ppMultiplier: float().notNull(),
         }),
         uncalculatedScores: mysqlTable(`${prefix}score_uncalculated`, {
+            // This table has no `id` and no `total_score`.
             ...sharedScoreColumns(),
-            replayfilename: varchar({ length: 255 }).notNull(),
+            replayfilename: varchar({ length: 255 }),
         }),
     };
 }
@@ -2732,6 +2746,7 @@ export function scoreColumns(row: ScoreRow | BestScoreRow): ScoreColumns {
         pp: _pp,
         ppMultiplier: _ppMultiplier,
         filename: _filename,
+        totalScore: _totalScore,
         ...columns
     } = row;
 
@@ -2799,7 +2814,7 @@ import type {
     UserTotals,
 } from "@/official/types";
 import { Injectable } from "@dpp/server";
-import { and, desc, eq, ne } from "drizzle-orm";
+import { and, desc, eq, ne, sql } from "drizzle-orm";
 import { inject } from "tsyringe";
 import type { IOfficialScoreRepository } from "./IOfficialScoreRepository";
 
@@ -2956,7 +2971,11 @@ export class OfficialScoreRepository implements IOfficialScoreRepository {
         const { bestScores } = this.tables;
 
         return this.db
-            .select({ pp: bestScores.pp, accuracy: bestScores.accuracy })
+            .select({
+                pp: bestScores.pp,
+                // Nullable in production; a missing accuracy counts as 0.
+                accuracy: sql<number>`coalesce(${bestScores.accuracy}, 0)`,
+            })
             .from(bestScores)
             .where(eq(bestScores.uid, uid))
             .orderBy(desc(bestScores.pp))
@@ -3011,18 +3030,24 @@ const shared = {
     sliderRepeatHit: 10,
     sliderEndHit: 99,
     accuracy: 0.95,
-    totalScore: 1_000_000,
     scoreMultiplier: 1,
 };
 
+/**
+ * A score row. `totalScore` is generated as the database would, unless overridden.
+ */
 export function scoreRow(overrides: Partial<ScoreRow> = {}): ScoreRow {
-    return { id: 1, ...shared, pp: 100, ppMultiplier: 1, ...overrides };
+    const row = { id: 1, ...shared, pp: 100, ppMultiplier: 1, ...overrides };
+
+    return { totalScore: Math.round(row.score * row.scoreMultiplier), ...row };
 }
 
 export function bestScoreRow(
     overrides: Partial<BestScoreRow> = {},
 ): BestScoreRow {
-    return { id: 1, ...shared, pp: 100, ppMultiplier: 1, ...overrides };
+    const row = { id: 1, ...shared, pp: 100, ppMultiplier: 1, ...overrides };
+
+    return { totalScore: Math.round(row.score * row.scoreMultiplier), ...row };
 }
 
 export function uncalculatedRow(
@@ -3038,6 +3063,8 @@ export function uncalculatedRow(
 import type { OfficialDatabaseSettings } from "@/config/config";
 import { OfficialDatabaseConnection } from "@/official/connection";
 import { randomBytes } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import { createConnection } from "mysql2/promise";
 
 /**
@@ -3064,30 +3091,9 @@ export function officialTestSettings(): Omit<
     };
 }
 
-function scoreColumnsSql(): string {
-    return `
-        uid MEDIUMINT NOT NULL,
-        filename VARCHAR(255) NOT NULL,
-        hash VARCHAR(36) NOT NULL,
-        mods LONGTEXT NOT NULL DEFAULT '[]',
-        score BIGINT NOT NULL DEFAULT 0,
-        combo INT NOT NULL DEFAULT 0,
-        mark VARCHAR(2),
-        geki MEDIUMINT NOT NULL DEFAULT 0,
-        perfect MEDIUMINT NOT NULL DEFAULT 0,
-        katu MEDIUMINT NOT NULL DEFAULT 0,
-        good MEDIUMINT NOT NULL DEFAULT 0,
-        bad MEDIUMINT NOT NULL DEFAULT 0,
-        miss MEDIUMINT NOT NULL DEFAULT 0,
-        date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        slider_head_hit INT,
-        slider_tick_hit INT,
-        slider_repeat_hit INT,
-        slider_end_hit INT,
-        accuracy FLOAT NOT NULL DEFAULT 0,
-        total_score BIGINT NOT NULL DEFAULT 0,
-        score_multiplier FLOAT NOT NULL DEFAULT 1`;
-}
+const schemaFixture = fileURLToPath(
+    new URL("../fixtures/official-schema.sql", import.meta.url),
+);
 
 /**
  * Official tables under a random prefix, created on the opt-in server. Disposing drops them.
@@ -3110,28 +3116,10 @@ export async function createOfficialTestDatabase(
         multipleStatements: true,
     });
 
-    await admin.query(`
-        CREATE TABLE ${prefix}user (
-            id MEDIUMINT PRIMARY KEY AUTO_INCREMENT,
-            username VARCHAR(64) NOT NULL UNIQUE,
-            pp FLOAT NOT NULL DEFAULT 0,
-            accuracy FLOAT NOT NULL DEFAULT 1,
-            last_login_time TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB;
-        CREATE TABLE ${prefix}score (
-            id INT PRIMARY KEY AUTO_INCREMENT, ${scoreColumnsSql()},
-            pp FLOAT NULL, pp_multiplier FLOAT NULL
-        ) ENGINE=InnoDB;
-        CREATE TABLE ${prefix}score_best (
-            id INT NOT NULL, ${scoreColumnsSql()},
-            pp FLOAT NOT NULL, pp_multiplier FLOAT NOT NULL,
-            INDEX (id), INDEX (uid)
-        ) ENGINE=InnoDB;
-        CREATE TABLE ${prefix}score_uncalculated (
-            id INT PRIMARY KEY AUTO_INCREMENT, ${scoreColumnsSql()},
-            replayfilename VARCHAR(255) NOT NULL
-        ) ENGINE=InnoDB;
-    `);
+    // The production DDL, with `{prefix}` in place of `bbl_`.
+    const ddl = await readFile(schemaFixture, "utf8");
+
+    await admin.query(ddl.replaceAll("{prefix}", prefix));
 
     const full = { ...settings, tablePrefix: prefix };
     const connection = new OfficialDatabaseConnection(full);
@@ -3150,13 +3138,18 @@ export async function createOfficialTestDatabase(
 }
 ```
 
-`score_best` deliberately has no primary key, so duplicate rows (which exist in production) can be created.
+Create `tests/fixtures/official-schema.sql` from the production schema export (`/var/www/html/osudroid/docs/export_ibancho.sql`): copy the `CREATE TABLE` statements of `bbl_user`, `bbl_score`, `bbl_score_best`, and `bbl_score_uncalculated` verbatim, replace `bbl_` in the four table names with `{prefix}`, drop the `AUTO_INCREMENT=<n>` table options, and end each statement with `;`. Nothing else from the export (no data, no other tables). `bbl_score_best`'s primary key is `id`, so production duplicates are rows with different IDs for the same player and beatmap.
 
 - [ ] **Step 4: Write the opt-in integration tests**
 
 `tests/integration/repositories/OfficialScoreRepository.int.test.ts`:
 
 ```ts
+import {
+    scoreColumns,
+    type BestScoreRow,
+    type ScoreRow,
+} from "@/official/types";
 import { OfficialScoreRepository } from "@/repositories/OfficialScoreRepository";
 import {
     createOfficialTestDatabase,
@@ -3169,9 +3162,31 @@ import {
     testHash,
     uncalculatedRow,
 } from "@test/utils/rows";
+import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 const settings = officialTestSettings();
+
+/**
+ * A best row as the service inserts it: without the generated total score.
+ */
+function bestInsert(row: BestScoreRow) {
+    return {
+        ...scoreColumns(row),
+        filename: row.filename,
+        pp: row.pp,
+        ppMultiplier: row.ppMultiplier,
+    };
+}
+
+/**
+ * A score row without the generated total score.
+ */
+function scoreInsert(row: ScoreRow) {
+    const { totalScore: _generated, ...columns } = row;
+
+    return columns;
+}
 
 describe.skipIf(!settings)("OfficialScoreRepository (MySQL)", () => {
     let database: OfficialTestDatabase;
@@ -3200,17 +3215,25 @@ describe.skipIf(!settings)("OfficialScoreRepository (MySQL)", () => {
         await database[Symbol.asyncDispose]();
     });
 
-    it("reads scores by ID and by player and beatmap, mods as a string", async () => {
+    it("reads scores with mods as a string and the generated total score", async () => {
         const { db, tables } = database.connection;
 
-        await db
-            .insert(tables.scores)
-            .values(scoreRow({ id: 10, mods: '[{"acronym":"HD"}]' }));
+        await db.insert(tables.scores).values(
+            scoreInsert(
+                scoreRow({
+                    id: 10,
+                    mods: '[{"acronym":"HD"}]',
+                    score: 1000,
+                    scoreMultiplier: 1.5,
+                }),
+            ),
+        );
 
         expect(await repository.findScoreById(10)).toMatchObject({
             id: 10,
             mods: '[{"acronym":"HD"}]',
             ppMultiplier: 1,
+            totalScore: 1500,
         });
         expect(await repository.findScore(7, testHash)).toMatchObject({
             id: 10,
@@ -3219,15 +3242,32 @@ describe.skipIf(!settings)("OfficialScoreRepository (MySQL)", () => {
         expect(await repository.findScoreById(11)).toBeNull();
     });
 
+    it("reads null hit counts as null", async () => {
+        const { db, tables } = database.connection;
+
+        await db
+            .insert(tables.scores)
+            .values({
+                ...scoreInsert(scoreRow({ id: 10 })),
+                combo: null,
+                miss: null,
+            });
+
+        expect(await repository.findScoreById(10)).toMatchObject({
+            combo: null,
+            miss: null,
+        });
+    });
+
     it("lists best rows highest pp first and deletes all but one", async () => {
         const { db, tables } = database.connection;
 
         await db
             .insert(tables.bestScores)
             .values([
-                bestScoreRow({ id: 1, pp: 50 }),
-                bestScoreRow({ id: 2, pp: 80 }),
-                bestScoreRow({ id: 3, pp: 60 }),
+                bestInsert(bestScoreRow({ id: 1, pp: 50 })),
+                bestInsert(bestScoreRow({ id: 2, pp: 80 })),
+                bestInsert(bestScoreRow({ id: 3, pp: 60 })),
             ]);
 
         expect(
@@ -3243,19 +3283,30 @@ describe.skipIf(!settings)("OfficialScoreRepository (MySQL)", () => {
         expect(await repository.deleteBestScores(7, testHash)).toEqual([]);
     });
 
-    it("inserts a best row and updates pp", async () => {
-        await repository.insertBestScore(bestScoreRow({ id: 5, pp: 10 }));
+    it("inserts a best row without writing the generated total score", async () => {
+        await repository.insertBestScore(
+            bestInsert(
+                bestScoreRow({
+                    id: 5,
+                    pp: 10,
+                    score: 1000,
+                    scoreMultiplier: 1.5,
+                }),
+            ),
+        );
         await repository.setBestScorePP(5, 20);
 
         expect((await repository.findBestScores(7, testHash))[0]).toMatchObject(
-            { id: 5, pp: 20 },
+            { id: 5, pp: 20, totalScore: 1500 },
         );
     });
 
     it("sets and clears a score's pp", async () => {
         const { db, tables } = database.connection;
 
-        await db.insert(tables.scores).values(scoreRow({ id: 10 }));
+        await db
+            .insert(tables.scores)
+            .values(scoreInsert(scoreRow({ id: 10 })));
         await repository.setScorePP(10, null);
 
         expect((await repository.findScoreById(10))?.pp).toBeNull();
@@ -3293,25 +3344,28 @@ describe.skipIf(!settings)("OfficialScoreRepository (MySQL)", () => {
         expect(user?.pp).toBeCloseTo(123.5, 3);
     });
 
-    it("reads top best scores", async () => {
+    it("reads top best scores, a null accuracy as 0", async () => {
         const { db, tables } = database.connection;
 
-        await db
-            .insert(tables.bestScores)
-            .values([
-                bestScoreRow({ id: 1, pp: 50, hash: "a".repeat(32) }),
-                bestScoreRow({ id: 2, pp: 80, hash: "b".repeat(32) }),
-            ]);
+        await db.insert(tables.bestScores).values([
+            bestInsert(bestScoreRow({ id: 1, pp: 50, hash: "a".repeat(32) })),
+            {
+                ...bestInsert(
+                    bestScoreRow({ id: 2, pp: 80, hash: "b".repeat(32) }),
+                ),
+                accuracy: null,
+            },
+        ]);
 
-        expect((await repository.topBestScores(7, 1)).map((r) => r.pp)).toEqual(
-            [80],
-        );
+        expect(await repository.topBestScores(7, 1)).toEqual([
+            { pp: 80, accuracy: 0 },
+        ]);
     });
 
     it("rolls a transaction back on error", async () => {
         await expect(
             repository.transaction(async (tx) => {
-                await tx.insertBestScore(bestScoreRow({ id: 9 }));
+                await tx.insertBestScore(bestInsert(bestScoreRow({ id: 9 })));
                 throw new Error("boom");
             }),
         ).rejects.toThrow("boom");
@@ -3353,8 +3407,6 @@ describe.skipIf(!settings)("OfficialScoreRepository (MySQL)", () => {
     });
 });
 ```
-
-Add `import { eq } from "drizzle-orm";`.
 
 - [ ] **Step 5: Run the tests (skipped without a server, then against local MariaDB if available)**
 
@@ -4711,10 +4763,10 @@ export function isReplayValid(
 
     if (
         score.hash !== replay.hash ||
-        score.perfect !== counts.n300 ||
-        score.good !== counts.n100 ||
-        score.bad !== counts.n50 ||
-        score.miss !== counts.nmiss ||
+        (score.perfect ?? 0) !== counts.n300 ||
+        (score.good ?? 0) !== counts.n100 ||
+        (score.bad ?? 0) !== counts.n50 ||
+        (score.miss ?? 0) !== counts.nmiss ||
         // A replay without any hit is empty.
         new Accuracy(counts).value === 0
     ) {
@@ -4727,9 +4779,9 @@ export function isReplayValid(
 
     if (
         score.score !== replay.v3.score ||
-        score.combo !== replay.v3.maxCombo ||
-        score.geki !== replay.hit300k ||
-        score.katu !== replay.hit100k ||
+        (score.combo ?? 0) !== replay.v3.maxCombo ||
+        (score.geki ?? 0) !== replay.hit300k ||
+        (score.katu ?? 0) !== replay.hit100k ||
         score.mark !== replay.rank
     ) {
         return false;
@@ -5151,7 +5203,12 @@ describe("ScoreCalculator", () => {
             value: performanceBody(100),
         }));
         const calculator = new ScoreCalculator(broker);
-        const stats = scoreRow({ mods: '[{"acronym":"HD"}]' });
+        // The generated total score (score × score multiplier) is sent, as the game sends total_score.
+        const stats = scoreRow({
+            mods: '[{"acronym":"HD"}]',
+            score: 1_000_000,
+            scoreMultiplier: 1.1,
+        });
 
         const result = await calculator.calculateStats("live-droid", stats, {
             strainChart: true,
@@ -5171,7 +5228,7 @@ describe("ScoreCalculator", () => {
                         n50: 2,
                         nmiss: 1,
                         combo: 500,
-                        totalScore: 1_000_000,
+                        totalScore: 1_100_000,
                         sliderHeadHits: 100,
                         sliderTickHits: 200,
                         sliderRepeatHits: 10,
@@ -5384,7 +5441,12 @@ export class ScoreCalculator implements IScoreCalculator {
         return this.broker.performance(variant, {
             beatmap: { hash: stats.hash },
             mods,
-            score: { ...statsParameters(stats), totalScore: stats.score },
+            score: {
+                ...statsParameters(stats),
+                ...(stats.totalScore !== null && {
+                    totalScore: stats.totalScore,
+                }),
+            },
             strainChart: options.strainChart ?? false,
         });
     }
@@ -5448,11 +5510,11 @@ function statsParameters(stats: ScoreStats): ScoreParameters {
         stats;
 
     return {
-        n300: stats.perfect,
-        n100: stats.good,
-        n50: stats.bad,
-        nmiss: stats.miss,
-        combo: stats.combo,
+        n300: stats.perfect ?? 0,
+        n100: stats.good ?? 0,
+        n50: stats.bad ?? 0,
+        nmiss: stats.miss ?? 0,
+        combo: stats.combo ?? 0,
         ...(sliderHeadHit !== null &&
             sliderTickHit !== null &&
             sliderRepeatHit !== null &&
@@ -5658,6 +5720,13 @@ export class InMemoryOfficialScoreRepository implements IOfficialScoreRepository
     }
 
     insertBestScore(row: BestScoreInsert) {
+        // `id` is the table's primary key in production.
+        if (this.bestScores.some((s) => s.id === row.id)) {
+            return Promise.reject(
+                new Error(`Duplicate best score ID ${String(row.id)}`),
+            );
+        }
+
         this.bestScores.push(bestScoreRow(row));
         return Promise.resolve();
     }
@@ -5668,7 +5737,7 @@ export class InMemoryOfficialScoreRepository implements IOfficialScoreRepository
                 .filter((s) => s.uid === uid)
                 .sort((a, b) => b.pp - a.pp)
                 .slice(0, limit)
-                .map(({ pp, accuracy }) => ({ pp, accuracy })),
+                .map(({ pp, accuracy }) => ({ pp, accuracy: accuracy ?? 0 })),
         );
     }
 
@@ -5724,7 +5793,7 @@ export class InMemoryReplayStore implements IReplayStore {
 }
 ```
 
-`bestScoreRow(row)` (from `tests/utils/rows.ts`) fills defaults for omitted insert columns; insert rows always carry every column in these tests. Add a short `tests/unit/utils/fakes.test.ts` checking that `transaction` restores the tables after a throw and keeps changes after success.
+`bestScoreRow(row)` (from `tests/utils/rows.ts`) fills defaults for omitted insert columns and generates `totalScore` as the database would; insert rows always carry every column in these tests. Add a short `tests/unit/utils/fakes.test.ts` checking that `transaction` restores the tables after a throw and keeps changes after success.
 
 - [ ] **Step 2: Write the failing writer tests**
 
@@ -6495,7 +6564,7 @@ export class GamePPService implements IGamePPService {
         const result = await this.calculator.calculateStats(variant, {
             hash: fields.hash,
             mods: JSON.stringify(fields.mods),
-            score: fields.totalScore,
+            totalScore: fields.totalScore,
             combo: fields.combo,
             perfect: fields.perfect,
             good: fields.good,
@@ -8837,7 +8906,7 @@ If a local MariaDB server is running, run the MySQL-gated tests with it as in Ta
 2. **Configuration:** every variable from `EnvironmentVariableKey` with default and purpose (the spec's table plus `OFFICIAL_DB_PREFIX`); the broker key must have no rate limit and `all_variants`; `LIVE_DROID_VARIANT`/`LIVE_OSU_VARIANT` should be aliases (e.g. `live-droid`), so a live update is a repointed alias. No production hosts or ports.
 3. **Build and run:** `pnpm --filter @dpp/score-service build`; PM2 runs `dist/index.mjs` from `apps/score-service` (Node 24).
 4. **Before the first deployment:**
-    - Run `SHOW CREATE TABLE` for `<prefix>user`, `<prefix>score`, `<prefix>score_best`, `<prefix>score_uncalculated` and check every column in `src/official/schema.ts` exists (in particular `total_score` and `score_multiplier`).
+    - If the production schema changed since `tests/fixtures/official-schema.sql` was copied, update the fixture and `src/official/schema.ts` together.
     - Count existing duplicate best rows: `SELECT uid, hash, COUNT(*) FROM <prefix>score_best GROUP BY uid, hash HAVING COUNT(*) > 1` (read-only), to know how much the first recalculation will clean up.
 5. **Switch-over from `pp-processor-node`:** set `HOST` and `PORT` to the address `pp-processor-node` listens on; stop `pp-processor-node` first (both scan the uncalculated folder), then start the score service; then retire `pp-processor-node` and the old backend's listener and scripts. Between the two steps the game records scores as uncalculated, and the uncalculated pass calculates them.
 6. **CLI:** the three commands with examples; resuming; SIGINT behavior; run `recalculate-total-pp` after a score recalculation; run from `apps/score-service` with the same `.env`.

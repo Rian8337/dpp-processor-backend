@@ -1,4 +1,7 @@
 import type { CliConfig, Config } from "@/config/config";
+import type { IBeatmapServiceClient } from "@/clients/IBeatmapServiceClient";
+import type { IBrokerClient } from "@/clients/IBrokerClient";
+import type { IDiscordMetadataClient } from "@/clients/IDiscordMetadataClient";
 import type { Database } from "@/database/types";
 import type { OfficialDatabase } from "@/official/connection";
 import type { OfficialTables } from "@/official/schema";
@@ -43,4 +46,11 @@ export const dependencyTokens = {
     userBindRepository: Symbol.for(
         "userBindRepository",
     ) as InjectionToken<IUserBindRepository>,
+    brokerClient: Symbol.for("brokerClient") as InjectionToken<IBrokerClient>,
+    beatmapServiceClient: Symbol.for(
+        "beatmapServiceClient",
+    ) as InjectionToken<IBeatmapServiceClient>,
+    discordMetadataClient: Symbol.for(
+        "discordMetadataClient",
+    ) as InjectionToken<IDiscordMetadataClient>,
 } satisfies Record<string, InjectionToken<unknown>>;

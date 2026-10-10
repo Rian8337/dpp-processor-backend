@@ -1,7 +1,6 @@
 import { ProcessorClient } from "@/clients/ProcessorClient";
-import { freePort } from "@dpp/server/testing";
+import { freePort, startHttpServer } from "@dpp/server/testing";
 import { testConfig, testProcessorApiKey } from "@test/utils/config";
-import { startHttpServer } from "@test/utils/httpServer";
 import { testInfo } from "@test/utils/registry";
 import type { IncomingMessage } from "node:http";
 import { afterEach, describe, expect, it, vi } from "vitest";

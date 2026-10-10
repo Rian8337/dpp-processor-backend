@@ -61,7 +61,41 @@ describe("parseCliArguments", () => {
         ).toMatchObject({ from: 2147483647, to: 2147483647 });
     });
 
+    it("accepts the largest concurrency", () => {
+        expect(
+            parseCliArguments([
+                ...base,
+                "--from",
+                "1",
+                "--to",
+                "4",
+                "--concurrency",
+                "64",
+            ]),
+        ).toMatchObject({ concurrency: 64 });
+    });
+
     it.each<[string, string[], string]>([
+        [
+            "a chunk size above the integer limit",
+            [...base, "--from", "1", "--to", "4", "--chunk-size", "2147483648"],
+            "2147483647",
+        ],
+        [
+            "concurrency above the limit",
+            [...base, "--from", "1", "--to", "4", "--concurrency", "65"],
+            "at most 64",
+        ],
+        [
+            "an invalid job-status name",
+            ["job-status", "Bad_Name"],
+            "The job name must contain",
+        ],
+        [
+            "an extra positional",
+            [...base, "--from", "1", "--to", "4", "extra"],
+            "Unexpected argument",
+        ],
         ["no command", [], "command is required"],
         ["an unknown command", ["frobnicate"], "Unknown command"],
         [

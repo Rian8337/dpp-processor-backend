@@ -23,6 +23,9 @@ export class CliUsageError extends Error {
 /** Job IDs are stored as Postgres `integer`. */
 const maxJobId = 2147483647;
 
+/** Each worker issues its own broker and database calls, so the number of workers is capped. */
+const maxConcurrency = 64;
+
 const defaultConcurrency = 4;
 const defaultChunkSize = 1000;
 
@@ -41,14 +44,14 @@ function parseInteger(option: string, value: string, max?: number): number {
     return Number(value);
 }
 
-function parseJobName(value: string | undefined): string {
+function parseJobName(value: string | undefined, label: string): string {
     if (value === undefined) {
-        throw new CliUsageError("--name is required");
+        throw new CliUsageError(`${label} is required`);
     }
 
     if (!variantNameSchema.safeParse(value).success) {
         throw new CliUsageError(
-            "--name must contain only lowercase letters, digits, and hyphens, and start with a letter or digit",
+            `${label} must contain only lowercase letters, digits, and hyphens, and start with a letter or digit`,
         );
     }
 
@@ -94,7 +97,10 @@ export function parseCliArguments(argv: readonly string[]): CliCommand {
             throw new CliUsageError("job-status expects exactly one job name");
         }
 
-        return { name: "job-status", job: parseJobName(rest[0]) };
+        return {
+            name: "job-status",
+            job: parseJobName(rest[0], "The job name"),
+        };
     }
 
     if (
@@ -108,7 +114,7 @@ export function parseCliArguments(argv: readonly string[]): CliCommand {
         throw new CliUsageError(`Unexpected argument: ${rest[0]}`);
     }
 
-    const job = parseJobName(values.name);
+    const job = parseJobName(values.name, "--name");
 
     if (values.from === undefined) {
         throw new CliUsageError("--from is required");
@@ -133,10 +139,14 @@ export function parseCliArguments(argv: readonly string[]): CliCommand {
         concurrency:
             values.concurrency === undefined
                 ? defaultConcurrency
-                : parseInteger("concurrency", values.concurrency),
+                : parseInteger(
+                      "concurrency",
+                      values.concurrency,
+                      maxConcurrency,
+                  ),
         chunkSize:
             values["chunk-size"] === undefined
                 ? defaultChunkSize
-                : parseInteger("chunk-size", values["chunk-size"]),
+                : parseInteger("chunk-size", values["chunk-size"], maxJobId),
     };
 }

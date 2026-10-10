@@ -229,6 +229,8 @@ A test pins this mapping against a document produced by the old code.
 
 `BestScoreWriter.consider(candidate)` applies the rule. A candidate is a score with its ID, stats, pp, `pp_multiplier`, the beatmap title, and its replay (if any).
 
+0. Lock the player's row in the users table (`SELECT … FOR UPDATE`) in the caller's transaction. This serializes best-score writes for one player across every process (the server's uncalculated pass, any number of recalculation workers), so two writers can never both see "no current best" and insert duplicates. Different players proceed in parallel.
+
 1. Load the current best rows for the player and beatmap, and recalculate the highest one's pp from its stats (`× min(pp_multiplier, 1)`), since stored pp may be outdated. If that recalculation fails permanently, its stored pp is used; a "retry later" retries the whole item.
 2. If there is no current best, or the candidate's pp is **strictly higher**:
     - delete every best row for that player and beatmap (this also removes duplicates);
@@ -241,6 +243,8 @@ A test pins this mapping against a document produced by the old code.
 Database writes happen in the caller's transaction. The replay copy happens before the commit; if the commit fails, the copied file is harmless (it is rewritten on the next attempt).
 
 ## Uncalculated-replay pass
+
+`bbl_score_uncalculated` is a queue: one row per score waiting to be calculated (several rows may share a player and beatmap, e.g. with different mods). Each row and its replay file is one item; items are never merged, and each is offered to `BestScoreWriter` on its own.
 
 Port of `pp-processor-node`'s `processUncalculatedReplay`.
 

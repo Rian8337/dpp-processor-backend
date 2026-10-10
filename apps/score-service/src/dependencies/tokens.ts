@@ -4,6 +4,10 @@ import type { OfficialDatabase } from "@/official/connection";
 import type { OfficialTables } from "@/official/schema";
 import type { IJobProgressRepository } from "@/repositories/IJobProgressRepository";
 import type { IOfficialScoreRepository } from "@/repositories/IOfficialScoreRepository";
+import type { IDanCourseRepository } from "@/repositories/IDanCourseRepository";
+import type { IRecentPlayRepository } from "@/repositories/IRecentPlayRepository";
+import type { IUserBindRepository } from "@/repositories/IUserBindRepository";
+import type { Db } from "mongodb";
 import type { InjectionToken } from "tsyringe";
 
 /**
@@ -28,4 +32,15 @@ export const dependencyTokens = {
     officialScoreRepository: Symbol.for(
         "officialScoreRepository",
     ) as InjectionToken<IOfficialScoreRepository>,
+    aliceDb: Symbol.for("aliceDb") as InjectionToken<Db>,
+    elainaDb: Symbol.for("elainaDb") as InjectionToken<Db>,
+    recentPlayRepository: Symbol.for(
+        "recentPlayRepository",
+    ) as InjectionToken<IRecentPlayRepository>,
+    danCourseRepository: Symbol.for(
+        "danCourseRepository",
+    ) as InjectionToken<IDanCourseRepository>,
+    userBindRepository: Symbol.for(
+        "userBindRepository",
+    ) as InjectionToken<IUserBindRepository>,
 } satisfies Record<string, InjectionToken<unknown>>;

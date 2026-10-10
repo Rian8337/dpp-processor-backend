@@ -11,7 +11,9 @@ import type { IDanCourseRepository } from "@/repositories/IDanCourseRepository";
 import type { IRecentPlayRepository } from "@/repositories/IRecentPlayRepository";
 import type { ReplayParser } from "@/replays/parseReplay";
 import type { IReplayStore } from "@/replays/IReplayStore";
+import type { IDanCourseService } from "@/services/IDanCourseService";
 import type { IGamePPService } from "@/services/IGamePPService";
+import type { IReplaySubmissionService } from "@/services/IReplaySubmissionService";
 import type { IBestScoreWriter } from "@/services/IBestScoreWriter";
 import type { IOnlineScoreService } from "@/services/IOnlineScoreService";
 import type { IScoreCalculator } from "@/services/IScoreCalculator";
@@ -73,4 +75,10 @@ export const dependencyTokens = {
     gamePPService: Symbol.for(
         "gamePPService",
     ) as InjectionToken<IGamePPService>,
+    danCourseService: Symbol.for(
+        "danCourseService",
+    ) as InjectionToken<IDanCourseService>,
+    replaySubmissionService: Symbol.for(
+        "replaySubmissionService",
+    ) as InjectionToken<IReplaySubmissionService>,
 } satisfies Record<string, InjectionToken<unknown>>;

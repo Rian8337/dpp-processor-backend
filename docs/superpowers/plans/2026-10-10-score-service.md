@@ -2582,7 +2582,8 @@ pnpm --filter @dpp/score-service test && pnpm typecheck && pnpm lint && pnpm for
 - Create: `src/repositories/IOfficialScoreRepository.ts`, `src/repositories/OfficialScoreRepository.ts`
 - Modify: `src/repositories/index.ts`, `src/dependencies/tokens.ts`
 - Create: `tests/utils/officialDatabase.ts`, `tests/utils/rows.ts`
-- Test: `tests/integration/repositories/OfficialScoreRepository.int.test.ts` (opt-in)
+- Test: `tests/integration/repositories/OfficialScoreRepository.int.test.ts`
+- Create: `tests/utils/mariadb.ts`, `tests/fixtures/official-schema.sql`
 
 **Interfaces:**
 
@@ -3057,9 +3058,131 @@ export function uncalculatedRow(
 }
 ```
 
+`tests/utils/mariadb.ts` — a throwaway MariaDB server, started like `startTestPostgres` but with the system's `mariadbd`:
+
+```ts
+import type { DatabaseSettings } from "@dpp/server";
+import { freePort } from "@dpp/server/testing";
+import { spawn, execFile } from "node:child_process";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir, userInfo } from "node:os";
+import { join } from "node:path";
+import { promisify } from "node:util";
+import { createConnection } from "mysql2/promise";
+
+/**
+ * A MariaDB server in a temporary folder, with database `test` and passwordless `root`. Disposing stops it and
+ * deletes the folder.
+ */
+export interface TestMariaDb extends AsyncDisposable {
+    readonly settings: DatabaseSettings;
+}
+
+/**
+ * Whether `mariadbd` and `mariadb-install-db` are on PATH. Tests that need MariaDB are skipped without them
+ * (CI installs the `mariadb-server` package).
+ */
+export async function hasMariaDb(): Promise<boolean> {
+    try {
+        await promisify(execFile)("mariadbd", ["--version"]);
+        await promisify(execFile)("mariadb-install-db", ["--help"]);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+export async function startTestMariaDb(): Promise<TestMariaDb> {
+    const directory = await mkdtemp(join(tmpdir(), "score-service-mariadb-"));
+    const dataDirectory = join(directory, "data");
+    const port = await freePort();
+    // `--no-defaults` keeps the system's /etc/mysql configuration out; `--user` lets it run as root too.
+    const common = [
+        "--no-defaults",
+        `--user=${userInfo().username}`,
+        `--datadir=${dataDirectory}`,
+    ];
+
+    await promisify(execFile)("mariadb-install-db", [
+        ...common,
+        "--auth-root-authentication-method=normal",
+        "--skip-test-db",
+    ]);
+
+    const server = spawn(
+        "mariadbd",
+        [
+            ...common,
+            `--port=${port.toString()}`,
+            "--bind-address=127.0.0.1",
+            `--socket=${join(directory, "mariadb.sock")}`,
+            `--pid-file=${join(directory, "mariadb.pid")}`,
+            "--skip-grant-tables",
+            "--skip-log-bin",
+        ],
+        { stdio: "ignore" },
+    );
+    const exited = new Promise<void>((resolve) =>
+        server.once("exit", () => resolve()),
+    );
+    const stop = async () => {
+        server.kill("SIGTERM");
+        await exited;
+        await rm(directory, { recursive: true, force: true });
+    };
+
+    try {
+        await waitUntilReady(port);
+    } catch (e) {
+        await stop();
+        throw e;
+    }
+
+    return {
+        settings: {
+            host: "127.0.0.1",
+            port,
+            name: "test",
+            user: "root",
+            password: "",
+        },
+        [Symbol.asyncDispose]: stop,
+    };
+}
+
+async function waitUntilReady(port: number): Promise<void> {
+    const deadline = Date.now() + 30_000;
+
+    for (;;) {
+        try {
+            const connection = await createConnection({
+                host: "127.0.0.1",
+                port,
+                user: "root",
+            });
+
+            await connection.query("CREATE DATABASE IF NOT EXISTS test");
+            await connection.end();
+            return;
+        } catch (e) {
+            if (Date.now() > deadline) {
+                throw new Error("MariaDB did not start within 30 s", {
+                    cause: e,
+                });
+            }
+
+            await new Promise((resolve) => setTimeout(resolve, 200));
+        }
+    }
+}
+```
+
+`--skip-grant-tables` makes every connection root without a password, which is all a throwaway test server needs. If `mariadb-install-db` on the system needs other flags (check `mariadb-install-db --help`), adjust and say so in the report. Stop the server only through the returned handle, never with `pkill`.
+
 `tests/utils/officialDatabase.ts`:
 
 ```ts
+import type { DatabaseSettings } from "@dpp/server";
 import type { OfficialDatabaseSettings } from "@/config/config";
 import { OfficialDatabaseConnection } from "@/official/connection";
 import { randomBytes } from "node:crypto";
@@ -3067,36 +3190,13 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { createConnection } from "mysql2/promise";
 
-/**
- * A MySQL/MariaDB server for opt-in tests, from `TEST_OFFICIAL_DB_HOST`, `TEST_OFFICIAL_DB_PORT` (3306),
- * `TEST_OFFICIAL_DB_NAME`, `TEST_OFFICIAL_DB_USER`, and `TEST_OFFICIAL_DB_PASSWORD` (empty). `null` when unset:
- * tests using it are skipped.
- */
-export function officialTestSettings(): Omit<
-    OfficialDatabaseSettings,
-    "tablePrefix"
-> | null {
-    const env = process.env;
-
-    if (!env.TEST_OFFICIAL_DB_HOST || !env.TEST_OFFICIAL_DB_NAME) {
-        return null;
-    }
-
-    return {
-        host: env.TEST_OFFICIAL_DB_HOST,
-        port: Number(env.TEST_OFFICIAL_DB_PORT ?? 3306),
-        name: env.TEST_OFFICIAL_DB_NAME,
-        user: env.TEST_OFFICIAL_DB_USER ?? "root",
-        password: env.TEST_OFFICIAL_DB_PASSWORD ?? "",
-    };
-}
-
 const schemaFixture = fileURLToPath(
     new URL("../fixtures/official-schema.sql", import.meta.url),
 );
 
 /**
- * Official tables under a random prefix, created on the opt-in server. Disposing drops them.
+ * Official tables under a random prefix, created on a test MariaDB server. Disposing drops them. Each test gets
+ * its own prefix, so one server serves a whole test file.
  */
 export interface OfficialTestDatabase extends AsyncDisposable {
     readonly connection: OfficialDatabaseConnection;
@@ -3104,7 +3204,7 @@ export interface OfficialTestDatabase extends AsyncDisposable {
 }
 
 export async function createOfficialTestDatabase(
-    settings: NonNullable<ReturnType<typeof officialTestSettings>>,
+    settings: DatabaseSettings,
 ): Promise<OfficialTestDatabase> {
     const prefix = `t${randomBytes(4).toString("hex")}_`;
     const admin = await createConnection({
@@ -3140,7 +3240,7 @@ export async function createOfficialTestDatabase(
 
 Create `tests/fixtures/official-schema.sql` from the production schema export (`/var/www/html/osudroid/docs/export_ibancho.sql`): copy the `CREATE TABLE` statements of `bbl_user`, `bbl_score`, `bbl_score_best`, and `bbl_score_uncalculated` verbatim, replace `bbl_` in the four table names with `{prefix}`, drop the `AUTO_INCREMENT=<n>` table options, and end each statement with `;`. Nothing else from the export (no data, no other tables). `bbl_score_best`'s primary key is `id`, so production duplicates are rows with different IDs for the same player and beatmap.
 
-- [ ] **Step 4: Write the opt-in integration tests**
+- [ ] **Step 4: Write the integration tests**
 
 `tests/integration/repositories/OfficialScoreRepository.int.test.ts`:
 
@@ -3152,8 +3252,12 @@ import {
 } from "@/official/types";
 import { OfficialScoreRepository } from "@/repositories/OfficialScoreRepository";
 import {
+    hasMariaDb,
+    startTestMariaDb,
+    type TestMariaDb,
+} from "@test/utils/mariadb";
+import {
     createOfficialTestDatabase,
-    officialTestSettings,
     type OfficialTestDatabase,
 } from "@test/utils/officialDatabase";
 import {
@@ -3163,9 +3267,15 @@ import {
     uncalculatedRow,
 } from "@test/utils/rows";
 import { eq } from "drizzle-orm";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-
-const settings = officialTestSettings();
+import {
+    afterAll,
+    afterEach,
+    beforeAll,
+    beforeEach,
+    describe,
+    expect,
+    it,
+} from "vitest";
 
 /**
  * A best row as the service inserts it: without the generated total score.
@@ -3188,239 +3298,246 @@ function scoreInsert(row: ScoreRow) {
     return columns;
 }
 
-describe.skipIf(!settings)("OfficialScoreRepository (MySQL)", () => {
-    let database: OfficialTestDatabase;
-    let repository: OfficialScoreRepository;
+describe.skipIf(!(await hasMariaDb()))(
+    "OfficialScoreRepository (MariaDB)",
+    () => {
+        let server: TestMariaDb;
+        let database: OfficialTestDatabase;
+        let repository: OfficialScoreRepository;
 
-    beforeEach(async () => {
-        database = await createOfficialTestDatabase(settings!);
-        repository = new OfficialScoreRepository(
-            database.connection.db,
-            database.connection.tables,
-        );
+        beforeAll(async () => {
+            server = await startTestMariaDb();
+        }, 60_000);
 
-        const { db, tables } = database.connection;
-
-        await db.insert(tables.users).values([
-            {
-                id: 7,
-                username: "player",
-                lastLoginTime: new Date("2026-09-01T00:00:00Z"),
-            },
-            { id: 8, username: "other" },
-        ]);
-    });
-
-    afterEach(async () => {
-        await database[Symbol.asyncDispose]();
-    });
-
-    it("reads scores with mods as a string and the generated total score", async () => {
-        const { db, tables } = database.connection;
-
-        await db.insert(tables.scores).values(
-            scoreInsert(
-                scoreRow({
-                    id: 10,
-                    mods: '[{"acronym":"HD"}]',
-                    score: 1000,
-                    scoreMultiplier: 1.5,
-                }),
-            ),
-        );
-
-        expect(await repository.findScoreById(10)).toMatchObject({
-            id: 10,
-            mods: '[{"acronym":"HD"}]',
-            ppMultiplier: 1,
-            totalScore: 1500,
+        afterAll(async () => {
+            await server[Symbol.asyncDispose]();
         });
-        expect(await repository.findScore(7, testHash)).toMatchObject({
-            id: 10,
+
+        beforeEach(async () => {
+            database = await createOfficialTestDatabase(server.settings);
+            repository = new OfficialScoreRepository(
+                database.connection.db,
+                database.connection.tables,
+            );
+
+            const { db, tables } = database.connection;
+
+            await db.insert(tables.users).values([
+                {
+                    id: 7,
+                    username: "player",
+                    lastLoginTime: new Date("2026-09-01T00:00:00Z"),
+                },
+                { id: 8, username: "other" },
+            ]);
         });
-        expect(await repository.findScore(8, testHash)).toBeNull();
-        expect(await repository.findScoreById(11)).toBeNull();
-    });
 
-    it("reads null hit counts as null", async () => {
-        const { db, tables } = database.connection;
+        afterEach(async () => {
+            await database[Symbol.asyncDispose]();
+        });
 
-        await db
-            .insert(tables.scores)
-            .values({
+        it("reads scores with mods as a string and the generated total score", async () => {
+            const { db, tables } = database.connection;
+
+            await db.insert(tables.scores).values(
+                scoreInsert(
+                    scoreRow({
+                        id: 10,
+                        mods: '[{"acronym":"HD"}]',
+                        score: 1000,
+                        scoreMultiplier: 1.5,
+                    }),
+                ),
+            );
+
+            expect(await repository.findScoreById(10)).toMatchObject({
+                id: 10,
+                mods: '[{"acronym":"HD"}]',
+                ppMultiplier: 1,
+                totalScore: 1500,
+            });
+            expect(await repository.findScore(7, testHash)).toMatchObject({
+                id: 10,
+            });
+            expect(await repository.findScore(8, testHash)).toBeNull();
+            expect(await repository.findScoreById(11)).toBeNull();
+        });
+
+        it("reads null hit counts as null", async () => {
+            const { db, tables } = database.connection;
+
+            await db.insert(tables.scores).values({
                 ...scoreInsert(scoreRow({ id: 10 })),
                 combo: null,
                 miss: null,
             });
 
-        expect(await repository.findScoreById(10)).toMatchObject({
-            combo: null,
-            miss: null,
+            expect(await repository.findScoreById(10)).toMatchObject({
+                combo: null,
+                miss: null,
+            });
         });
-    });
 
-    it("lists best rows highest pp first and deletes all but one", async () => {
-        const { db, tables } = database.connection;
+        it("lists best rows highest pp first and deletes all but one", async () => {
+            const { db, tables } = database.connection;
 
-        await db
-            .insert(tables.bestScores)
-            .values([
-                bestInsert(bestScoreRow({ id: 1, pp: 50 })),
-                bestInsert(bestScoreRow({ id: 2, pp: 80 })),
-                bestInsert(bestScoreRow({ id: 3, pp: 60 })),
+            await db
+                .insert(tables.bestScores)
+                .values([
+                    bestInsert(bestScoreRow({ id: 1, pp: 50 })),
+                    bestInsert(bestScoreRow({ id: 2, pp: 80 })),
+                    bestInsert(bestScoreRow({ id: 3, pp: 60 })),
+                ]);
+
+            expect(
+                (await repository.findBestScores(7, testHash)).map((r) => r.id),
+            ).toEqual([2, 3, 1]);
+            expect(
+                (await repository.deleteBestScores(7, testHash, 2)).sort(),
+            ).toEqual([1, 3]);
+            expect(
+                (await repository.findBestScores(7, testHash)).map((r) => r.id),
+            ).toEqual([2]);
+            expect(await repository.deleteBestScores(7, testHash)).toEqual([2]);
+            expect(await repository.deleteBestScores(7, testHash)).toEqual([]);
+        });
+
+        it("inserts a best row without writing the generated total score", async () => {
+            await repository.insertBestScore(
+                bestInsert(
+                    bestScoreRow({
+                        id: 5,
+                        pp: 10,
+                        score: 1000,
+                        scoreMultiplier: 1.5,
+                    }),
+                ),
+            );
+            await repository.setBestScorePP(5, 20);
+
+            expect(
+                (await repository.findBestScores(7, testHash))[0],
+            ).toMatchObject({ id: 5, pp: 20, totalScore: 1500 });
+        });
+
+        it("sets and clears a score's pp", async () => {
+            const { db, tables } = database.connection;
+
+            await db
+                .insert(tables.scores)
+                .values(scoreInsert(scoreRow({ id: 10 })));
+            await repository.setScorePP(10, null);
+
+            expect((await repository.findScoreById(10))?.pp).toBeNull();
+        });
+
+        it("finds and deletes uncalculated rows by replay file name", async () => {
+            const { db, tables } = database.connection;
+
+            await db
+                .insert(tables.uncalculatedScores)
+                .values(uncalculatedRow({ replayfilename: "a.odr" }));
+
+            expect(
+                await repository.findUncalculatedScore("a.odr"),
+            ).toMatchObject({
+                uid: 7,
+            });
+            await repository.deleteUncalculatedScore("a.odr");
+            expect(await repository.findUncalculatedScore("a.odr")).toBeNull();
+        });
+
+        it("finds users and writes totals", async () => {
+            expect(await repository.findUserId("player")).toBe(7);
+            expect(await repository.findUserId("nobody")).toBeNull();
+            expect(await repository.findUserLastLogin(7)).toEqual({
+                lastLoginTime: new Date("2026-09-01T00:00:00Z"),
+            });
+
+            await repository.setUserTotals(7, { pp: 123.5, accuracy: 0.9 });
+
+            const { db, tables } = database.connection;
+            const [user] = await db
+                .select()
+                .from(tables.users)
+                .where(eq(tables.users.id, 7));
+
+            expect(user?.pp).toBeCloseTo(123.5, 3);
+        });
+
+        it("reads top best scores, a null accuracy as 0", async () => {
+            const { db, tables } = database.connection;
+
+            await db.insert(tables.bestScores).values([
+                bestInsert(
+                    bestScoreRow({ id: 1, pp: 50, hash: "a".repeat(32) }),
+                ),
+                {
+                    ...bestInsert(
+                        bestScoreRow({ id: 2, pp: 80, hash: "b".repeat(32) }),
+                    ),
+                    accuracy: null,
+                },
             ]);
 
-        expect(
-            (await repository.findBestScores(7, testHash)).map((r) => r.id),
-        ).toEqual([2, 3, 1]);
-        expect(
-            (await repository.deleteBestScores(7, testHash, 2)).sort(),
-        ).toEqual([1, 3]);
-        expect(
-            (await repository.findBestScores(7, testHash)).map((r) => r.id),
-        ).toEqual([2]);
-        expect(await repository.deleteBestScores(7, testHash)).toEqual([2]);
-        expect(await repository.deleteBestScores(7, testHash)).toEqual([]);
-    });
+            expect(await repository.topBestScores(7, 1)).toEqual([
+                { pp: 80, accuracy: 0 },
+            ]);
+        });
 
-    it("inserts a best row without writing the generated total score", async () => {
-        await repository.insertBestScore(
-            bestInsert(
-                bestScoreRow({
-                    id: 5,
-                    pp: 10,
-                    score: 1000,
-                    scoreMultiplier: 1.5,
+        it("rolls a transaction back on error", async () => {
+            await expect(
+                repository.transaction(async (tx) => {
+                    await tx.insertBestScore(
+                        bestInsert(bestScoreRow({ id: 9 })),
+                    );
+                    throw new Error("boom");
                 }),
-            ),
-        );
-        await repository.setBestScorePP(5, 20);
+            ).rejects.toThrow("boom");
 
-        expect((await repository.findBestScores(7, testHash))[0]).toMatchObject(
-            { id: 5, pp: 20, totalScore: 1500 },
-        );
-    });
-
-    it("sets and clears a score's pp", async () => {
-        const { db, tables } = database.connection;
-
-        await db
-            .insert(tables.scores)
-            .values(scoreInsert(scoreRow({ id: 10 })));
-        await repository.setScorePP(10, null);
-
-        expect((await repository.findScoreById(10))?.pp).toBeNull();
-    });
-
-    it("finds and deletes uncalculated rows by replay file name", async () => {
-        const { db, tables } = database.connection;
-
-        await db
-            .insert(tables.uncalculatedScores)
-            .values(uncalculatedRow({ replayfilename: "a.odr" }));
-
-        expect(await repository.findUncalculatedScore("a.odr")).toMatchObject({
-            uid: 7,
-        });
-        await repository.deleteUncalculatedScore("a.odr");
-        expect(await repository.findUncalculatedScore("a.odr")).toBeNull();
-    });
-
-    it("finds users and writes totals", async () => {
-        expect(await repository.findUserId("player")).toBe(7);
-        expect(await repository.findUserId("nobody")).toBeNull();
-        expect(await repository.findUserLastLogin(7)).toEqual({
-            lastLoginTime: new Date("2026-09-01T00:00:00Z"),
+            expect(await repository.findBestScores(7, testHash)).toEqual([]);
         });
 
-        await repository.setUserTotals(7, { pp: 123.5, accuracy: 0.9 });
+        it("makes a second transaction wait for a user lock", async () => {
+            const order: string[] = [];
+            let releaseFirst!: () => void;
+            const firstHolds = new Promise<void>((resolve) => {
+                releaseFirst = resolve;
+            });
+            let firstLocked!: () => void;
+            const locked = new Promise<void>((resolve) => {
+                firstLocked = resolve;
+            });
 
-        const { db, tables } = database.connection;
-        const [user] = await db
-            .select()
-            .from(tables.users)
-            .where(eq(tables.users.id, 7));
+            const first = repository.transaction(async (tx) => {
+                await tx.lockUser(7);
+                firstLocked();
+                await firstHolds;
+                order.push("first commits");
+            });
 
-        expect(user?.pp).toBeCloseTo(123.5, 3);
-    });
+            await locked;
 
-    it("reads top best scores, a null accuracy as 0", async () => {
-        const { db, tables } = database.connection;
+            const second = repository.transaction(async (tx) => {
+                await tx.lockUser(7);
+                order.push("second locked");
+            });
 
-        await db.insert(tables.bestScores).values([
-            bestInsert(bestScoreRow({ id: 1, pp: 50, hash: "a".repeat(32) })),
-            {
-                ...bestInsert(
-                    bestScoreRow({ id: 2, pp: 80, hash: "b".repeat(32) }),
-                ),
-                accuracy: null,
-            },
-        ]);
+            // Give the second transaction time to block on the lock.
+            await new Promise((resolve) => setTimeout(resolve, 300));
+            releaseFirst();
+            await Promise.all([first, second]);
 
-        expect(await repository.topBestScores(7, 1)).toEqual([
-            { pp: 80, accuracy: 0 },
-        ]);
-    });
-
-    it("rolls a transaction back on error", async () => {
-        await expect(
-            repository.transaction(async (tx) => {
-                await tx.insertBestScore(bestInsert(bestScoreRow({ id: 9 })));
-                throw new Error("boom");
-            }),
-        ).rejects.toThrow("boom");
-
-        expect(await repository.findBestScores(7, testHash)).toEqual([]);
-    });
-
-    it("makes a second transaction wait for a user lock", async () => {
-        const order: string[] = [];
-        let releaseFirst!: () => void;
-        const firstHolds = new Promise<void>((resolve) => {
-            releaseFirst = resolve;
+            expect(order).toEqual(["first commits", "second locked"]);
         });
-        let firstLocked!: () => void;
-        const locked = new Promise<void>((resolve) => {
-            firstLocked = resolve;
-        });
-
-        const first = repository.transaction(async (tx) => {
-            await tx.lockUser(7);
-            firstLocked();
-            await firstHolds;
-            order.push("first commits");
-        });
-
-        await locked;
-
-        const second = repository.transaction(async (tx) => {
-            await tx.lockUser(7);
-            order.push("second locked");
-        });
-
-        // Give the second transaction time to block on the lock.
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        releaseFirst();
-        await Promise.all([first, second]);
-
-        expect(order).toEqual(["first commits", "second locked"]);
-    });
-});
+    },
+);
 ```
 
-- [ ] **Step 5: Run the tests (skipped without a server, then against local MariaDB if available)**
+- [ ] **Step 5: Run the tests**
 
 Run: `pnpm --filter @dpp/score-service exec vitest run tests/integration/repositories/OfficialScoreRepository.int.test.ts`
-Expected: skipped (no `TEST_OFFICIAL_DB_*`).
-
-If `mariadbd`/`mysqld` is installed and a server is running locally (`mysqladmin ping`), create a scratch database and run with it:
-
-```bash
-mysql -uroot -e "CREATE DATABASE IF NOT EXISTS score_service_test"
-TEST_OFFICIAL_DB_HOST=127.0.0.1 TEST_OFFICIAL_DB_NAME=score_service_test TEST_OFFICIAL_DB_USER=root pnpm --filter @dpp/score-service exec vitest run tests/integration/repositories/OfficialScoreRepository.int.test.ts
-```
-
-Expected: PASS. If no server is running, do not start or configure one; report that the opt-in tests were only typechecked.
+Expected: PASS (MariaDB is installed on the development machine; the suite starts its own server on a free port and never touches a running one). If it is skipped, `hasMariaDb()` failed: report why instead of installing anything.
 
 - [ ] **Step 6: Check and commit**
 
@@ -3438,7 +3555,7 @@ pnpm --filter @dpp/score-service test && pnpm typecheck && pnpm lint && pnpm for
 - Create: `src/repositories/IRecentPlayRepository.ts`, `RecentPlayRepository.ts`, `IDanCourseRepository.ts`, `DanCourseRepository.ts`, `IUserBindRepository.ts`, `UserBindRepository.ts`
 - Modify: `src/repositories/index.ts`, `src/dependencies/tokens.ts`
 - Create: `tests/utils/mongo.ts`
-- Test: `tests/integration/repositories/mongo.int.test.ts` (opt-in), `tests/unit/mongo/documents.test.ts`
+- Test: `tests/integration/repositories/mongo.int.test.ts`, `tests/unit/mongo/documents.test.ts`
 
 **Interfaces:**
 
@@ -3694,56 +3811,58 @@ export class UserBindRepository implements IUserBindRepository {
 
 Each with its `I*` interface file and full imports; add tokens and exports.
 
-- [ ] **Step 4: Write the opt-in integration tests**
+- [ ] **Step 4: Write the integration tests**
+
+Add the dev dependency and keep its install script disabled (it would download `mongod` during `pnpm install`; without it, the binary is downloaded on first use and cached in `~/.cache/mongodb-binaries`):
+
+```bash
+pnpm --filter @dpp/score-service add -D mongodb-memory-server
+```
+
+In `pnpm-workspace.yaml`, add `mongodb-memory-server: false` (and `mongodb-memory-server-core: false` if pnpm reports its build was ignored) under `allowBuilds`, next to `libpq: false`.
 
 `tests/utils/mongo.ts`:
 
 ```ts
-import { randomBytes } from "node:crypto";
-import { MongoClient, type Db } from "mongodb";
+import { MongoMemoryServer } from "mongodb-memory-server";
 
 /**
- * A MongoDB server for opt-in tests, from `TEST_MONGO_URI`; `null` when unset.
+ * A throwaway MongoDB server (a real `mongod`, downloaded once and cached). Every test file gets its own, so the
+ * fixed database names (`AliceDB`, `ElainaDB`) are safe to use. Disposing stops it and deletes its data.
  */
-export function mongoTestUri(): string | null {
-    return process.env.TEST_MONGO_URI || null;
+export interface TestMongo extends AsyncDisposable {
+    readonly uri: string;
 }
 
-/**
- * A database with a random name. Disposing drops it and closes the client.
- */
-export async function createMongoTestDatabase(
-    uri: string,
-): Promise<{ db: Db; name: string } & AsyncDisposable> {
-    const client = await MongoClient.connect(uri);
-    const name = `score_service_test_${randomBytes(4).toString("hex")}`;
-    const db = client.db(name);
+export async function startTestMongo(): Promise<TestMongo> {
+    const server = await MongoMemoryServer.create();
 
     return {
-        db,
-        name,
+        uri: server.getUri(),
         [Symbol.asyncDispose]: async () => {
-            await db.dropDatabase();
-            await client.close();
+            await server.stop({ doCleanup: true });
         },
     };
 }
 ```
 
-`tests/integration/repositories/mongo.int.test.ts`, `describe.skipIf(!mongoTestUri())`, one database for "alice" and one for "elaina":
+The first run downloads `mongod` for this OS. The development machine runs Ubuntu 26.04, which `mongodb-memory-server` may not map to a build yet; if `create()` fails to find a binary, set `MONGOMS_DISTRO=ubuntu-24.04` in `vitest.config.mts`'s `test.env` (and `vitest.e2e.config.mts`), confirm it works, and say so in the report. Tests that start MongoDB need a longer hook timeout: give `beforeAll` 120 s.
+
+`tests/integration/repositories/mongo.int.test.ts` starts one server in `beforeAll` (stopped in `afterAll`), connects a `MongoClient`, and gives each test fresh `AliceDB` and `ElainaDB` (drop both in `beforeEach`). Cases:
 
 - `RecentPlayRepository.insert` stores the document unchanged (read it back without `_id`, compare with `toEqual`), and the caller's object has no `_id` afterwards.
 - `DanCourseRepository.listCourses` returns inserted courses without `_id`.
 - `findGrade` returns `null` with no entry, the grade after `upsertScore`, and `upsertScore` twice for the same uid and hash leaves one document with the second score.
 - `UserBindRepository.findDiscordId` finds `{ discordid: "1", previous_bind: [5, 6] }` by 6, returns `null` for 7, and `null` for a document with `discordid: 5` (a number).
+- `MongoConnections.connect` with both URIs set to the test server returns `AliceDB` and `ElainaDB`, and disposing closes both clients; connecting with an unreachable second URI (`mongodb://127.0.0.1:1/?serverSelectionTimeoutMS=500`) rejects and closes the first client.
 
 - [ ] **Step 5: Run and commit**
 
 Run: `pnpm --filter @dpp/score-service test`
-Expected: PASS, Mongo tests skipped. If `TEST_MONGO_URI` is available in the environment, run them too; never start a MongoDB server.
+Expected: PASS, including the MongoDB tests.
 
 ```bash
-pnpm typecheck && pnpm lint && pnpm format && git add apps/score-service && git commit -m "Read and write recent plays, dan courses, and binds in MongoDB"
+pnpm typecheck && pnpm lint && pnpm format && git add apps/score-service pnpm-workspace.yaml pnpm-lock.yaml && git commit -m "Read and write recent plays, dan courses, and binds in MongoDB"
 ```
 
 ---
@@ -8791,14 +8910,14 @@ it("refuses to run the CLI without its variables", async () => {
 
 where `runNode(script, env)` spawns `node <script>` with exactly that environment (no inherited variables, so a developer's `.env` file is not read: `CI=1` disables `.env` loading) and resolves `{ code, stderr }` on exit.
 
-**Runs only with MySQL and a disposable MongoDB** (`describe.skipIf(!officialTestSettings() || !mongoTestUri() || process.env.TEST_MONGO_DISPOSABLE !== "1")`). The service uses the fixed database names `AliceDB` and `ElainaDB`, so this block writes to them and must only run against a throwaway MongoDB server. `beforeAll`:
+**Runs when MariaDB is installed** (`describe.skipIf(!(await hasMariaDb()))`; MongoDB always comes from `mongodb-memory-server`). `beforeAll` (timeout 180 s):
 
-1. `startTestPostgres()` (from `@dpp/server/testing`), `createOfficialTestDatabase(officialTestSettings()!)`, and insert user `{ id: 7, username: "player" }`.
-2. Connect to `TEST_MONGO_URI`, drop `AliceDB` and `ElainaDB`, insert `{ discordid: "discord-7", previous_bind: [7] }` into `ElainaDB.userbind`.
+1. `startTestPostgres()` (from `@dpp/server/testing`), `startTestMariaDb()` with `createOfficialTestDatabase(mariadb.settings)`, and insert user `{ id: 7, username: "player" }`.
+2. `startTestMongo()`; connect a `MongoClient` to its URI and insert `{ discordid: "discord-7", previous_bind: [7] }` into `ElainaDB.userbind`. The server is fresh, so the fixed database names are safe.
 3. Start the three stubs, make four folders with `mkdtempDisposable`, get a port with `freePort()`.
-4. `startProcess("node", [join(serviceDir, "dist", "index.mjs")], { env })` with every variable from Task 3's test environment pointed at these resources (`OFFICIAL_DB_PREFIX` = the test database's prefix, both MongoDB URIs = `TEST_MONGO_URI`, `CI=1`), then wait until `GET /online-scores` answers 401 (read `apps/broker/tests/e2e/broker.e2e.test.ts` for how `startProcess` and readiness waiting work there and reuse it).
+4. `startProcess` (from `@dpp/server/testing`; read its options in `packages/server/src/testing/process.ts`) running `node dist/index.mjs` with every variable from Task 3's test environment pointed at these resources (`OFFICIAL_DB_PREFIX` = the test database's prefix, both MongoDB URIs = the test server's URI, `CI=1`), then wait until `GET /online-scores` answers 401 (see how `apps/broker/tests/e2e/broker.e2e.test.ts` waits for readiness and reuse it).
 
-`afterAll`: stop the process if still running (by the handle `startProcess` returned, never by name), drop `AliceDB` and `ElainaDB`, dispose everything else.
+`afterAll`: stop the service if still running (through its handle, never by name), then dispose everything else in reverse order.
 
 Tests, in order:
 
@@ -8894,9 +9013,7 @@ Adapt `service.process`/`service.exited` to what `startProcess` returns.
 - [ ] **Step 3: Run the tests**
 
 Run: `pnpm --filter @dpp/score-service test:e2e`
-Expected: the missing-variables test passes; the rest are skipped without `TEST_OFFICIAL_DB_*`, `TEST_MONGO_URI`, and `TEST_MONGO_DISPOSABLE`. Stop any process you start by its PID only.
-
-If a local MariaDB server is running, run the MySQL-gated tests with it as in Task 5. Never start or configure MongoDB.
+Expected: PASS. Stop any process you start by its handle or PID only.
 
 - [ ] **Step 4: Write the README**
 
@@ -8911,7 +9028,7 @@ If a local MariaDB server is running, run the MySQL-gated tests with it as in Ta
 5. **Switch-over from `pp-processor-node`:** set `HOST` and `PORT` to the address `pp-processor-node` listens on; stop `pp-processor-node` first (both scan the uncalculated folder), then start the score service; then retire `pp-processor-node` and the old backend's listener and scripts. Between the two steps the game records scores as uncalculated, and the uncalculated pass calculates them.
 6. **CLI:** the three commands with examples; resuming; SIGINT behavior; run `recalculate-total-pp` after a score recalculation; run from `apps/score-service` with the same `.env`.
 7. **API:** `GET /online-scores` (query, response, errors) and the two game routes (fields, `variant`, loopback only, always `200`).
-8. **Tests:** `pnpm test`; opt-in MySQL tests (`TEST_OFFICIAL_DB_*`), MongoDB tests (`TEST_MONGO_URI`), e2e (`TEST_MONGO_DISPOSABLE=1` too); replay fixtures (`tests/fixtures/replays/v3.odr`, optionally `v2.odr`) still to be provided; a real recent play document from the old backend to pin the mapping (`tests/fixtures/recent-play.json`).
+8. **Tests:** `pnpm test` and `pnpm test:e2e`. MongoDB tests use `mongodb-memory-server` (downloads `mongod` once into `~/.cache/mongodb-binaries`; set `MONGOMS_DISTRO` if the OS is newer than its known builds); MariaDB tests start a throwaway `mariadbd` and are skipped when `mariadbd`/`mariadb-install-db` are missing (CI: install `mariadb-server`); replay fixtures (`tests/fixtures/replays/v3.odr`, optionally `v2.odr`) still to be provided; a real recent play document from the old backend to pin the mapping (`tests/fixtures/recent-play.json`).
 
 - [ ] **Step 5: Full check and commit**
 

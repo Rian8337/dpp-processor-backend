@@ -9,6 +9,7 @@ import type { IJobProgressRepository } from "@/repositories/IJobProgressReposito
 import type { IOfficialScoreRepository } from "@/repositories/IOfficialScoreRepository";
 import type { IDanCourseRepository } from "@/repositories/IDanCourseRepository";
 import type { IRecentPlayRepository } from "@/repositories/IRecentPlayRepository";
+import type { IReplayStore } from "@/replays/IReplayStore";
 import type { IUserBindRepository } from "@/repositories/IUserBindRepository";
 import type { Db } from "mongodb";
 import type { InjectionToken } from "tsyringe";
@@ -53,4 +54,5 @@ export const dependencyTokens = {
     discordMetadataClient: Symbol.for(
         "discordMetadataClient",
     ) as InjectionToken<IDiscordMetadataClient>,
+    replayStore: Symbol.for("replayStore") as InjectionToken<IReplayStore>,
 } satisfies Record<string, InjectionToken<unknown>>;

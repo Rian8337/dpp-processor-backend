@@ -316,12 +316,11 @@ For reference, the old hard-coded folders were `/hdd/rian/replays/unprocessed`, 
     2. let in-flight requests, replays, and passes finish their current item (force exit after 30 s; unfinished files stay on disk);
     3. close the databases.
 - **Logging:** `[score-service]` prefix. One line per processed replay, uncalculated file, and failed calculation (with the reason). Recalculation logs progress per chunk, not per score. API keys and replay contents are never logged.
-- **Deployment:** one PM2 app for the server; the CLI is run by hand from `apps/score-service`. Switch-over from `pp-processor-node`:
+- **Deployment:** one PM2 app for the server; the CLI is run by hand from `apps/score-service`. Switch-over from `pp-processor-node`, with `HOST` and `PORT` set to the address `pp-processor-node` listens on:
     1. stop `pp-processor-node` (it must never run at the same time as the score service: both would scan `UNCALCULATED_REPLAY_DIR` and could process the same file twice);
-    2. start the score service;
-    3. point the game server's pp address at the score service.
+    2. start the score service. The game server keeps calling the same address; nothing changes on its side.
 
-    Then retire `pp-processor-node` and the old backend's listener and scripts. Between steps 1 and 3 the game's pp calls fail, so it records scores as uncalculated, and the score service's uncalculated pass calculates them.
+    Then retire `pp-processor-node` and the old backend's listener and scripts. Between steps 1 and 2 the game's pp calls fail, so it records scores as uncalculated, and the score service's uncalculated pass calculates them.
 
 ## Testing
 

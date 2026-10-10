@@ -20,7 +20,7 @@ Today this work is spread over two codebases:
     - the total pp script (`src/calculateTotalPP.ts`).
 - **`pp-processor-node`** (`~/Projects/pp-processor-node`):
     - the game server's pp endpoints (`/calculate-score`, `/calculate-replay`);
-    - the uncalculated-replay pass, which is the user's own tooling rather than game infrastructure.
+    - the uncalculated-replay pass: the game's recovery path, which calculates scores the game recorded as uncalculated while the pp processor was down.
 
 Both embed calculator code, so a live algorithm update means rebuilding both. After this change, a live update is a new processor variant and a repointed alias; the game, the Discord bot, and recalculations all follow.
 
@@ -208,7 +208,7 @@ A test pins this mapping against a document produced by the old code.
 
 Port of `pp-processor-node`'s `processUncalculatedReplay`.
 
-- **Trigger:** at startup, then every `UNCALCULATED_INTERVAL_MINUTES`. Only one pass runs at a time; it processes `UNCALCULATED_CONCURRENCY` files at once.
+- **Trigger:** at startup, then every `UNCALCULATED_INTERVAL_MINUTES` (today: startup only; the interval only acts on rows the game has marked uncalculated, so the game's normal flow is unaffected). Only one pass runs at a time; it processes `UNCALCULATED_CONCURRENCY` files at once.
 - **Per file in `UNCALCULATED_REPLAY_DIR`**, in one MySQL transaction:
     1. Find the uncalculated score row by `replayfilename`. Missing: delete the file and move on.
     2. Find the leaderboard score by uid and hash. Missing: delete the row and the file.
@@ -298,7 +298,12 @@ For reference, the old hard-coded folders were `/hdd/rian/replays/unprocessed`, 
     2. let in-flight requests, replays, and passes finish their current item (force exit after 30 s; unfinished files stay on disk);
     3. close the databases.
 - **Logging:** `[score-service]` prefix. One line per processed replay, uncalculated file, and failed calculation (with the reason). Recalculation logs progress per chunk, not per score. API keys and replay contents are never logged.
-- **Deployment:** one PM2 app for the server; the CLI is run by hand from `apps/score-service`. The game server's pp address moves from `pp-processor-node` to the score service; then `pp-processor-node` and the old backend's listener and scripts are retired.
+- **Deployment:** one PM2 app for the server; the CLI is run by hand from `apps/score-service`. Switch-over from `pp-processor-node`:
+    1. stop `pp-processor-node` (it must never run at the same time as the score service: both would scan `UNCALCULATED_REPLAY_DIR` and could process the same file twice);
+    2. start the score service;
+    3. point the game server's pp address at the score service.
+
+    Then retire `pp-processor-node` and the old backend's listener and scripts. Between steps 1 and 3 the game's pp calls fail, so it records scores as uncalculated, and the score service's uncalculated pass calculates them.
 
 ## Testing
 

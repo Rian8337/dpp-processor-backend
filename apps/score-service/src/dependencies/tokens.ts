@@ -10,6 +10,7 @@ import type { IOfficialScoreRepository } from "@/repositories/IOfficialScoreRepo
 import type { IDanCourseRepository } from "@/repositories/IDanCourseRepository";
 import type { IRecentPlayRepository } from "@/repositories/IRecentPlayRepository";
 import type { IReplayStore } from "@/replays/IReplayStore";
+import type { IBestScoreWriter } from "@/services/IBestScoreWriter";
 import type { IScoreCalculator } from "@/services/IScoreCalculator";
 import type { IUserBindRepository } from "@/repositories/IUserBindRepository";
 import type { Db } from "mongodb";
@@ -59,4 +60,7 @@ export const dependencyTokens = {
     scoreCalculator: Symbol.for(
         "scoreCalculator",
     ) as InjectionToken<IScoreCalculator>,
+    bestScoreWriter: Symbol.for(
+        "bestScoreWriter",
+    ) as InjectionToken<IBestScoreWriter>,
 } satisfies Record<string, InjectionToken<unknown>>;

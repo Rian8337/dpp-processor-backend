@@ -31,6 +31,11 @@ export interface ParsedReplay {
 }
 
 /**
+ * Reads a replay file; a function type so tests can script it.
+ */
+export type ReplayParser = (file: Buffer) => Promise<ParsedReplay | null>;
+
+/**
  * Reads a replay's header and score data. Never throws: an unreadable replay gives `null`.
  */
 export async function parseReplay(file: Buffer): Promise<ParsedReplay | null> {

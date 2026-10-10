@@ -1,3 +1,5 @@
+import type { ParsedReplay } from "@/replays/parseReplay";
+import type { SerializedMod } from "@rian8337/osu-base";
 import type {
     BestScoreRow,
     ScoreRow,
@@ -50,4 +52,35 @@ export function uncalculatedRow(
     overrides: Partial<UncalculatedScoreRow> = {},
 ): UncalculatedScoreRow {
     return { ...shared, replayfilename: "7_replay.odr", ...overrides };
+}
+
+/**
+ * A parsed replay that matches `score` (a v3 replay with `score`'s mods taken from `mods`).
+ */
+export function parsedReplayFor(
+    score: ScoreRow | BestScoreRow,
+    overrides: Partial<ParsedReplay> = {},
+): ParsedReplay {
+    return {
+        version: 4,
+        hash: score.hash,
+        fileName: "map.osu",
+        accuracy: {
+            n300: score.perfect ?? 0,
+            n100: score.good ?? 0,
+            n50: score.bad ?? 0,
+            nmiss: score.miss ?? 0,
+        },
+        rank: score.mark ?? "",
+        hit300k: score.geki ?? 0,
+        hit100k: score.katu ?? 0,
+        v3: {
+            score: score.score,
+            maxCombo: score.combo ?? 0,
+            mods: JSON.parse(score.mods) as SerializedMod[],
+            playerName: "player",
+            time: new Date(),
+        },
+        ...overrides,
+    };
 }

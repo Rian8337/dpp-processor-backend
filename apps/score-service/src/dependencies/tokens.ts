@@ -9,8 +9,10 @@ import type { IJobProgressRepository } from "@/repositories/IJobProgressReposito
 import type { IOfficialScoreRepository } from "@/repositories/IOfficialScoreRepository";
 import type { IDanCourseRepository } from "@/repositories/IDanCourseRepository";
 import type { IRecentPlayRepository } from "@/repositories/IRecentPlayRepository";
+import type { ReplayParser } from "@/replays/parseReplay";
 import type { IReplayStore } from "@/replays/IReplayStore";
 import type { IBestScoreWriter } from "@/services/IBestScoreWriter";
+import type { IOnlineScoreService } from "@/services/IOnlineScoreService";
 import type { IScoreCalculator } from "@/services/IScoreCalculator";
 import type { IUserBindRepository } from "@/repositories/IUserBindRepository";
 import type { Db } from "mongodb";
@@ -63,4 +65,8 @@ export const dependencyTokens = {
     bestScoreWriter: Symbol.for(
         "bestScoreWriter",
     ) as InjectionToken<IBestScoreWriter>,
+    replayParser: Symbol.for("replayParser") as InjectionToken<ReplayParser>,
+    onlineScoreService: Symbol.for(
+        "onlineScoreService",
+    ) as InjectionToken<IOnlineScoreService>,
 } satisfies Record<string, InjectionToken<unknown>>;

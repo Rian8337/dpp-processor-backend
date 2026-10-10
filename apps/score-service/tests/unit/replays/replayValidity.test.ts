@@ -1,34 +1,13 @@
 import type { ParsedReplay } from "@/replays/parseReplay";
 import { isReplayValid } from "@/replays/replayValidity";
 import { ModDoubleTime, ModHardRock, ModHidden } from "@rian8337/osu-base";
-import { scoreRow, testHash } from "@test/utils/rows";
+import { parsedReplayFor, scoreRow } from "@test/utils/rows";
 import { describe, expect, it } from "vitest";
 
 const score = scoreRow({ mods: JSON.stringify([new ModHidden().serialize()]) });
 
 function replay(overrides: Partial<ParsedReplay> = {}): ParsedReplay {
-    return {
-        version: 4,
-        hash: testHash,
-        fileName: "map.osu",
-        accuracy: {
-            n300: score.perfect ?? 0,
-            n100: score.good ?? 0,
-            n50: score.bad ?? 0,
-            nmiss: score.miss ?? 0,
-        },
-        rank: score.mark!,
-        hit300k: score.geki ?? 0,
-        hit100k: score.katu ?? 0,
-        v3: {
-            score: score.score,
-            maxCombo: score.combo ?? 0,
-            mods: [new ModHidden().serialize()],
-            playerName: "player",
-            time: new Date(),
-        },
-        ...overrides,
-    };
+    return parsedReplayFor(score, overrides);
 }
 
 describe("isReplayValid", () => {

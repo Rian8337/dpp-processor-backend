@@ -6,6 +6,7 @@ import {
     performanceRequestSchema,
     processorErrorCodes,
     replayPerformanceRequestSchema,
+    scoreParametersSchema,
 } from "../src";
 
 describe("difficultyRequestSchema", () => {
@@ -153,5 +154,68 @@ describe("error codes", () => {
             ...processorErrorCodes,
             ...brokerErrorCodes,
         ]);
+    });
+});
+
+const hits = {
+    sliderHeadHits: 10,
+    sliderTickHits: 20,
+    sliderRepeatHits: 3,
+    sliderEndHits: 9,
+};
+
+describe("scoreParametersSchema slider hits", () => {
+    it("accepts all four hit counts", () => {
+        expect(scoreParametersSchema.parse(hits)).toEqual(hits);
+    });
+
+    it("accepts none of them", () => {
+        expect(scoreParametersSchema.parse({ nmiss: 1 })).toEqual({ nmiss: 1 });
+    });
+
+    it.each(Object.keys(hits))("rejects a set missing %s", (missing) => {
+        const partial: Record<string, number> = { ...hits };
+        delete partial[missing];
+
+        const result = scoreParametersSchema.safeParse(partial);
+
+        expect(result.success).toBe(false);
+        expect(result.error?.issues[0]?.message).toBe(
+            "sliderHeadHits, sliderTickHits, sliderRepeatHits, and sliderEndHits must be given together",
+        );
+    });
+
+    it.each(["sliderTicksMissed", "sliderEndsDropped"])(
+        "rejects hit counts combined with %s",
+        (field) => {
+            const result = scoreParametersSchema.safeParse({
+                ...hits,
+                [field]: 0,
+            });
+
+            expect(result.success).toBe(false);
+            expect(result.error?.issues[0]?.message).toBe(
+                "Slider hit counts cannot be combined with sliderTicksMissed or sliderEndsDropped",
+            );
+        },
+    );
+
+    it("rejects negative and fractional hit counts", () => {
+        expect(
+            scoreParametersSchema.safeParse({ ...hits, sliderTickHits: -1 })
+                .success,
+        ).toBe(false);
+        expect(
+            scoreParametersSchema.safeParse({ ...hits, sliderEndHits: 1.5 })
+                .success,
+        ).toBe(false);
+    });
+
+    it("still defaults score to {} in a performance request", () => {
+        const parsed = performanceRequestSchema.parse({
+            beatmap: { id: 1 },
+        });
+
+        expect(parsed.score).toEqual({});
     });
 });

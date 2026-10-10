@@ -2,6 +2,7 @@ import {
     AlgorithmInputError,
     type AlgorithmErrorCode,
 } from "@/algorithms/errors";
+import type { SliderObjectCounts } from "@/algorithms/sliderHits";
 import type { Algorithm } from "@/algorithms/types";
 import { LruCache } from "@/utils/LruCache";
 import { ModUtil, type Beatmap, type SerializedMod } from "@rian8337/osu-base";
@@ -21,6 +22,7 @@ export type CalculationTask =
           osuFile: string;
           mods: SerializedMod[];
       }
+    | { kind: "sliderObjectCounts"; beatmapHash: string; osuFile: string }
     | { kind: "readReplay"; replay: Uint8Array }
     | {
           kind: "analyzeReplay";
@@ -92,6 +94,20 @@ export class CalculationTaskHandler {
                     this.decode(task.beatmapHash, task.osuFile),
                     ModUtil.deserializeMods(task.mods),
                 );
+
+            case "sliderObjectCounts": {
+                const { hitObjects } = this.decode(
+                    task.beatmapHash,
+                    task.osuFile,
+                );
+
+                return {
+                    sliders: hitObjects.sliders,
+                    ticks: hitObjects.sliderTicks,
+                    repeats: hitObjects.sliderRepeatPoints,
+                    sliderEnds: hitObjects.sliderEnds,
+                } satisfies SliderObjectCounts;
+            }
 
             case "readReplay":
                 return this.algorithm.readReplay(Buffer.from(task.replay));

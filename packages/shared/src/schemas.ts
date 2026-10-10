@@ -25,23 +25,69 @@ export const beatmapReferenceSchema = z.union([
 
 const hitCount = z.number().int().nonnegative();
 
+const sliderHitFields = [
+    "sliderHeadHits",
+    "sliderTickHits",
+    "sliderRepeatHits",
+    "sliderEndHits",
+] as const;
+
 /**
  * Score values that alter a performance calculation. Every field is optional.
+ *
+ * Slider hit counts (`sliderHeadHits`, `sliderTickHits`, `sliderRepeatHits`, `sliderEndHits`) are what the game
+ * records; the processor converts them to `sliderTicksMissed` and `sliderEndsDropped` with the beatmap's object
+ * counts. They are given all together or not at all, and never with the miss counts they replace.
  */
-export const scoreParametersSchema = z.strictObject({
-    n300: hitCount.optional(),
-    n100: hitCount.optional(),
-    n50: hitCount.optional(),
-    nmiss: hitCount.optional(),
-    combo: hitCount.optional(),
-    sliderTicksMissed: hitCount.optional(),
-    sliderEndsDropped: hitCount.optional(),
-    totalScore: hitCount.optional(),
-    // A divisor of the tap performance, so at least 1.
-    tapPenalty: z.number().min(1).optional(),
-    // A multiplier of the slider performance, so in (0, 1].
-    sliderCheesePenalty: z.number().positive().max(1).optional(),
-});
+export const scoreParametersSchema = z
+    .strictObject({
+        n300: hitCount.optional(),
+        n100: hitCount.optional(),
+        n50: hitCount.optional(),
+        nmiss: hitCount.optional(),
+        combo: hitCount.optional(),
+        sliderTicksMissed: hitCount.optional(),
+        sliderEndsDropped: hitCount.optional(),
+        sliderHeadHits: hitCount.optional(),
+        sliderTickHits: hitCount.optional(),
+        sliderRepeatHits: hitCount.optional(),
+        sliderEndHits: hitCount.optional(),
+        totalScore: hitCount.optional(),
+        // A divisor of the tap performance, so at least 1.
+        tapPenalty: z.number().min(1).optional(),
+        // A multiplier of the slider performance, so in (0, 1].
+        sliderCheesePenalty: z.number().positive().max(1).optional(),
+    })
+    .superRefine((score, context) => {
+        const given = sliderHitFields.filter(
+            (field) => score[field] !== undefined,
+        );
+
+        if (given.length === 0) {
+            return;
+        }
+
+        if (given.length !== sliderHitFields.length) {
+            context.addIssue({
+                code: "custom",
+                message:
+                    "sliderHeadHits, sliderTickHits, sliderRepeatHits, and sliderEndHits must be given together",
+            });
+
+            return;
+        }
+
+        if (
+            score.sliderTicksMissed !== undefined ||
+            score.sliderEndsDropped !== undefined
+        ) {
+            context.addIssue({
+                code: "custom",
+                message:
+                    "Slider hit counts cannot be combined with sliderTicksMissed or sliderEndsDropped",
+            });
+        }
+    });
 
 export const difficultyRequestSchema = z.strictObject({
     beatmap: beatmapReferenceSchema,

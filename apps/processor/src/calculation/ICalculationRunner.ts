@@ -1,3 +1,4 @@
+import type { SliderObjectCounts } from "@/algorithms/sliderHits";
 import type { ReplayAnalysis, ReplayHeader } from "@/algorithms/types";
 import type { SerializedMod } from "@rian8337/osu-base";
 import type {
@@ -18,6 +19,14 @@ export interface ICalculationRunner extends AsyncDisposable {
         osuFile: string;
         mods: SerializedMod[];
     }): Promise<CacheableDifficultyAttributes<IDifficultyAttributes>>;
+
+    /**
+     * Counts the beatmap's sliders, slider ticks, slider repeats, and slider ends, as decoded in this mode.
+     */
+    countSliderObjects(input: {
+        beatmapHash: string;
+        osuFile: string;
+    }): Promise<SliderObjectCounts>;
 
     readReplay(replay: Buffer): Promise<ReplayHeader>;
 

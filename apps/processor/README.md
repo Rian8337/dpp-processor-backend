@@ -76,6 +76,10 @@ A new variant needs only `CREATE DATABASE <name>;`. Migrations run at startup.
 | `CALCULATION_MAX_QUEUE`                           | `100`                    | queued tasks before responding `503 OVERLOADED`                           |
 | `DEV_MODE`                                        | none                     | `droid` or `osu`; only used when running from source (no `manifest.json`) |
 
+## Slider hit counts
+
+The `score` of `POST /performance` and `POST /performance/replay` accepts `sliderHeadHits`, `sliderTickHits`, `sliderRepeatHits`, and `sliderEndHits`: slider hit counts as the game records them. Give all four or none, and never together with `sliderTicksMissed`/`sliderEndsDropped`. They are converted with the beatmap's slider, tick, repeat, and slider end counts, and the response's `score` reports the converted misses.
+
 ## Removing old cached attributes
 
 ```bash

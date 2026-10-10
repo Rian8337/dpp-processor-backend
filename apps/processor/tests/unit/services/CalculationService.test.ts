@@ -15,7 +15,7 @@ import {
     UnprocessableEntityError,
 } from "@/types/errors";
 import { BadRequestError } from "@dpp/server";
-import { Modes } from "@rian8337/osu-base";
+import { ModHidden, Modes } from "@rian8337/osu-base";
 import { FixtureBeatmapServiceClient } from "@test/utils/beatmaps";
 import {
     beatmapFixtures,
@@ -62,6 +62,153 @@ function createService(
 
 const loveLetter = { id: beatmapFixtures.loveLetter.id };
 const loveLetterHash = md5Of(Buffer.from(readBeatmapFixture("loveLetter")));
+
+describe("slider hit counts", () => {
+    async function counts() {
+        const runner = new InlineRunner(createAlgorithm(Modes.Droid));
+
+        return runner.countSliderObjects({
+            beatmapHash: loveLetterHash,
+            osuFile: readBeatmapFixture("loveLetter"),
+        });
+    }
+
+    it("converts hit counts and reports the converted misses", async () => {
+        const total = await counts();
+        const service = createService(Modes.Droid);
+
+        const response = await service.calculatePerformance({
+            beatmap: loveLetter,
+            mods: [],
+            score: {
+                sliderHeadHits: total.sliders - 1,
+                sliderTickHits: total.ticks - 2,
+                sliderRepeatHits: total.repeats,
+                sliderEndHits: total.sliderEnds - 1,
+            },
+            strainChart: false,
+        });
+
+        expect(response.score.sliderTicksMissed).toBe(3);
+        expect(response.score.sliderEndsDropped).toBe(1);
+    });
+
+    it("gives the same result as the equivalent miss counts", async () => {
+        const total = await counts();
+        const service = createService(Modes.Droid);
+
+        const fromHits = await service.calculatePerformance({
+            beatmap: loveLetter,
+            mods: [],
+            score: {
+                sliderHeadHits: total.sliders,
+                sliderTickHits: total.ticks - 1,
+                sliderRepeatHits: total.repeats,
+                sliderEndHits: total.sliderEnds,
+            },
+            strainChart: false,
+        });
+        const fromMisses = await service.calculatePerformance({
+            beatmap: loveLetter,
+            mods: [],
+            score: { sliderTicksMissed: 1, sliderEndsDropped: 0 },
+            strainChart: false,
+        });
+
+        expect(fromHits.performance).toEqual(fromMisses.performance);
+    });
+
+    it("rejects hit counts above the beatmap's totals", async () => {
+        const total = await counts();
+        const service = createService(Modes.Droid);
+
+        await expect(
+            service.calculatePerformance({
+                beatmap: loveLetter,
+                mods: [],
+                score: {
+                    sliderHeadHits: total.sliders + 1,
+                    sliderTickHits: 0,
+                    sliderRepeatHits: 0,
+                    sliderEndHits: 0,
+                },
+                strainChart: false,
+            }),
+        ).rejects.toBeInstanceOf(BadRequestError);
+    });
+
+    it("counts each beatmap's slider objects once", async () => {
+        let runner!: InlineRunner;
+        const service = createService(Modes.Droid, (created) => {
+            runner = created;
+            vi.spyOn(created, "countSliderObjects");
+        });
+        const score = {
+            sliderHeadHits: 0,
+            sliderTickHits: 0,
+            sliderRepeatHits: 0,
+            sliderEndHits: 0,
+        };
+
+        await service.calculatePerformance({
+            beatmap: loveLetter,
+            mods: [],
+            score,
+            strainChart: false,
+        });
+        await service.calculatePerformance({
+            beatmap: loveLetter,
+            mods: [],
+            score,
+            strainChart: false,
+        });
+
+        expect(runner.countSliderObjects).toHaveBeenCalledTimes(1);
+    });
+
+    it("replaces a replay's own slider misses with converted hit counts", async () => {
+        const total = await counts();
+        const service = createService(Modes.Droid, (runner) => {
+            runner.readReplay = vi.fn<ICalculationRunner["readReplay"]>(() =>
+                Promise.resolve({
+                    beatmapHash: loveLetterHash,
+                    mods: [new ModHidden().serialize()],
+                }),
+            );
+            runner.analyzeReplay = vi.fn<ICalculationRunner["analyzeReplay"]>(
+                () =>
+                    Promise.resolve({
+                        score: {
+                            n300: 590,
+                            nmiss: 0,
+                            combo: 700,
+                            sliderTicksMissed: 5,
+                            sliderEndsDropped: 4,
+                        },
+                        replay: {
+                            hitError: null,
+                            sliderTickInformation: null,
+                            sliderEndInformation: null,
+                        },
+                    }),
+            );
+        });
+
+        const response = await service.calculateReplayPerformance({
+            replay: "AAEC",
+            score: {
+                sliderHeadHits: total.sliders,
+                sliderTickHits: total.ticks,
+                sliderRepeatHits: total.repeats,
+                sliderEndHits: total.sliderEnds,
+            },
+            strainChart: false,
+        });
+
+        expect(response.score.sliderTicksMissed).toBe(0);
+        expect(response.score.sliderEndsDropped).toBe(0);
+    });
+});
 
 describe("CalculationService", () => {
     it("returns difficulty attributes carrying the requested mods", async () => {

@@ -1,4 +1,9 @@
 import { AlgorithmInputError } from "@/algorithms/errors";
+import {
+    convertSliderHits,
+    hasSliderHits,
+    type SliderObjectCounts,
+} from "@/algorithms/sliderHits";
 import type { Algorithm, PerformanceResult } from "@/algorithms/types";
 import type { ICalculationRunner } from "@/calculation/ICalculationRunner";
 import { strainChartColor } from "@/calculation/strainChartColor";
@@ -8,6 +13,7 @@ import {
     CalculationFailedError,
     UnprocessableEntityError,
 } from "@/types/errors";
+import { LruCache } from "@/utils/LruCache";
 import { BadRequestError, Injectable } from "@dpp/server";
 import type {
     DifficultyRequest,
@@ -32,6 +38,14 @@ type Attributes = CacheableDifficultyAttributes<IDifficultyAttributes>;
 
 @Injectable(dependencyTokens.calculationService)
 export class CalculationService implements ICalculationService {
+    /**
+     * Slider object counts by beatmap hash. Counting needs the decoded beatmap, which a cached difficulty lookup
+     * never decodes, so the counts are kept separately.
+     */
+    private readonly sliderCounts = new LruCache<string, SliderObjectCounts>(
+        256,
+    );
+
     constructor(
         @inject(dependencyTokens.algorithm)
         private readonly algorithm: Algorithm,
@@ -69,7 +83,10 @@ export class CalculationService implements ICalculationService {
 
         return {
             difficulty,
-            ...this.calculatePerformanceAttributes(difficulty, request.score),
+            ...this.calculatePerformanceAttributes(
+                difficulty,
+                await this.applySliderHits(beatmap, request.score),
+            ),
             ...(await this.renderStrainChart(
                 request.strainChart,
                 beatmap,
@@ -106,10 +123,18 @@ export class CalculationService implements ICalculationService {
 
         return {
             difficulty,
-            ...this.calculatePerformanceAttributes(difficulty, {
-                ...analysis.score,
-                ...request.score,
-            }),
+            ...this.calculatePerformanceAttributes(
+                difficulty,
+                await this.applySliderHits(beatmap, {
+                    ...analysis.score,
+                    // Hit counts in the overrides replace the analysis's own slider misses.
+                    ...(hasSliderHits(request.score) && {
+                        sliderTicksMissed: undefined,
+                        sliderEndsDropped: undefined,
+                    }),
+                    ...request.score,
+                }),
+            ),
             replay: analysis.replay,
             ...(await this.renderStrainChart(
                 request.strainChart,
@@ -184,6 +209,38 @@ export class CalculationService implements ICalculationService {
         }
 
         throw new BadRequestError(`mods contains ${problems.join("; ")}`);
+    }
+
+    /**
+     * Replaces slider hit counts with the miss counts they imply.
+     */
+    private async applySliderHits(
+        beatmap: ResolvedBeatmap,
+        score: ScoreParameters,
+    ): Promise<ScoreParameters> {
+        if (!hasSliderHits(score)) {
+            return score;
+        }
+
+        let counts = this.sliderCounts.get(beatmap.hash);
+
+        if (!counts) {
+            counts = await this.runner.countSliderObjects({
+                beatmapHash: beatmap.hash,
+                osuFile: await beatmap.getFile(),
+            });
+            this.sliderCounts.set(beatmap.hash, counts);
+        }
+
+        try {
+            return convertSliderHits(counts, score);
+        } catch (e) {
+            if (e instanceof AlgorithmInputError) {
+                throw e.toApiError();
+            }
+
+            throw e;
+        }
     }
 
     private calculatePerformanceAttributes(

@@ -1,3 +1,4 @@
+import type { SliderObjectCounts } from "@/algorithms/sliderHits";
 import type { ReplayAnalysis, ReplayHeader } from "@/algorithms/types";
 import type {
     CacheableDifficultyAttributes,
@@ -21,6 +22,14 @@ export abstract class BaseRunner implements ICalculationRunner {
         return unwrapOutcome<
             CacheableDifficultyAttributes<IDifficultyAttributes>
         >(await this.dispatch({ kind: "difficulty", ...input }));
+    }
+
+    async countSliderObjects(
+        input: Parameters<ICalculationRunner["countSliderObjects"]>[0],
+    ) {
+        return unwrapOutcome<SliderObjectCounts>(
+            await this.dispatch({ kind: "sliderObjectCounts", ...input }),
+        );
     }
 
     async readReplay(replay: Buffer) {

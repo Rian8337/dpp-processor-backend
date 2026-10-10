@@ -1,6 +1,14 @@
 import { createAlgorithm } from "@/algorithms/createAlgorithm";
 import { CalculationTaskHandler } from "@/calculation/tasks";
-import { ModDoubleTime, ModHardRock, Modes } from "@rian8337/osu-base";
+import {
+    BeatmapDecoder,
+    ModDoubleTime,
+    ModHardRock,
+    Modes,
+    Slider,
+    SliderRepeat,
+    SliderTick,
+} from "@rian8337/osu-base";
 import { md5Of, readBeatmapFixture } from "@test/utils/fixtures";
 import { modMap } from "@test/utils/mods";
 import { describe, expect, it, vi } from "vitest";
@@ -117,4 +125,49 @@ describe("CalculationTaskHandler", () => {
             message: "calculator exploded",
         });
     });
+
+    it.each([Modes.Droid, Modes.Osu])(
+        "counts slider objects like pp-processor-node in %s",
+        async (mode) => {
+            const loveLetter = readBeatmapFixture("loveLetter");
+            const handler = new CalculationTaskHandler(createAlgorithm(mode));
+
+            // pp-processor-node's loop, run on the same decode the handler uses.
+            const beatmap = new BeatmapDecoder().decode(
+                loveLetter,
+                mode,
+            ).result;
+            let ticks = 0;
+            let repeats = 0;
+
+            for (const object of beatmap.hitObjects.objects) {
+                if (object instanceof Slider) {
+                    for (const nested of object.nestedHitObjects) {
+                        if (nested instanceof SliderTick) {
+                            ++ticks;
+                        } else if (nested instanceof SliderRepeat) {
+                            ++repeats;
+                        }
+                    }
+                }
+            }
+
+            const outcome = await handler.handle({
+                kind: "sliderObjectCounts",
+                beatmapHash: "loveletter",
+                osuFile: loveLetter,
+            });
+
+            expect(outcome).toEqual({
+                ok: true,
+                value: {
+                    sliders: beatmap.hitObjects.sliders,
+                    ticks,
+                    repeats,
+                    sliderEnds: beatmap.hitObjects.sliders,
+                },
+            });
+            expect(ticks).toBeGreaterThan(0);
+        },
+    );
 });

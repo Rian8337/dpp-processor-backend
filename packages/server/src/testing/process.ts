@@ -19,7 +19,8 @@ export interface StartedProcess extends AsyncDisposable {
 }
 
 /**
- * Starts `node <script>` and resolves once `GET readyUrl` answers with a 2xx status.
+ * Starts `node <script>` and resolves once `GET readyUrl` answers with a 2xx status (or, if `isReady` is given,
+ * once it returns true for the response, for servers whose cheapest route answers an error such as 401).
  *
  * @throws {Error} With the process output, if the process exits or `timeoutMs` passes before it is ready.
  */
@@ -28,8 +29,15 @@ export async function startProcess(options: {
     env: NodeJS.ProcessEnv;
     readyUrl: string;
     timeoutMs?: number;
+    isReady?: (response: Response) => boolean;
 }): Promise<StartedProcess> {
-    const { script, env, readyUrl, timeoutMs = 20_000 } = options;
+    const {
+        script,
+        env,
+        readyUrl,
+        timeoutMs = 20_000,
+        isReady = (response: Response) => response.ok,
+    } = options;
     const child = spawn("node", [script], { env });
     let output = "";
 
@@ -56,7 +64,7 @@ export async function startProcess(options: {
 
     while (child.exitCode === null && child.signalCode === null) {
         const ready = await fetch(readyUrl)
-            .then((response) => response.ok)
+            .then(isReady)
             .catch(() => false);
 
         if (ready) {

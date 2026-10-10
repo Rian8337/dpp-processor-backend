@@ -107,6 +107,20 @@ describe("GracefulServer", () => {
             new GracefulServer()[Symbol.asyncDispose](),
         ).resolves.toBeUndefined();
     });
+
+    it("binds to the given host", async () => {
+        await using server = new GracefulServer();
+        const app = express().get("/", (_req, res) => {
+            res.send("ok");
+        });
+
+        const port = await server.listen(app, 0, "127.0.0.1");
+        const response = await fetch(`http://127.0.0.1:${port.toString()}/`);
+
+        expect(await response.text()).toBe("ok");
+        // @ts-expect-error: reading the private server to check its address.
+        expect(server.server.address().address).toBe("127.0.0.1");
+    });
 });
 
 function keepAliveAgent(maxSockets = 1): Agent & Disposable {

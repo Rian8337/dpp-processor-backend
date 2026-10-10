@@ -7,6 +7,7 @@ import {
     processorErrorCodes,
     replayPerformanceRequestSchema,
     scoreParametersSchema,
+    scoreServiceErrorCodes,
 } from "../src";
 
 describe("difficultyRequestSchema", () => {
@@ -153,6 +154,7 @@ describe("error codes", () => {
         expect(errorCodes).toEqual([
             ...processorErrorCodes,
             ...brokerErrorCodes,
+            ...scoreServiceErrorCodes,
         ]);
     });
 });

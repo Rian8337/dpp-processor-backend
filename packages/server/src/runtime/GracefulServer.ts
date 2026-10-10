@@ -32,11 +32,12 @@ export class GracefulServer implements AsyncDisposable {
     };
 
     /**
-     * Starts listening, and resolves with the port that is bound (useful when `port` is 0).
+     * Starts listening, and resolves with the port that is bound (useful when `port` is 0). Without `host`, Node's
+     * default applies (every interface).
      */
-    listen(app: Express, port: number): Promise<number> {
+    listen(app: Express, port: number, host?: string): Promise<number> {
         return new Promise((resolve, reject) => {
-            const server = app.listen(port, (error) => {
+            const onListening = (error?: Error) => {
                 const address = server.address();
 
                 if (error || !address || typeof address === "string") {
@@ -44,7 +45,11 @@ export class GracefulServer implements AsyncDisposable {
                 } else {
                     resolve(address.port);
                 }
-            });
+            };
+            const server =
+                host === undefined
+                    ? app.listen(port, onListening)
+                    : app.listen(port, host, onListening);
 
             this.server = server;
         });

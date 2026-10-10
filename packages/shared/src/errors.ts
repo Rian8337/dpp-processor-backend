@@ -25,15 +25,25 @@ export const brokerErrorCodes = [
 ] as const;
 
 /**
+ * Machine-readable error codes that only the score service returns.
+ */
+export const scoreServiceErrorCodes = [
+    "SCORE_NOT_FOUND",
+    "BROKER_UNAVAILABLE",
+] as const;
+
+/**
  * Every error code a client can receive.
  */
 export const errorCodes = [
     ...processorErrorCodes,
     ...brokerErrorCodes,
+    ...scoreServiceErrorCodes,
 ] as const;
 
 export type ProcessorErrorCode = (typeof processorErrorCodes)[number];
 export type BrokerErrorCode = (typeof brokerErrorCodes)[number];
+export type ScoreServiceErrorCode = (typeof scoreServiceErrorCodes)[number];
 export type ErrorCode = (typeof errorCodes)[number];
 
 /**

@@ -22,7 +22,7 @@ export function createRouter(container = getContainer()): Router {
             | string
             | undefined;
 
-        if (!basePath) {
+        if (basePath === undefined) {
             throw new Error(
                 `Controller ${Controller.name} has no base path; decorate it with @Controller`,
             );

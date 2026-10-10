@@ -9,6 +9,7 @@ import express, { type RequestHandler } from "express";
 import "./controllers";
 import { dependencyTokens } from "./dependencies/tokens";
 import { createApiKeyMiddleware } from "./middleware/apiKey";
+import { loopbackOnly } from "./middleware/loopbackOnly";
 
 /**
  * Creates the Express application.
@@ -29,6 +30,7 @@ export function createApp(
 
     return app
         .use("/online-scores", createApiKeyMiddleware(config.apiKey))
+        .use(["/calculate-score", "/calculate-replay"], loopbackOnly)
         .use(createRouter(container))
         .use(notFoundHandler)
         .use(errorHandler);

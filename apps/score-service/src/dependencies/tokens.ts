@@ -19,6 +19,8 @@ import type { IOnlineScoreService } from "@/services/IOnlineScoreService";
 import type { IScoreCalculator } from "@/services/IScoreCalculator";
 import type { IUserBindRepository } from "@/repositories/IUserBindRepository";
 import type { ReplayWatcher } from "@/runtime/ReplayWatcher";
+import type { UncalculatedScheduler } from "@/runtime/UncalculatedScheduler";
+import type { IUncalculatedReplayService } from "@/services/IUncalculatedReplayService";
 import type { Db } from "mongodb";
 import type { InjectionToken } from "tsyringe";
 
@@ -83,4 +85,10 @@ export const dependencyTokens = {
         "replaySubmissionService",
     ) as InjectionToken<IReplaySubmissionService>,
     replayWatcher: Symbol.for("replayWatcher") as InjectionToken<ReplayWatcher>,
+    uncalculatedReplayService: Symbol.for(
+        "uncalculatedReplayService",
+    ) as InjectionToken<IUncalculatedReplayService>,
+    uncalculatedScheduler: Symbol.for(
+        "uncalculatedScheduler",
+    ) as InjectionToken<UncalculatedScheduler>,
 } satisfies Record<string, InjectionToken<unknown>>;

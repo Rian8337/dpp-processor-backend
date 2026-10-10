@@ -4,3 +4,4 @@ export * from "./OnlineScoreService";
 export * from "./GamePPService";
 export * from "./DanCourseService";
 export * from "./ReplaySubmissionService";
+export * from "./UncalculatedReplayService";

@@ -22,11 +22,13 @@
 - Commits: one per task step that says "Commit"; message style as in `git log` (imperative, capitalized, no prefix), ending with the `Co-Authored-By` line the session gives. Chain edit, format, and commit with `&&`, never `;`.
 - After every task: `pnpm typecheck`, `pnpm lint`, `pnpm exec oxfmt --check .` (or `pnpm format`), and the touched packages' `pnpm test` pass.
 - `pp_multiplier` read from the database is always applied as `min(pp_multiplier ?? 1, 1)`.
+- Tests build serialized mods from mod instances (`new ModHidden().serialize()`, imported from `@rian8337/osu-base`), never `{ acronym }` literals, except where a test is about an invalid acronym or malformed input. The test code below follows this; keep it that way in any test you add.
+- Test fakes live one per file under `tests/utils/fakes/`, re-exported from `tests/utils/fakes/index.ts` (import them from `@test/utils/fakes`).
 - "Retry later" (broker or beatmap service `502`/`503`/`504`/`429`, connection failure, timeout) never deletes data or records "not found".
 
 ## Review Focus
 
-1. **The generated `total_score` column.** In production, `total_score` on `bbl_score` and `bbl_score_best` is `GENERATED ALWAYS AS (round(score * score_multiplier)) STORED`, and `bbl_score_uncalculated` has no `total_score` (and no `id`). Writing it fails the insert, so best rows are inserted without it. Task 5's integration test runs against the production DDL (`tests/fixtures/official-schema.sql`) and inserts a best row through the repository; nullable hit counts are covered there too.
+1. **The generated `total_score` column.** In production, `total_score` on `bbl_score` and `bbl_score_best` is `GENERATED ALWAYS AS (round(score * score_multiplier)) STORED`, and `bbl_score_uncalculated` has no `total_score` (and no `id`). Writing it fails the insert, so best rows are inserted without it. Task 5 declares the Drizzle schema to match the production export, generates the test tables from that schema (`drizzle-kit/api`), and inserts a best row through the repository; nullable hit counts are covered there too.
 2. **A replay file that is still being written.** The watcher must only pick up a file after `awaitWriteFinish`; the backlog at startup may contain half-written files from a crash, which must fail parsing and be deleted (they can never become valid). Task 14 tests a file that appears in two writes.
 3. **The same file offered twice** (backlog scan and the watcher's `add` event overlap at startup, or a retry timer fires while the file is in flight). Task 14 tests that a path is processed at most once at a time.
 4. **A recalculation interrupted mid-chunk and resumed with a different `--concurrency`.** Chunks are claimed from Postgres, not assigned by worker number, so resuming with any concurrency must process every ID exactly once more at most. Task 16 tests resume after abort with a different concurrency.
@@ -73,7 +75,7 @@ apps/score-service/
     cli/arguments.ts run.ts
   tests/
     setup.ts
-    utils/  config.ts container.ts database.ts httpServer.ts fakes.ts rows.ts officialDatabase.ts mongo.ts fixtures.ts
+    utils/  config.ts container.ts database.ts fakes/ bodies.ts rows.ts mariadb.ts officialDatabase.ts mongo.ts fixtures.ts stubServices.ts
     unit/ integration/ e2e/ fixtures/
 ```
 
@@ -841,7 +843,7 @@ describe("onlineScoreQuerySchema", () => {
 describe("calculateScoreFieldsSchema", () => {
     const fields = {
         hash: hash.toUpperCase(),
-        mods: JSON.stringify([{ acronym: "HD" }]),
+        mods: JSON.stringify([new ModHidden().serialize()]),
         combo: "100",
         perfect: "90",
         good: "5",
@@ -853,7 +855,7 @@ describe("calculateScoreFieldsSchema", () => {
     it("parses form fields (strings) with defaults", () => {
         expect(calculateScoreFieldsSchema.parse(fields)).toEqual({
             hash,
-            mods: [{ acronym: "HD" }],
+            mods: [new ModHidden().serialize()],
             combo: 100,
             perfect: 90,
             good: 5,
@@ -891,7 +893,7 @@ describe("calculateScoreFieldsSchema", () => {
         ["mods that are not JSON", { mods: "HD" }],
         [
             "mods of the wrong shape",
-            { mods: JSON.stringify({ acronym: "HD" }) },
+            { mods: JSON.stringify(new ModHidden().serialize()) },
         ],
         ["a negative count", { miss: "-1" }],
         ["a fractional count", { combo: "1.5" }],
@@ -2330,9 +2332,10 @@ Expected: FAIL (module not found).
  * A job with this name exists with a different kind, range, or chunk size.
  */
 export class JobConflictError extends Error {
-    constructor(name: string) {
+    // Not `name`: that would read like `Error.name`, which is set below.
+    constructor(jobName: string) {
         super(
-            `A job named ${name} already exists with a different kind, range, or chunk size`,
+            `A job named ${jobName} already exists with a different kind, range, or chunk size`,
         );
         this.name = "JobConflictError";
     }
@@ -2583,7 +2586,7 @@ pnpm --filter @dpp/score-service test && pnpm typecheck && pnpm lint && pnpm for
 - Modify: `src/repositories/index.ts`, `src/dependencies/tokens.ts`
 - Create: `tests/utils/officialDatabase.ts`, `tests/utils/rows.ts`
 - Test: `tests/integration/repositories/OfficialScoreRepository.int.test.ts`
-- Create: `tests/utils/mariadb.ts`, `tests/fixtures/official-schema.sql`
+- Create: `tests/utils/mariadb.ts`
 
 **Interfaces:**
 
@@ -2656,7 +2659,7 @@ import {
 } from "drizzle-orm/mysql-core";
 
 /**
- * Columns every score table shares, as in the production schema (`tests/fixtures/official-schema.sql`), with the
+ * Columns every score table shares, as in the production schema, with the
  * official database's names (Drizzle maps them to snake_case). A function, so each table gets its own column
  * builders.
  *
@@ -3186,13 +3189,12 @@ import type { DatabaseSettings } from "@dpp/server";
 import type { OfficialDatabaseSettings } from "@/config/config";
 import { OfficialDatabaseConnection } from "@/official/connection";
 import { randomBytes } from "node:crypto";
-import { readFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
+import { createOfficialTables } from "@/official/schema";
+import {
+    generateMySQLDrizzleJson,
+    generateMySQLMigration,
+} from "drizzle-kit/api";
 import { createConnection } from "mysql2/promise";
-
-const schemaFixture = fileURLToPath(
-    new URL("../fixtures/official-schema.sql", import.meta.url),
-);
 
 /**
  * Official tables under a random prefix, created on a test MariaDB server. Disposing drops them. Each test gets
@@ -3216,10 +3218,20 @@ export async function createOfficialTestDatabase(
         multipleStatements: true,
     });
 
-    // The production DDL, with `{prefix}` in place of `bbl_`.
-    const ddl = await readFile(schemaFixture, "utf8");
+    // The tables as `src/official/schema.ts` declares them: the schema is the only description of the official
+    // tables in this repository.
+    const statements = await generateMySQLMigration(
+        await generateMySQLDrizzleJson({}),
+        await generateMySQLDrizzleJson(
+            createOfficialTables(prefix),
+            undefined,
+            "snake_case",
+        ),
+    );
 
-    await admin.query(ddl.replaceAll("{prefix}", prefix));
+    for (const statement of statements) {
+        await admin.query(statement);
+    }
 
     const full = { ...settings, tablePrefix: prefix };
     const connection = new OfficialDatabaseConnection(full);
@@ -3238,7 +3250,9 @@ export async function createOfficialTestDatabase(
 }
 ```
 
-Create `tests/fixtures/official-schema.sql` from the production schema export (`/var/www/html/osudroid/docs/export_ibancho.sql`): copy the `CREATE TABLE` statements of `bbl_user`, `bbl_score`, `bbl_score_best`, and `bbl_score_uncalculated` verbatim, replace `bbl_` in the four table names with `{prefix}`, drop the `AUTO_INCREMENT=<n>` table options, and end each statement with `;`. Nothing else from the export (no data, no other tables). `bbl_score_best`'s primary key is `id`, so production duplicates are rows with different IDs for the same player and beatmap.
+Check `generateMySQLDrizzleJson`'s signature in `node_modules/drizzle-kit/api.d.ts` (the casing argument's position may differ) and pass `snake_case` so the generated column names match the connection's.
+
+Because the test tables come from the Drizzle schema, the tests can only catch a mismatch with production if the schema itself matches production. Before writing the tests, compare `src/official/schema.ts` with the production export (`/var/www/html/osudroid/docs/export_ibancho.sql`, tables `bbl_user`, `bbl_score`, `bbl_score_best`, `bbl_score_uncalculated`) column by column, for the columns the schema declares: type, nullability, default, the generated `total_score`, the primary keys (`bbl_user.id`, `bbl_score.id`, `bbl_score_best.id`; none on `bbl_score_uncalculated`), and `bbl_user.username`'s unique key. Add those keys and the indexes this service queries by (`(uid, hash)` lookups, `replayfilename`, best rows by `uid`) to the schema with the export's index names. Print the generated DDL once (`console.log(statements.join(";\n"))` in a scratch script) and list in the report every remaining difference from the export (expected: undeclared columns such as `password` or `game_session_id`, column charsets, and the `json_valid` check on `mods`). `bbl_score_best`'s primary key is `id`, so production duplicates are rows with different IDs for the same player and beatmap.
 
 - [ ] **Step 4: Write the integration tests**
 
@@ -3343,7 +3357,7 @@ describe.skipIf(!(await hasMariaDb()))(
                 scoreInsert(
                     scoreRow({
                         id: 10,
-                        mods: '[{"acronym":"HD"}]',
+                        mods: JSON.stringify([new ModHidden().serialize()]),
                         score: 1000,
                         scoreMultiplier: 1.5,
                     }),
@@ -3352,7 +3366,7 @@ describe.skipIf(!(await hasMariaDb()))(
 
             expect(await repository.findScoreById(10)).toMatchObject({
                 id: 10,
-                mods: '[{"acronym":"HD"}]',
+                mods: JSON.stringify([new ModHidden().serialize()]),
                 ppMultiplier: 1,
                 totalScore: 1500,
             });
@@ -3677,6 +3691,12 @@ export const danCourseSchema = z.looseObject({
 export type DanCourse = z.infer<typeof danCourseSchema>;
 
 export const userBindSchema = z.object({ discordid: z.string().min(1) });
+
+/**
+ * The part of a leaderboard entry grading reads. Entries are written by this service and by older code, so they are
+ * checked rather than trusted.
+ */
+export const danCourseGradeSchema = z.object({ grade: z.number() });
 ```
 
 Run again → PASS.
@@ -3748,12 +3768,15 @@ export class RecentPlayRepository implements IRecentPlayRepository {
 
 `insertOne` adds `_id` to the object it is given; pass a copy (`{ ...play }`) so callers' objects stay unchanged.
 
+Collections this service writes are typed with their document interfaces (`recentplays`, `dancourseleaderboard`). Collections it only reads (`dancoursemaps`, `userbind`) stay `Collection<Document>`, and what is read from them, including leaderboard grades, goes through a zod schema: the driver's generic type is only a promise about stored data, which other programs also write.
+
 `src/repositories/DanCourseRepository.ts`:
 
 ```ts
 @Injectable(dependencyTokens.danCourseRepository)
 export class DanCourseRepository implements IDanCourseRepository {
-    private readonly courses: Collection;
+    // Read only, and validated by the caller: typing it would promise a shape nothing has checked.
+    private readonly courses: Collection<Document>;
     private readonly leaderboard: Collection<DanCourseScore>;
 
     constructor(@inject(dependencyTokens.aliceDb) db: Db) {
@@ -3770,9 +3793,9 @@ export class DanCourseRepository implements IDanCourseRepository {
             { uid, hash },
             { projection: { _id: 0, grade: 1 } },
         );
-        const grade: unknown = document?.grade;
+        const parsed = danCourseGradeSchema.safeParse(document);
 
-        return typeof grade === "number" ? grade : null;
+        return parsed.success ? parsed.data.grade : null;
     }
 
     async upsertScore(score: DanCourseScore): Promise<void> {
@@ -3790,7 +3813,8 @@ export class DanCourseRepository implements IDanCourseRepository {
 ```ts
 @Injectable(dependencyTokens.userBindRepository)
 export class UserBindRepository implements IUserBindRepository {
-    private readonly collection: Collection;
+    // Read only, and validated with `userBindSchema` on every read.
+    private readonly collection: Collection<Document>;
 
     constructor(@inject(dependencyTokens.elainaDb) db: Db) {
         this.collection = db.collection("userbind");
@@ -3874,7 +3898,7 @@ pnpm typecheck && pnpm lint && pnpm format && git add apps/score-service pnpm-wo
 - Create: `src/clients/http.ts`, `src/clients/schemas.ts`
 - Create: `src/clients/IBrokerClient.ts`, `BrokerClient.ts`, `IBeatmapServiceClient.ts`, `BeatmapServiceClient.ts`, `IDiscordMetadataClient.ts`, `DiscordMetadataClient.ts`, `index.ts`
 - Modify: `src/dependencies/tokens.ts`
-- Create: `tests/utils/httpServer.ts` (copy of the broker's)
+- Move: `apps/broker/tests/utils/httpServer.ts` → `packages/server/src/testing/httpServer.ts` (exported from `@dpp/server/testing`; update the broker's imports)
 - Test: `tests/unit/clients/http.test.ts`, `BrokerClient.test.ts`, `BeatmapServiceClient.test.ts`, `DiscordMetadataClient.test.ts`
 
 **Interfaces:**
@@ -3950,11 +3974,11 @@ export interface IDiscordMetadataClient {
 
 - [ ] **Step 1: Write the failing `requestJson` tests**
 
-Copy `apps/broker/tests/utils/httpServer.ts` to `tests/utils/httpServer.ts`. Create `tests/unit/clients/http.test.ts`:
+Move `apps/broker/tests/utils/httpServer.ts` to `packages/server/src/testing/httpServer.ts` with `git mv`, export it from `packages/server/src/testing/index.ts`, change every broker import of `@test/utils/httpServer` to `@dpp/server/testing`, and run `pnpm --filter @dpp/broker test` (must still pass). Check whether `apps/processor/tests` has its own copy (`grep -rn "createServer" apps/processor/tests/utils`); if it is the same helper, switch it too. Then create `tests/unit/clients/http.test.ts`:
 
 ```ts
 import { requestJson } from "@/clients/http";
-import { startHttpServer } from "@test/utils/httpServer";
+import { startHttpServer } from "@dpp/server/testing";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 
@@ -4231,7 +4255,7 @@ Run the tests → PASS.
 
 ```ts
 import { md5HashSchema, modsSchema } from "@dpp/shared";
-import { Modes } from "@rian8337/osu-base";
+import { Modes, RankedStatus } from "@rian8337/osu-base";
 import { z } from "zod";
 
 const count = z.int().nonnegative();
@@ -4289,10 +4313,12 @@ export const beatmapMetadataSchema = z.looseObject({
     title: z.string(),
     creator: z.string(),
     version: z.string(),
+    // osu! API v1 sends the status as a string ("1"); RankedStatus has number members.
     approved: z
         .string()
         .regex(/^-?\d+$/)
-        .transform(Number),
+        .transform(Number)
+        .pipe(z.enum(RankedStatus)),
 });
 ```
 
@@ -4340,6 +4366,7 @@ Put it in `tests/utils/bodies.ts` (later tasks use it too), with `replayPerforma
 3. `404` → `{ ok: true, value: null }`.
 4. `503` with `Retry-After: 30` → retry with `code: "BEATMAP_SERVICE_UNAVAILABLE"`, `retryAfterMs: 30000`.
 5. A body with a different `file_md5` than requested → rejected (`502`, `BEATMAP_SERVICE_UNAVAILABLE` malformed code).
+6. An unknown status (`approved: "9"`) or a non-numeric one (`"ranked"`) → rejected (`502`), like any malformed body.
 
 `tests/unit/clients/DiscordMetadataClient.test.ts`:
 
@@ -4514,7 +4541,7 @@ export class BeatmapServiceClient implements IBeatmapServiceClient {
             value: {
                 hash: beatmap.file_md5,
                 title: `${beatmap.artist} - ${beatmap.title} (${beatmap.creator}) [${beatmap.version}]`,
-                rankedStatus: beatmap.approved as RankedStatus,
+                rankedStatus: beatmap.approved,
             },
         };
     }
@@ -4576,7 +4603,7 @@ pnpm typecheck && pnpm lint && pnpm format && git add apps/score-service && git 
 
 **Interfaces:**
 
-- Produces:
+- Produces (why `ParsedReplay` rather than the analyzer's `ReplayData`: `ReplayData` is a class holding every cursor movement and hit object, which a parsed replay keeps alive in queues for as long as the item waits; its constructor needs a complete `ReplayInformation`, so tests cannot build one by hand; and its mods are a `ModMap`. `ParsedReplay` is a small plain value with only what this service reads, which tests construct directly):
 
 ```ts
 export type ReplayFolder = "unprocessed" | "online" | "best" | "uncalculated";
@@ -4747,7 +4774,7 @@ import { isReplayValid } from "@/replays/replayValidity";
 import { scoreRow, testHash } from "@test/utils/rows";
 import { describe, expect, it } from "vitest";
 
-const score = scoreRow({ mods: JSON.stringify([{ acronym: "HD" }]) });
+const score = scoreRow({ mods: JSON.stringify([new ModHidden().serialize()]) });
 
 function replay(overrides: Partial<ParsedReplay> = {}): ParsedReplay {
     return {
@@ -4766,7 +4793,7 @@ function replay(overrides: Partial<ParsedReplay> = {}): ParsedReplay {
         v3: {
             score: score.score,
             maxCombo: score.combo,
-            mods: [{ acronym: "HD" }],
+            mods: [new ModHidden().serialize()],
             playerName: "player",
             time: new Date(),
         },
@@ -4808,7 +4835,7 @@ describe("isReplayValid", () => {
     it.each<[string, Partial<NonNullable<ParsedReplay["v3"]>>]>([
         ["another score", { score: 1 }],
         ["another combo", { maxCombo: 1 }],
-        ["other mods", { mods: [{ acronym: "HR" }] }],
+        ["other mods", { mods: [new ModHardRock().serialize()] }],
     ])("rejects a v3 replay with %s", (_name, overrides) => {
         expect(
             isReplayValid(
@@ -4821,7 +4848,10 @@ describe("isReplayValid", () => {
     it("compares mods by meaning, not by order", () => {
         const both = scoreRow({
             ...score,
-            mods: JSON.stringify([{ acronym: "HD" }, { acronym: "DT" }]),
+            mods: JSON.stringify([
+                new ModHidden().serialize(),
+                new ModDoubleTime().serialize(),
+            ]),
         });
 
         expect(
@@ -4830,7 +4860,10 @@ describe("isReplayValid", () => {
                 replay({
                     v3: {
                         ...replay().v3!,
-                        mods: [{ acronym: "DT" }, { acronym: "HD" }],
+                        mods: [
+                            new ModDoubleTime().serialize(),
+                            new ModHidden().serialize(),
+                        ],
                     },
                 }),
             ),
@@ -5053,7 +5086,7 @@ pnpm typecheck && pnpm lint && pnpm format && git add apps/score-service && git 
 
 - Create: `src/services/IScoreCalculator.ts`, `ScoreCalculator.ts`, `ppMultiplier.ts`, `userTotals.ts`, `src/services/index.ts`
 - Modify: `src/dependencies/tokens.ts`
-- Create: `tests/utils/fakes.ts` (fake broker client; later tasks add more fakes)
+- Create: `tests/utils/fakes/brokerClient.ts`, `tests/utils/fakes/index.ts` (re-exports; later tasks add one file per fake)
 - Test: `tests/unit/services/ScoreCalculator.test.ts`, `ppMultiplier.test.ts`, `userTotals.test.ts`
 
 **Interfaces:**
@@ -5143,8 +5176,11 @@ describe("calculateUserTotals", () => {
             { pp: 50, accuracy: 0.5 },
         ]);
 
-        expect(totals.pp).toBeCloseTo(100 + 50 * 0.95);
-        expect(totals.accuracy).toBeCloseTo((1 + 0.5 * 0.95) / 1.95);
+        // Weights are 0.95^0 = 1 and 0.95^1 = 0.95, so they add up to 1.95.
+        const weights = 1 + 0.95;
+
+        expect(totals.pp).toBeCloseTo(100 * 1 + 50 * 0.95);
+        expect(totals.accuracy).toBeCloseTo((1 * 1 + 0.5 * 0.95) / weights);
     });
 
     it("gives 0 pp and accuracy 1 without scores", () => {
@@ -5213,7 +5249,7 @@ Run → PASS.
 
 - [ ] **Step 3: Write the fake broker**
 
-`tests/utils/fakes.ts`:
+`tests/utils/fakes/brokerClient.ts` (and `tests/utils/fakes/index.ts` with `export * from "./brokerClient";`):
 
 ```ts
 import type {
@@ -5324,7 +5360,7 @@ describe("ScoreCalculator", () => {
         const calculator = new ScoreCalculator(broker);
         // The generated total score (score × score multiplier) is sent, as the game sends total_score.
         const stats = scoreRow({
-            mods: '[{"acronym":"HD"}]',
+            mods: JSON.stringify([new ModHidden().serialize()]),
             score: 1_000_000,
             scoreMultiplier: 1.1,
         });
@@ -5340,7 +5376,7 @@ describe("ScoreCalculator", () => {
                 variant: "live-droid",
                 request: {
                     beatmap: { hash: testHash },
-                    mods: [{ acronym: "HD" }],
+                    mods: [new ModHidden().serialize()],
                     score: {
                         n300: 400,
                         n100: 20,
@@ -5426,13 +5462,15 @@ describe("ScoreCalculator", () => {
             "v",
             Buffer.from("odr"),
             {
-                overrides: scoreRow({ mods: '[{"acronym":"DT"}]' }),
+                overrides: scoreRow({
+                    mods: JSON.stringify([new ModDoubleTime().serialize()]),
+                }),
             },
         );
 
         expect(broker.calls[0]).toMatchObject({
             request: {
-                mods: [{ acronym: "DT" }],
+                mods: [new ModDoubleTime().serialize()],
                 score: {
                     n300: 400,
                     n100: 20,
@@ -5459,7 +5497,7 @@ describe("ScoreCalculator", () => {
             value: performanceBody(120),
         }));
         const earlier = performanceBody(100, {
-            difficulty: { mods: [{ acronym: "HR" }] },
+            difficulty: { mods: [new ModHardRock().serialize()] },
             score: {
                 n300: 9,
                 n100: 1,
@@ -5486,7 +5524,7 @@ describe("ScoreCalculator", () => {
             variant: "v",
             request: {
                 beatmap: { hash: testHash },
-                mods: [{ acronym: "HR" }],
+                mods: [new ModHardRock().serialize()],
                 score: {
                     n300: 9,
                     n100: 1,
@@ -5675,7 +5713,7 @@ pnpm --filter @dpp/score-service test && pnpm typecheck && pnpm lint && pnpm for
 
 - Create: `src/services/IBestScoreWriter.ts`, `src/services/BestScoreWriter.ts`
 - Modify: `src/services/index.ts`, `src/dependencies/tokens.ts`
-- Modify: `tests/utils/fakes.ts` (in-memory official repository and replay store)
+- Create: `tests/utils/fakes/officialScoreRepository.ts`, `tests/utils/fakes/replayStore.ts` (and re-export both from `tests/utils/fakes/index.ts`)
 - Test: `tests/unit/services/BestScoreWriter.test.ts`, `tests/unit/utils/fakes.test.ts`
 
 **Interfaces:**
@@ -5709,7 +5747,7 @@ export interface IBestScoreWriter {
     removeReplays(ids: readonly number[]): Promise<void>;
 }
 
-// tests/utils/fakes.ts
+// tests/utils/fakes/officialScoreRepository.ts
 export class InMemoryOfficialScoreRepository implements IOfficialScoreRepository {
     scores;
     bestScores;
@@ -5724,11 +5762,13 @@ export class InMemoryReplayStore implements IReplayStore {
 
 - Token: `bestScoreWriter`.
 
+`consider` takes the repository as a parameter instead of injecting it: it must write inside the caller's transaction, and only the caller holds the repository bound to that transaction (`IOfficialScoreRepository.transaction` hands it out). An injected repository would write outside the transaction, so a rollback would leave half-written best rows.
+
 Deleting old replay files only after the commit is a refinement of the spec's step 2 (it deletes the previous best's replay inside the same item): if the transaction rolled back, the restored row would otherwise point at a deleted file.
 
 - [ ] **Step 1: Write the fakes**
 
-Add to `tests/utils/fakes.ts`:
+`tests/utils/fakes/officialScoreRepository.ts` holds `InMemoryOfficialScoreRepository` and `tests/utils/fakes/replayStore.ts` holds `InMemoryReplayStore` (one block below; split it at the `Replay folders in memory` comment):
 
 ```ts
 /**
@@ -6300,7 +6340,7 @@ export function registerDependencies(
 // src/app.ts
 export function createApp(
     container?: DependencyContainer,
-    first?: RequestHandler,
+    ...first: RequestHandler[]
 ): Express;
 ```
 
@@ -6527,13 +6567,17 @@ import "./controllers";
  */
 export function createApp(
     container = getContainer(),
-    first: RequestHandler = (_req, _res, next) => next(),
+    ...first: RequestHandler[]
 ) {
     const config = container.resolve(dependencyTokens.config);
+    const app = express().disable("x-powered-by");
 
-    return express()
-        .disable("x-powered-by")
-        .use(first)
+    // Express rejects `.use()` without handlers.
+    if (first.length > 0) {
+        app.use(...first);
+    }
+
+    return app
         .use("/online-scores", createApiKeyMiddleware(config.apiKey))
         .use(createRouter(container))
         .use(notFoundHandler)
@@ -6637,7 +6681,7 @@ export function runMiddleware(
 ```ts
 const fields: CalculateScoreFields = {
     hash: testHash,
-    mods: [{ acronym: "HD" }],
+    mods: [new ModHidden().serialize()],
     combo: 100,
     perfect: 90,
     good: 5,
@@ -6975,7 +7019,7 @@ pnpm typecheck && pnpm lint && pnpm format && git add apps/score-service && git 
 - Create: `src/services/recentPlay.ts`, `src/services/danCourseGrade.ts`
 - Create: `src/services/IDanCourseService.ts`, `DanCourseService.ts`, `IReplaySubmissionService.ts`, `ReplaySubmissionService.ts`
 - Modify: `src/services/index.ts`, `src/dependencies/tokens.ts`
-- Modify: `tests/utils/fakes.ts` (in-memory Mongo repositories, fake beatmap service, fake Discord client)
+- Create: `tests/utils/fakes/recentPlayRepository.ts`, `danCourseRepository.ts`, `userBindRepository.ts`, `beatmapServiceClient.ts`, `discordMetadataClient.ts` (one class each, re-exported from `tests/utils/fakes/index.ts`)
 - Test: `tests/unit/services/recentPlay.test.ts`, `danCourseGrade.test.ts`, `DanCourseService.test.ts`, `ReplaySubmissionService.test.ts`
 
 **Interfaces:**
@@ -7054,14 +7098,18 @@ const replay: ParsedReplay = {
     v3: {
         score: 50000,
         maxCombo: 150,
-        mods: [{ acronym: "HD" }],
+        mods: [new ModHidden().serialize()],
         playerName: "player",
         time: new Date("2026-10-01T00:00:00Z"),
     },
 };
 
 const droid = replayPerformanceBody(0, {
-    difficulty: { mods: [{ acronym: "HD" }], starRating: 5, maxCombo: 160 },
+    difficulty: {
+        mods: [new ModHidden().serialize()],
+        starRating: 5,
+        maxCombo: 160,
+    },
     performance: {
         total: 120,
         aim: 50,
@@ -7095,7 +7143,7 @@ const droid = replayPerformanceBody(0, {
 });
 
 const osu = replayPerformanceBody(0, {
-    difficulty: { mods: [{ acronym: "HD" }], starRating: 4 },
+    difficulty: { mods: [new ModHidden().serialize()], starRating: 4 },
     performance: {
         total: 90,
         aim: 40,
@@ -7138,7 +7186,7 @@ it("builds today's recent play document", () => {
         rank: "S",
         date,
         accuracy: { n300: 100, n100: 2, n50: 1, nmiss: 0 },
-        mods: [{ acronym: "HD" }],
+        mods: [new ModHidden().serialize()],
         hash: testHash,
         scoreId: 99,
         hitError: { negativeAvg: -10, positiveAvg: 10, unstableRate: 80 },
@@ -7146,7 +7194,7 @@ it("builds today's recent play document", () => {
         sliderEndInformation: { obtained: 9, total: 10 },
         droidAttribs: {
             params: {
-                mods: [{ acronym: "HD" }],
+                mods: [new ModHidden().serialize()],
                 accuracy: { n300: 100, n100: 2, n50: 1, nmiss: 0 },
                 combo: 150,
                 totalScore: 50000,
@@ -7156,7 +7204,7 @@ it("builds today's recent play document", () => {
                 sliderCheesePenalty: 1,
             },
             difficulty: {
-                mods: [{ acronym: "HD" }],
+                mods: [new ModHidden().serialize()],
                 starRating: 5,
                 maxCombo: 160,
             },
@@ -7175,14 +7223,14 @@ it("builds today's recent play document", () => {
         },
         osuAttribs: {
             params: {
-                mods: [{ acronym: "HD" }],
+                mods: [new ModHidden().serialize()],
                 accuracy: { n300: 100, n100: 2, n50: 1, nmiss: 0 },
                 combo: 150,
                 totalScore: 50000,
                 tapPenalty: 1,
                 sliderCheesePenalty: 1,
             },
-            difficulty: { mods: [{ acronym: "HD" }], starRating: 4 },
+            difficulty: { mods: [new ModHidden().serialize()], starRating: 4 },
             performance: {
                 total: 90,
                 aim: 40,
@@ -7323,7 +7371,7 @@ Adjust `RecentPlayAttributes` and the `if` one-liners to the repo's style (brace
 
 - [ ] **Step 4: Write the fakes and the failing dan course tests**
 
-Add to `tests/utils/fakes.ts`:
+One file per class under `tests/utils/fakes/` (names in **Files**), each re-exported from `index.ts`:
 
 ```ts
 export class InMemoryRecentPlayRepository implements IRecentPlayRepository {
@@ -8232,7 +8280,7 @@ pnpm --filter @dpp/score-service test && pnpm typecheck && pnpm lint && pnpm for
 **Files:**
 
 - Modify: `src/dependencies/register.ts` (add `import "../jobs/JobRunner";` so the class registers)
-- Create: `src/jobs/JobRunner.ts`
+- Create: `src/jobs/IJobRunner.ts`, `src/jobs/JobRunner.ts`
 - Create: `src/services/IScoreRecalculationService.ts`, `ScoreRecalculationService.ts`, `ITotalPPService.ts`, `TotalPPService.ts`
 - Modify: `src/services/index.ts`, `src/dependencies/tokens.ts`
 - Test: `tests/unit/jobs/JobRunner.test.ts`, `tests/unit/services/ScoreRecalculationService.test.ts`, `tests/unit/services/TotalPPService.test.ts`
@@ -8251,13 +8299,14 @@ export interface JobRunOptions {
     readonly process: (id: number) => Promise<void>;
 }
 export type JobRunResult = "finished" | "interrupted";
-export class JobRunner {
-    constructor(
-        repository: IJobProgressRepository,
-        wait?: (ms: number, signal: AbortSignal) => Promise<void>,
-    );
+export interface IJobRunner {
     /** @throws {JobConflictError} */
     run(options: JobRunOptions): Promise<JobRunResult>;
+}
+export class JobRunner implements IJobRunner {
+    constructor(repository: IJobProgressRepository);
+    /** Waits between retries; tests replace it. */
+    wait: (ms: number, signal: AbortSignal) => Promise<void>;
 }
 export interface IScoreRecalculationService {
     recalculate(scoreId: number): Promise<void>;
@@ -8267,7 +8316,7 @@ export interface ITotalPPService {
 }
 ```
 
-- Tokens: `scoreRecalculationService`, `totalPPService`, `jobRunner` (register `JobRunner` with `@Injectable`; its optional `wait` parameter must not be injected: give the constructor `@inject(dependencyTokens.jobProgressRepository)` for the first parameter and make `wait` a public property with a default instead of a constructor parameter, so tests can replace it).
+- Tokens: `scoreRecalculationService`, `totalPPService`, `jobRunner` (`InjectionToken<IJobRunner>`). `IJobRunner` lives in `src/jobs/IJobRunner.ts`; the CLI depends on the interface (Task 17's tests pass a fake). `wait` is a public property with a default rather than a constructor parameter, so the container never tries to inject it.
 
 - [ ] **Step 1: Write the failing runner tests**
 
@@ -8295,7 +8344,7 @@ const retryMaxMs = 5 * 60_000;
  * never skipped: failures retry the same ID until it succeeds or the run is interrupted.
  */
 @Injectable(dependencyTokens.jobRunner)
-export class JobRunner {
+export class JobRunner implements IJobRunner {
     wait: (ms: number, signal: AbortSignal) => Promise<void> = sleep;
 
     constructor(
@@ -8577,7 +8626,7 @@ export class CliUsageError extends Error {}
 export function parseCliArguments(argv: readonly string[]): CliCommand;
 
 export interface CliDependencies {
-    readonly runner: Pick<JobRunner, "run">;
+    readonly runner: IJobRunner;
     readonly scores: IScoreRecalculationService;
     readonly totalPP: ITotalPPService;
     readonly progress: Pick<IJobProgressRepository, "status">;
@@ -8718,7 +8767,6 @@ pnpm typecheck && pnpm lint && pnpm format && git add apps/score-service && git 
 - Create/replace: `src/index.ts`
 - Create: `tests/e2e/score-service.e2e.test.ts`, `tests/utils/stubServices.ts`
 - Create: `apps/score-service/README.md`
-- Modify: root `README.md` if it lists the apps
 
 **Interfaces:**
 
@@ -9023,9 +9071,9 @@ Expected: PASS. Stop any process you start by its handle or PID only.
 2. **Configuration:** every variable from `EnvironmentVariableKey` with default and purpose (the spec's table plus `OFFICIAL_DB_PREFIX`); the broker key must have no rate limit and `all_variants`; `LIVE_DROID_VARIANT`/`LIVE_OSU_VARIANT` should be aliases (e.g. `live-droid`), so a live update is a repointed alias. No production hosts or ports.
 3. **Build and run:** `pnpm --filter @dpp/score-service build`; PM2 runs `dist/index.mjs` from `apps/score-service` (Node 24).
 4. **Before the first deployment:**
-    - If the production schema changed since `tests/fixtures/official-schema.sql` was copied, update the fixture and `src/official/schema.ts` together.
+    - If the production schema of the four official tables changed, update `src/official/schema.ts` to match (the tests generate their tables from it).
     - Count existing duplicate best rows: `SELECT uid, hash, COUNT(*) FROM <prefix>score_best GROUP BY uid, hash HAVING COUNT(*) > 1` (read-only), to know how much the first recalculation will clean up.
-5. **Switch-over from `pp-processor-node`:** set `HOST` and `PORT` to the address `pp-processor-node` listens on; stop `pp-processor-node` first (both scan the uncalculated folder), then start the score service; then retire `pp-processor-node` and the old backend's listener and scripts. Between the two steps the game records scores as uncalculated, and the uncalculated pass calculates them.
+5. **Deployment:** one PM2 app for the server; it must never run at the same time as `pp-processor-node` (both would scan the uncalculated folder).
 6. **CLI:** the three commands with examples; resuming; SIGINT behavior; run `recalculate-total-pp` after a score recalculation; run from `apps/score-service` with the same `.env`.
 7. **API:** `GET /online-scores` (query, response, errors) and the two game routes (fields, `variant`, loopback only, always `200`).
 8. **Tests:** `pnpm test` and `pnpm test:e2e`. MongoDB tests use `mongodb-memory-server` (downloads `mongod` once into `~/.cache/mongodb-binaries`; set `MONGOMS_DISTRO` if the OS is newer than its known builds); MariaDB tests start a throwaway `mariadbd` and are skipped when `mariadbd`/`mariadb-install-db` are missing (CI: install `mariadb-server`); replay fixtures (`tests/fixtures/replays/v3.odr`, optionally `v2.odr`) still to be provided; a real recent play document from the old backend to pin the mapping (`tests/fixtures/recent-play.json`).
@@ -9033,7 +9081,7 @@ Expected: PASS. Stop any process you start by its handle or PID only.
 - [ ] **Step 5: Full check and commit**
 
 ```bash
-pnpm install && pnpm build && pnpm typecheck && pnpm lint && pnpm format && pnpm test && pnpm --filter @dpp/score-service test:e2e && git add apps/score-service README.md && git commit -m "Start the score service and document its deployment"
+pnpm install && pnpm build && pnpm typecheck && pnpm lint && pnpm format && pnpm test && pnpm --filter @dpp/score-service test:e2e && git add apps/score-service && git commit -m "Start the score service and document its deployment"
 ```
 
-(Leave `README.md` out of `git add` if the root README does not list the apps.)
+No root README yet: it is written after all services are done.

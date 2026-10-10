@@ -109,6 +109,7 @@ Everything runs on the same machine except the two MongoDB clusters.
         - applies `pp_multiplier`;
         - computes the no-penalty pp for the game's `pp_multiplier`.
     - `UserTotalsCalculator`: total pp and accuracy from a user's top 100 best scores, weighted by 0.95ⁱ (accuracy 1 when there are no scores).
+    - `BestScoreWriter`: keeps one best pp score per player and beatmap (see Best scores). Used by the uncalculated pass and recalculation.
     - `OnlineScoreService`, `GamePPService`, `ReplaySubmissionService`, `UncalculatedReplayService`, `ScoreRecalculationService`, `TotalPPService`.
 - **Runtime**: `ReplayWatcher` (folder watch and startup backlog), `UncalculatedScheduler` (interval), the CLI.
 
@@ -123,7 +124,7 @@ The server binds to `HOST` (default `127.0.0.1`) and `PORT`. It is never exposed
 `GET /online-scores?uid=<number>&hash=<md5>&variant=<name>&best=<bool>&strainChart=<bool>`
 
 - Requires `X-Api-Key: API_KEY` (`401 UNAUTHORIZED` otherwise).
-- `best=false` (default) reads the player's score from `scores` and its replay from `ONLINE_REPLAY_DIR`; `best=true` reads `best_scores` and `BEST_REPLAY_DIR`. No score: `404 SCORE_NOT_FOUND`.
+- `best=false` (default) reads the player's score from `scores` and its replay from `ONLINE_REPLAY_DIR`; `best=true` reads the player's best row for the beatmap from `best_scores` (one per player and beatmap) and its replay from `BEST_REPLAY_DIR`. No score: `404 SCORE_NOT_FOUND`.
 - The replay is parsed locally. A missing or unreadable replay counts as missing.
 - Calculation, as the old route does:
 
@@ -222,6 +223,23 @@ The document shape is unchanged (`IRecentPlay` in the old backend):
 
 A test pins this mapping against a document produced by the old code.
 
+## Best scores
+
+`best_scores` holds **one row per player and beatmap**: the player's highest-pp score on that beatmap, whatever its mods. The row is that score's own row (its ID and stats), and its replay is `BEST_REPLAY_DIR/<id>.odr`. The table has no unique key enforcing this, and the old code disagreed on it (the recalculation matched rows by score ID, the uncalculated pass by player, beatmap, and mods), so existing data may contain duplicates.
+
+`BestScoreWriter.consider(candidate)` applies the rule. A candidate is a score with its ID, stats, pp, `pp_multiplier`, the beatmap title, and its replay (if any).
+
+1. Load the current best rows for the player and beatmap, and recalculate the highest one's pp from its stats (`× min(pp_multiplier, 1)`), since stored pp may be outdated. If that recalculation fails permanently, its stored pp is used; a "retry later" retries the whole item.
+2. If there is no current best, or the candidate's pp is **strictly higher**:
+    - delete every best row for that player and beatmap (this also removes duplicates);
+    - insert the candidate's row with `filename` = the beatmap title, its `pp` and `pp_multiplier`;
+    - copy its replay to `BEST_REPLAY_DIR/<id>.odr` (a candidate without a replay is still recorded, with a log line);
+    - delete the previous best's replay file if its ID differs.
+3. Otherwise keep the current best: set its `pp` to the recalculated value if it changed, and delete any other rows for that player and beatmap.
+4. Return whether the best score changed.
+
+Database writes happen in the caller's transaction. The replay copy happens before the commit; if the commit fails, the copied file is harmless (it is rewritten on the next attempt).
+
 ## Uncalculated-replay pass
 
 Port of `pp-processor-node`'s `processUncalculatedReplay`.
@@ -232,32 +250,25 @@ Port of `pp-processor-node`'s `processUncalculatedReplay`.
     2. Find the leaderboard score by uid and hash. Missing: delete the row and the file.
     3. Calculate the replay with `LIVE_DROID_VARIANT`, plus the no-penalty call (as in `/calculate-replay`).
     4. If the leaderboard score has the same score value as the uncalculated one, set its `pp`.
-    5. Find the best score for uid, hash, and mods:
-        - if it exists, recalculate it from its stats; if its pp is at least the new pp, delete the row and the file and stop;
-        - otherwise build a new best score from the uncalculated row (`pp` 0, `pp_multiplier` 1).
-    6. Set the best score's `pp` and `pp_multiplier` (pp ÷ no-penalty pp). Copy the replay to `BEST_REPLAY_DIR/<scoreId>.odr`. Upsert the best score with the same column list and `ON DUPLICATE KEY UPDATE` columns as today.
-    7. Recalculate the user's total pp and accuracy (`UserTotalsCalculator`) and update the user.
-    8. Delete the row and the file.
+    5. `BestScoreWriter.consider` the new score: the leaderboard score's ID, the stats from the uncalculated row, the replay's pp, `pp_multiplier` = pp ÷ no-penalty pp (1 if the no-penalty total is 0), and this replay file. (Today's code keeps the old best row's stats and ID while writing the new pp and saving the replay under the new ID; that mismatch is not carried over.)
+    6. If the best score changed, recalculate the user's total pp and accuracy (`UserTotalsCalculator`) and update the user.
+    7. Delete the row and the file.
 - **On failure:** a "retry later" or database error rolls back and keeps the row and the file for the next pass. A calculation that fails permanently (e.g. the beatmap does not exist) behaves as today: the row and file are deleted, and the leaderboard score keeps a `null` pp.
 
 ## Score recalculation
 
-Port of `calculateScores.ts`. The plan ports each branch with a test per branch, including today's quirks.
+Replaces the ten `calculateScores*.ts` copies. It keeps their per-score rules but uses the one-best-per-beatmap rule (see Best scores) instead of matching best rows by score ID.
 
 **Per score ID:**
 
-1. Load the score. Missing: skip. Score value 0: invalidate (`scores.pp = null`, `best_scores.pp = 0` for that ID).
+`scores` holds one row per player and beatmap (the best by total score), so walking score IDs visits every player and beatmap pair once.
+
+1. Load the score. Missing: skip. Score value 0: invalidate (`scores.pp = null`, and `pp = 0` on the best row with this score's ID, if any).
 2. Look up the beatmap by the score's hash (bulk key). Missing, or not ranked or approved: invalidate.
 3. Calculate the score from its stored stats and slider hit counts with `LIVE_DROID_VARIANT`; `pp = total × min(pp_multiplier ?? 1, 1)`. Write `scores.pp` (`null` if the calculation fails permanently).
-4. Load the best score with the same ID. If it exists:
-    - calculate it the same way;
-    - write `best_scores.pp` = its total (unmultiplied, as today);
-    - its candidate pp is total × `min(pp_multiplier, 1)`.
-5. The higher candidate (the best score wins only if strictly higher) becomes the new best score:
-    - upsert it with `filename` = the beatmap title, `pp` = the candidate pp, `pp_multiplier` = its multiplier (1 if null);
-    - copy its replay (the score's from `ONLINE_REPLAY_DIR`, or the best score's from `BEST_REPLAY_DIR`) to `BEST_REPLAY_DIR/<scoreId>.odr`.
+4. If the calculation succeeded, `BestScoreWriter.consider` the score (its ID and stats, that pp, its `pp_multiplier` (1 if null), the beatmap title, and its replay from `ONLINE_REPLAY_DIR`). Steps 3 and 4 run in one MySQL transaction.
 
-    No candidate (both calculations failed): log and move on.
+User totals are not updated per score; run `recalculate-total-pp` after the score pass, as today.
 
 **Command:** `recalculate-scores --name <job> --from <id> --to <id> [--concurrency <n>] [--chunk-size <n>]`
 
@@ -334,7 +345,8 @@ apps/score-service/tests/
 ```
 
 - **Unit tests** (in-memory fakes for repositories, clients, and the replay store):
-    - every recalculation branch, including the quirks;
+    - every recalculation branch;
+    - every `BestScoreWriter` branch: no current best, candidate higher, equal, lower, existing duplicates, candidate without a replay;
     - the online-lookup decision table;
     - the game endpoints' `pp` and `pp_multiplier` arithmetic and every `null` case;
     - the listener's keep-or-delete decisions;
@@ -353,6 +365,8 @@ apps/score-service/tests/
 - **Processor:** tests for the slider hit count fields (conversion matches `pp-processor-node` on fixtures; invalid combinations rejected).
 
 ## Open items
+
+- **Existing duplicate best rows:** before the first production recalculation, count them read-only (`SELECT uid, hash, COUNT(*) FROM <best score table> GROUP BY uid, hash HAVING COUNT(*) > 1`) to know how much cleanup the run will do.
 
 - **Recalculation publishing strategy:** to be designed separately (see Non-goals).
 - **Replay fixtures:** the processor's replay fixtures are still to be provided by the user; the score service's replay tests need them too (at least one v3+ replay, ideally a v1/v2 replay and its score row).

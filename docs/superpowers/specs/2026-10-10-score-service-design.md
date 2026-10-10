@@ -24,6 +24,8 @@ Today this work is spread over two codebases:
 
 Both embed calculator code, so a live algorithm update means rebuilding both. After this change, a live update is a new processor variant and a repointed alias; the game, the Discord bot, and recalculations all follow.
 
+**`pp_multiplier`** (on scores and best scores): the ratio of a score's penalized pp to its no-penalty pp, recorded when the score was calculated from its replay. It compensates for missing replays: when an old score is recalculated from its stored stats alone, the replay-based penalties (tap, slider cheese) cannot be recomputed, so the stored multiplier carries them over. It is never above 1; a missing value means 1.
+
 ## Goals
 
 - One service owns all score work: the replay listener, the online-score lookup for the Discord bot, the game server's pp endpoints, the uncalculated-replay pass, score recalculation, and total pp recalculation.

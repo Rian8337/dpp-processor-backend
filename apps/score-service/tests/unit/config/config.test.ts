@@ -1,4 +1,9 @@
-import { ConfigError, loadCliConfig, loadConfig } from "@/config/config";
+import {
+    ConfigError,
+    loadCliConfig,
+    loadConfig,
+    loadDatabaseConfig,
+} from "@/config/config";
 import { describe, expect, it } from "vitest";
 
 const cliEnvironment = {
@@ -137,5 +142,30 @@ describe("loadCliConfig", () => {
             loadCliConfig({ ...cliEnvironment, OFFICIAL_DB_PREFIX: "test_" })
                 .official.tablePrefix,
         ).toBe("test_");
+    });
+});
+
+describe("loadDatabaseConfig", () => {
+    it("needs only the Postgres variables", () => {
+        expect(
+            loadDatabaseConfig({
+                DATABASE_HOST: "localhost",
+                DATABASE_NAME: "score_service",
+                DATABASE_USER: "postgres",
+            }),
+        ).toEqual({
+            database: {
+                host: "localhost",
+                port: 5432,
+                name: "score_service",
+                user: "postgres",
+                password: "",
+            },
+        });
+    });
+
+    it("names a missing Postgres variable", () => {
+        expect(() => loadDatabaseConfig({})).toThrow(ConfigError);
+        expect(() => loadDatabaseConfig({})).toThrow("DATABASE_HOST");
     });
 });

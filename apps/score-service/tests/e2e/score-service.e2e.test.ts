@@ -33,9 +33,10 @@ const apiKey = "e2e-score-service-key-0123";
 function runNode(
     script: string,
     env: NodeJS.ProcessEnv,
+    args: string[] = [],
 ): Promise<{ code: number | null; stderr: string }> {
     return new Promise((resolve, reject) => {
-        const child = spawn("node", [script], { env });
+        const child = spawn("node", [script, ...args], { env });
         let stderr = "";
 
         child.stderr.on(
@@ -66,10 +67,24 @@ describe("score service (e2e)", () => {
         expect(stderr).toContain("BROKER_URL");
     });
 
+    it("prints usage for a usage error before reading any configuration", async () => {
+        const { code, stderr } = await runNode(
+            join(serviceDir, "dist", "cli.mjs"),
+            { PATH: process.env.PATH, CI: "1" },
+            ["recalculate-scorez"],
+        );
+
+        expect(code).toBe(1);
+        expect(stderr).toContain("Unknown command: recalculate-scorez");
+        expect(stderr).toContain("Usage:");
+        expect(stderr).not.toContain("Invalid configuration");
+    });
+
     it("refuses to run the CLI without its variables", async () => {
         const { code, stderr } = await runNode(
             join(serviceDir, "dist", "cli.mjs"),
             { PATH: process.env.PATH, CI: "1" },
+            ["recalculate-scores", "--name", "x", "--from", "1", "--to", "2"],
         );
 
         expect(code).toBe(1);

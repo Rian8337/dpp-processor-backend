@@ -6,7 +6,7 @@ import {
 } from "@/repositories/IJobProgressRepository";
 import type { IScoreRecalculationService } from "@/services/IScoreRecalculationService";
 import type { ITotalPPService } from "@/services/ITotalPPService";
-import { CliUsageError, parseCliArguments } from "./arguments";
+import { CliUsageError, parseCliArguments, type CliCommand } from "./arguments";
 
 export interface CliDependencies {
     readonly runner: IJobRunner;
@@ -23,19 +23,50 @@ const usage = `Usage:
   job-status <job>`;
 
 /**
+ * Parses the arguments; on a usage error prints it with the usage text and returns null.
+ */
+export function parseOrReportUsage(
+    argv: readonly string[],
+    out: CliDependencies["out"],
+): CliCommand | null {
+    try {
+        return parseCliArguments(argv);
+    } catch (e) {
+        if (e instanceof CliUsageError) {
+            out.error(e.message);
+            out.error(usage);
+
+            return null;
+        }
+
+        throw e;
+    }
+}
+
+/**
  * Exit code: 0 finished or status printed, 1 usage or conflict error, 130 interrupted.
  */
 export async function runCli(
     argv: readonly string[],
     deps: CliDependencies,
 ): Promise<number> {
+    const command = parseOrReportUsage(argv, deps.out);
+
+    return command ? await runCommand(command, deps) : 1;
+}
+
+/**
+ * Runs a parsed command. Same exit codes as {@link runCli}.
+ */
+export async function runCommand(
+    command: CliCommand,
+    deps: CliDependencies,
+): Promise<number> {
     const { out } = deps;
 
     try {
-        const command = parseCliArguments(argv);
-
         if (command.name === "job-status") {
-            return await printStatus(command.job, deps);
+            return await printStatus(command.job, deps.progress, deps.out);
         }
 
         const kind: JobKind =
@@ -69,13 +100,6 @@ export async function runCli(
 
         return 0;
     } catch (e) {
-        if (e instanceof CliUsageError) {
-            out.error(e.message);
-            out.error(usage);
-
-            return 1;
-        }
-
         if (e instanceof JobConflictError) {
             out.error(e.message);
 
@@ -86,9 +110,13 @@ export async function runCli(
     }
 }
 
-async function printStatus(
+/**
+ * Prints a job's progress. Exit code 1 if there is no such job.
+ */
+export async function printStatus(
     job: string,
-    { progress, out }: CliDependencies,
+    progress: CliDependencies["progress"],
+    out: CliDependencies["out"],
 ): Promise<number> {
     const status = await progress.status(job);
 

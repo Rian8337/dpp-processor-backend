@@ -52,8 +52,10 @@ automatically (`.env.production` with `NODE_ENV=production`; neither is loaded w
 Make `LIVE_DROID_VARIANT` and `LIVE_OSU_VARIANT` broker aliases (for example `live-droid` and `live-osu`), so a live
 algorithm update is a repointed alias and needs no change here.
 
-The CLI reads only the database, broker, beatmap service, variant, and replay folder variables (everything above except
-`PORT`, `HOST`, `API_KEY`, the MongoDB URIs, the Discord variables, and the concurrency and interval settings).
+The recalculation commands read only the database, broker, beatmap service, variant, and replay folder variables
+(everything above except `PORT`, `HOST`, `API_KEY`, the MongoDB URIs, the Discord variables, and the concurrency and
+interval settings). `job-status` reads only the Postgres `DATABASE_*` variables. The CLI checks its arguments first, so a
+usage error needs no configuration at all.
 
 ## Build and run
 
@@ -99,7 +101,8 @@ pnpm cli recalculate-total-pp --name live-update-1-pp --from 1 --to 250000
 pnpm cli job-status live-update-1
 ```
 
-Optional: `--concurrency` (default 4) and `--chunk-size` (default 1000). A job splits its range into chunks stored in
+Optional: `--concurrency` (default 4) and `--chunk-size` (default 1000). The official database pool has 10
+connections, so effective parallelism is bounded by it: a `--concurrency` above about 10 only queues on the pool. A job splits its range into chunks stored in
 Postgres. Run the same command with the same `--name` to resume: finished chunks are skipped and interrupted ones are
 restarted (every step is idempotent). Reusing a name with a different range is refused. On SIGINT or SIGTERM, workers
 finish their current ID and the process exits with code 130; the next run resumes. A "retry later" from the broker or

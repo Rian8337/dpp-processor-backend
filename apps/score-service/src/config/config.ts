@@ -91,12 +91,18 @@ const text = z.string().min(1);
 const url = z.url().transform((value) => value.replace(/\/+$/, ""));
 const directory = text.refine(isAbsolute, "must be an absolute path");
 
-const cliShape = {
+const databaseShape = {
     [Key.DatabaseHost]: text,
     [Key.DatabasePort]: port.default(5432),
     [Key.DatabaseName]: text,
     [Key.DatabaseUser]: text,
     [Key.DatabasePassword]: z.string().default(""),
+};
+
+const databaseSchema = z.object(databaseShape);
+
+const cliShape = {
+    ...databaseShape,
     [Key.OfficialDbHost]: text,
     [Key.OfficialDbPort]: port.default(3306),
     [Key.OfficialDbName]: text,
@@ -159,15 +165,21 @@ function parse<T extends z.ZodType>(
     return result.data;
 }
 
+function toDatabaseSettings(
+    values: z.infer<typeof databaseSchema>,
+): DatabaseSettings {
+    return {
+        host: values[Key.DatabaseHost],
+        port: values[Key.DatabasePort],
+        name: values[Key.DatabaseName],
+        user: values[Key.DatabaseUser],
+        password: values[Key.DatabasePassword],
+    };
+}
+
 function toCliConfig(values: z.infer<typeof cliSchema>): CliConfig {
     return {
-        database: {
-            host: values[Key.DatabaseHost],
-            port: values[Key.DatabasePort],
-            name: values[Key.DatabaseName],
-            user: values[Key.DatabaseUser],
-            password: values[Key.DatabasePassword],
-        },
+        database: toDatabaseSettings(values),
         official: {
             host: values[Key.OfficialDbHost],
             port: values[Key.OfficialDbPort],
@@ -233,4 +245,15 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
  */
 export function loadCliConfig(env: NodeJS.ProcessEnv): CliConfig {
     return toCliConfig(parse(cliSchema, env));
+}
+
+/**
+ * Reads only the score service's Postgres settings (for commands that touch nothing else, such as `job-status`).
+ *
+ * @throws {ConfigError} If any of those variables is missing or invalid.
+ */
+export function loadDatabaseConfig(env: NodeJS.ProcessEnv): {
+    readonly database: DatabaseSettings;
+} {
+    return { database: toDatabaseSettings(parse(databaseSchema, env)) };
 }

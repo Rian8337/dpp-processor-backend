@@ -16,8 +16,6 @@ import {
     vi,
 } from "vitest";
 
-vi.setConfig({ testTimeout: 15_000, hookTimeout: 15_000 });
-
 const answer: GamePPResponse = { pp: 1, pp_multiplier: 0.5 };
 const nothing = { pp: null, pp_multiplier: null };
 const mods = JSON.stringify([new ModHidden().serialize()]);

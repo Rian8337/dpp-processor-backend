@@ -13,8 +13,6 @@ import { scoreRow, testHash } from "@test/utils/rows";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-vi.setConfig({ testTimeout: 15_000, hookTimeout: 15_000 });
-
 describe("score service API (integration)", () => {
     const resources = new AsyncDisposableStack();
     const repository = new InMemoryOfficialScoreRepository();

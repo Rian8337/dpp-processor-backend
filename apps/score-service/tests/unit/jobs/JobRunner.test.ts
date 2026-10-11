@@ -17,7 +17,6 @@ import {
 } from "vitest";
 
 // Each test starts an in-memory Postgres, which is slow on a loaded machine.
-vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
 
 const job: JobDefinition = {
     name: "rescore",

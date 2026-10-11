@@ -91,7 +91,7 @@ export class BestScoreWriter implements IBestScoreWriter {
             await this.replays.writeBestReplay(id, candidate.replay);
         } else {
             console.log(
-                `[score-service] Best score ${id.toString()} recorded, but score ${id.toString()} has no replay`,
+                `Best score ${id.toString()} recorded, but score ${id.toString()} has no replay`,
             );
         }
 

@@ -6,7 +6,13 @@ import type {
     SubmissionResult,
 } from "@/services/IReplaySubmissionService";
 import { testConfig } from "@test/utils/config";
-import { mkdir, mkdtempDisposable, open, writeFile } from "node:fs/promises";
+import {
+    mkdir,
+    mkdtempDisposable,
+    open,
+    utimes,
+    writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -51,6 +57,14 @@ async function setup(
             (await new ReplayStore(config).read("unprocessed", fileName)) !==
             null,
     });
+}
+
+/** Writes a backlog file that was last modified a minute ago, so the watcher does not wait for it to settle. */
+async function writeOld(path: string, contents: string) {
+    const past = new Date(Date.now() - 60_000);
+
+    await writeFile(path, contents);
+    await utimes(path, past, past);
 }
 
 function callsFor(process: { mock: { calls: unknown[][] } }, fileName: string) {
@@ -173,6 +187,31 @@ describe("ReplayWatcher", () => {
             });
         });
 
+        it("retries with backoff when processing throws", async () => {
+            const log = vi.spyOn(console, "log").mockImplementation(() => {});
+
+            await setup(async ({ watcher, dir, process, exists }) => {
+                vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+                process.mockRejectedValueOnce(new Error("disk hiccup"));
+                await writeFile(join(dir, "1_x.odr"), "c");
+                await expect(
+                    watcher.handle("1_x.odr"),
+                ).resolves.toBeUndefined();
+                expect(log).toHaveBeenCalledWith(
+                    expect.stringContaining("disk hiccup"),
+                );
+                expect(process).toHaveBeenCalledTimes(1);
+
+                await vi.advanceTimersByTimeAsync(30_000);
+                await vi.waitFor(() =>
+                    expect(process).toHaveBeenCalledTimes(2),
+                );
+                await vi.waitFor(async () =>
+                    expect(await exists("1_x.odr")).toBe(false),
+                );
+            });
+        });
+
         it("ignores a file that disappeared", async () => {
             await setup(async ({ watcher, process }) => {
                 await expect(
@@ -188,7 +227,7 @@ describe("ReplayWatcher", () => {
             vi.spyOn(console, "log").mockImplementation(() => {});
 
             await setup(async ({ watcher, dir, process }) => {
-                await writeFile(join(dir, "1_old.odr"), "old");
+                await writeOld(join(dir, "1_old.odr"), "old");
                 await watcher.start();
                 await writeFile(join(dir, "2_new.odr"), "new");
 
@@ -199,6 +238,26 @@ describe("ReplayWatcher", () => {
 
                 await new Promise((r) => setTimeout(r, 1_500));
                 expect(process).toHaveBeenCalledTimes(2);
+            });
+        }, 20_000);
+
+        it("waits for a freshly modified backlog file to settle before reading it", async () => {
+            vi.spyOn(console, "log").mockImplementation(() => {});
+
+            await setup(async ({ watcher, dir, process }) => {
+                const modified = new Date(Date.now() - 2_000);
+
+                await writeFile(join(dir, "1_fresh.odr"), "c");
+                await utimes(join(dir, "1_fresh.odr"), modified, modified);
+                await watcher.start();
+
+                await new Promise((r) => setTimeout(r, 1_500));
+                expect(process).not.toHaveBeenCalled();
+
+                await vi.waitFor(
+                    () => expect(process).toHaveBeenCalledTimes(1),
+                    detectionTimeout,
+                );
             });
         }, 20_000);
 
@@ -242,7 +301,7 @@ describe("ReplayWatcher", () => {
 
                     return { action: "keep", reason: "later" };
                 });
-                await writeFile(join(dir, "1_x.odr"), "c");
+                await writeOld(join(dir, "1_x.odr"), "c");
                 await watcher.start();
                 await vi.waitFor(
                     () => expect(process).toHaveBeenCalledTimes(1),
@@ -282,10 +341,7 @@ describe("ReplayWatcher", () => {
                     });
 
                     for (let i = 0; i < 5; i++) {
-                        await writeFile(
-                            join(dir, `${i.toString()}_x.odr`),
-                            "c",
-                        );
+                        await writeOld(join(dir, `${i.toString()}_x.odr`), "c");
                     }
 
                     await watcher.start();

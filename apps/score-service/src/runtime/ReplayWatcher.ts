@@ -13,6 +13,12 @@ const retryBaseMs = 30_000;
 const retryMaxMs = 10 * 60_000;
 
 /**
+ * A backlog file modified more recently than this may still be being written (the game was writing it when this
+ * service started), so it is checked again after the remaining time instead of being read at once.
+ */
+const settleMs = 5000;
+
+/**
  * Processes replays the game drops into the unprocessed folder: those present at startup, then new ones once fully
  * written. Files that fail temporarily stay on disk and are retried with backoff (and at the latest on the next
  * startup).
@@ -59,12 +65,27 @@ export class ReplayWatcher implements AsyncDisposable {
         }
 
         for (const fileName of backlog) {
-            this.enqueue(fileName);
+            void this.enqueueWhenSettled(fileName);
         }
     }
 
-    /** Processes one file now (used by the watcher and the backlog; exposed for tests). */
+    /**
+     * Processes one file now (used by the watcher and the backlog; exposed for tests). Never throws: a failure (such
+     * as a failed read or delete) keeps the file and retries it with backoff.
+     */
     async handle(fileName: string): Promise<void> {
+        try {
+            await this.process(fileName);
+        } catch (e) {
+            this.scheduleRetry(
+                fileName,
+                undefined,
+                e instanceof Error ? e.message : String(e),
+            );
+        }
+    }
+
+    private async process(fileName: string): Promise<void> {
         if (!fileName.endsWith(".odr")) {
             await this.store.delete("unprocessed", fileName);
             return;
@@ -99,6 +120,36 @@ export class ReplayWatcher implements AsyncDisposable {
         this.timers.clear();
         await this.watcher?.close();
         await this.queue[Symbol.asyncDispose]();
+    }
+
+    /** Queues a backlog file once it has not been modified for {@link settleMs}. */
+    private async enqueueWhenSettled(fileName: string): Promise<void> {
+        let ageMs = settleMs;
+
+        try {
+            const modified = await this.store.modifiedAt(
+                "unprocessed",
+                fileName,
+            );
+
+            ageMs = modified ? Date.now() - modified.getTime() : settleMs;
+        } catch {
+            // Cannot tell; handle() will surface a real read problem.
+        }
+
+        if (this.stopped || ageMs >= settleMs) {
+            this.enqueue(fileName);
+            return;
+        }
+
+        clearTimeout(this.timers.get(fileName));
+        this.timers.set(
+            fileName,
+            setTimeout(() => {
+                this.timers.delete(fileName);
+                void this.enqueueWhenSettled(fileName);
+            }, settleMs - ageMs),
+        );
     }
 
     private enqueue(fileName: string): void {

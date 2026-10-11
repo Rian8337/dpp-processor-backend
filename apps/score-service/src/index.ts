@@ -25,7 +25,8 @@ async function main(): Promise<void> {
     // Kept for the process's whole lifetime, so never disposed.
     installLogPrefix("score-service");
 
-    // Released in reverse order on shutdown: scheduler, watcher, server, dan course timer, then the databases.
+    // Released in reverse order on shutdown: server (stops accepting first), watcher, scheduler, dan course timer, then
+    // the databases.
     const resources = new AsyncDisposableStack();
     const container = getContainer();
 
@@ -66,6 +67,13 @@ async function main(): Promise<void> {
             danCourses.startRefreshing(config.danCourseRefreshMinutes),
         );
 
+        // Registered before the server so that shutdown closes the server first; started after it is listening.
+        const scheduler = resources.use(
+            container.resolve(dependencyTokens.uncalculatedScheduler),
+        );
+        const watcher = resources.use(
+            container.resolve(dependencyTokens.replayWatcher),
+        );
         const server = resources.use(new GracefulServer());
         const port = await server.listen(
             createApp(container, server.middleware),
@@ -75,16 +83,7 @@ async function main(): Promise<void> {
 
         console.log(`Listening on ${config.host}:${port.toString()}`);
 
-        const watcher = resources.use(
-            container.resolve(dependencyTokens.replayWatcher),
-        );
-
         await watcher.start();
-
-        const scheduler = resources.use(
-            container.resolve(dependencyTokens.uncalculatedScheduler),
-        );
-
         scheduler.start();
     } catch (e) {
         await resources.disposeAsync().catch((disposeError: unknown) => {

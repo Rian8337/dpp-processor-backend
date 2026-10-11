@@ -25,8 +25,13 @@ export async function startTestPostgres(): Promise<TestPostgres> {
     });
 
     await server.start();
-    // PGLiteSocketServer is not disposable; stop it before the database closes.
-    resources.defer(() => server.stop());
+    // PGLiteSocketServer is not disposable; stop it before the database closes. A client that disconnected just
+    // before may still have its close handler queued with `setImmediate`, and that handler reads the database, so
+    // let it run first.
+    resources.defer(async () => {
+        await server.stop();
+        await new Promise((resolve) => setImmediate(resolve));
+    });
 
     return { port, [Symbol.asyncDispose]: () => resources.disposeAsync() };
 }

@@ -1,8 +1,8 @@
 /**
- * How a stored pp_multiplier is applied: missing means 1, never above 1.
+ * How a stored pp_multiplier is applied: missing means 1, clamped to [0, 1].
  */
 export function effectiveMultiplier(stored: number | null | undefined): number {
-    return Math.min(stored ?? 1, 1);
+    return Math.min(Math.max(stored ?? 1, 0), 1);
 }
 
 /**

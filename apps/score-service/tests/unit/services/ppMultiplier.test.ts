@@ -8,6 +8,8 @@ describe("effectiveMultiplier", () => {
         [0.8, 0.8],
         [1, 1],
         [1.2, 1],
+        [0, 0],
+        [-0.3, 0],
     ])("%s → %s", (stored, expected) => {
         expect(effectiveMultiplier(stored)).toBe(expected);
     });

@@ -130,7 +130,11 @@ describe("calculateScoreFieldsSchema", () => {
         [3, 1],
         ["1", 1],
         ["0.25", 0.25],
-    ])("clamps the multiplier %s to %s at most", (multiplier, expected) => {
+        ["0", 0],
+        [0, 0],
+        ["-0.5", 0],
+        [-2, 0],
+    ])("clamps the multiplier %s to %s", (multiplier, expected) => {
         expect(
             calculateScoreFieldsSchema.parse({
                 ...fields,
@@ -151,7 +155,6 @@ describe("calculateScoreFieldsSchema", () => {
         ["a fractional count", { combo: "1.5" }],
         ["an empty count", { good: "" }],
         ["a partial slider hit set", { slider_head_hit: "1" }],
-        ["a zero multiplier", { pp_multiplier: "0" }],
         ["a non-numeric multiplier", { pp_multiplier: "x" }],
         ["an invalid variant", { variant: "Bad Name" }],
     ])("rejects %s", (_name, override) => {

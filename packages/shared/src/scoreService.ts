@@ -58,7 +58,7 @@ const formNumber = z
         z.number(),
         z
             .string()
-            .regex(/^\d+(\.\d+)?$/)
+            .regex(/^-?\d+(\.\d+)?$/)
             .transform(Number),
     ])
     .pipe(z.number());
@@ -99,8 +99,8 @@ function emptyOptionalsAsAbsent(input: unknown): unknown {
 
 /**
  * The fields of the game's `POST /calculate-score`, in `pp-processor-node`'s names. Field values arrive as strings
- * (multipart or URL-encoded) or JSON values. An empty optional field counts as absent, and a `pp_multiplier` above 1
- * is clamped to 1.
+ * (multipart or URL-encoded) or JSON values. An empty optional field counts as absent, and `pp_multiplier` defaults to
+ * 1 and is clamped to [0, 1].
  */
 export const calculateScoreFieldsSchema = z.preprocess(
     emptyOptionalsAsAbsent,
@@ -122,8 +122,7 @@ export const calculateScoreFieldsSchema = z.preprocess(
             slider_repeat_hit: formCount.optional(),
             slider_end_hit: formCount.optional(),
             pp_multiplier: formNumber
-                .pipe(z.number().positive())
-                .transform((value) => Math.min(value, 1))
+                .transform((value) => Math.min(Math.max(value, 0), 1))
                 .default(1),
             variant: variantNameSchema.optional(),
         })

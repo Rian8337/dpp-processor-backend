@@ -17,17 +17,25 @@ export interface TestMariaDb extends AsyncDisposable {
 }
 
 /**
- * Whether `mariadbd` and `mariadb-install-db` are on PATH. Tests that need MariaDB are skipped without them
- * (CI installs the `mariadb-server` package).
+ * Whether `mariadbd` and `mariadb-install-db` are on PATH. Tests that need MariaDB are skipped without them, unless
+ * `REQUIRE_MARIADB=1` (set in CI, which installs the `mariadb-server` package) turns that into a failure.
+ *
+ * @throws {Error} If MariaDB is missing and `REQUIRE_MARIADB=1`.
  */
 export async function hasMariaDb(): Promise<boolean> {
     // Not run with `--help`/`--version`: `mariadb-install-db` exits non-zero for `--help` and treats `--version` as a
     // real install attempt against the system data directory.
-    const found = await Promise.all(
-        ["mariadbd", "mariadb-install-db"].map(inPath),
-    );
+    const found = (
+        await Promise.all(["mariadbd", "mariadb-install-db"].map(inPath))
+    ).every(Boolean);
 
-    return found.every(Boolean);
+    if (!found && process.env.REQUIRE_MARIADB === "1") {
+        throw new Error(
+            "REQUIRE_MARIADB=1, but mariadbd or mariadb-install-db is not on PATH",
+        );
+    }
+
+    return found;
 }
 
 async function inPath(executable: string): Promise<boolean> {

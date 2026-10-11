@@ -1,4 +1,4 @@
-import { ConfigError, loadConfig } from "@/config/config";
+import { ConfigError, loadConfig, loadDatabaseConfig } from "@/config/config";
 import { describe, expect, it } from "vitest";
 
 const validEnv = {
@@ -71,5 +71,32 @@ describe("loadConfig", () => {
         expect(load).toThrow(/API_KEY/);
         expect(load).toThrow(/BEATMAP_SERVICE_URL/);
         expect(load).not.toThrow(/short/);
+    });
+});
+
+describe("loadDatabaseConfig", () => {
+    it("reads only the database settings", () => {
+        expect(
+            loadDatabaseConfig({
+                DATABASE_HOST: "localhost",
+                DATABASE_NAME: "dpp_droid_live",
+                DATABASE_USER: "dpp",
+            }),
+        ).toEqual({
+            host: "localhost",
+            port: 5432,
+            name: "dpp_droid_live",
+            user: "dpp",
+            password: "",
+        });
+    });
+
+    it("reports missing database settings", () => {
+        const load = () => loadDatabaseConfig({ DATABASE_HOST: "localhost" });
+
+        expect(load).toThrow(ConfigError);
+        expect(load).toThrow(/DATABASE_NAME/);
+        expect(load).toThrow(/DATABASE_USER/);
+        expect(load).not.toThrow(/PORT|API_KEY/);
     });
 });

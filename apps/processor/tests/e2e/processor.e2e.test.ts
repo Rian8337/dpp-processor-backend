@@ -282,7 +282,17 @@ describe("processor snapshot (e2e)", () => {
         const { stdout } = await promisify(execFile)(
             "node",
             [join(snapshotDirectory, "prune.mjs")],
-            { env: processorEnvironment },
+            {
+                // Only the database variables: prune must not need the server's settings.
+                env: {
+                    PATH: process.env.PATH,
+                    CI: "1",
+                    DATABASE_HOST: "127.0.0.1",
+                    DATABASE_PORT: databasePort.toString(),
+                    DATABASE_NAME: "postgres",
+                    DATABASE_USER: "postgres",
+                },
+            },
         );
 
         expect(stdout).toMatch(/Deleted 1 rows not from calculator version/);
@@ -292,6 +302,23 @@ describe("processor snapshot (e2e)", () => {
         );
 
         expect(remaining.rows[0]?.count).toBe("0");
+    });
+
+    it("refuses prune arguments before reading any configuration", async () => {
+        const failure = await promisify(execFile)(
+            "node",
+            [join(snapshotDirectory, "prune.mjs"), "--all"],
+            { env: { PATH: process.env.PATH, CI: "1" } },
+        ).then(
+            () => {
+                throw new Error("expected prune to fail");
+            },
+            (e: unknown) => e as { code: number; stderr: string },
+        );
+
+        expect(failure.code).toBe(1);
+        expect(failure.stderr).toContain("takes no arguments");
+        expect(failure.stderr).not.toContain("DATABASE_");
     });
 
     it("shuts down cleanly on SIGTERM while keep-alive requests are in flight", async () => {

@@ -39,13 +39,16 @@ export class ConfigError extends Error {
 
 const port = z.coerce.number().int().min(1).max(65535);
 
-const schema = z.object({
-    [Key.Port]: port,
+const databaseSchema = z.object({
     [Key.DatabaseHost]: z.string().min(1),
     [Key.DatabasePort]: port.default(5432),
     [Key.DatabaseName]: z.string().min(1),
     [Key.DatabaseUser]: z.string().min(1),
     [Key.DatabasePassword]: z.string().default(""),
+});
+
+const schema = databaseSchema.extend({
+    [Key.Port]: port,
     [Key.BeatmapServiceUrl]: z.url(),
     [Key.BeatmapServiceKey]: z.string().default(""),
     [Key.ApiKey]: z.string().min(16, "must be at least 16 characters"),
@@ -58,16 +61,17 @@ const schema = z.object({
 });
 
 /**
- * Reads and validates the configuration.
- *
  * @throws {ConfigError} If any variable is missing or invalid.
  */
-export function loadConfig(env: NodeJS.ProcessEnv): Config {
+function parse<T extends z.ZodType>(
+    target: T,
+    env: NodeJS.ProcessEnv,
+): z.infer<T> {
     // An empty variable (`CALCULATION_THREADS=`) counts as unset, instead of being coerced to 0.
     const present = Object.fromEntries(
         Object.entries(env).filter(([, value]) => value !== ""),
     );
-    const result = schema.safeParse(present);
+    const result = target.safeParse(present);
 
     if (!result.success) {
         const problems = result.error.issues.map(
@@ -79,17 +83,32 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
         );
     }
 
-    const values = result.data;
+    return result.data;
+}
+
+function toDatabaseSettings(
+    values: z.infer<typeof databaseSchema>,
+): DatabaseSettings {
+    return {
+        host: values[Key.DatabaseHost],
+        port: values[Key.DatabasePort],
+        name: values[Key.DatabaseName],
+        user: values[Key.DatabaseUser],
+        password: values[Key.DatabasePassword],
+    };
+}
+
+/**
+ * Reads and validates the configuration.
+ *
+ * @throws {ConfigError} If any variable is missing or invalid.
+ */
+export function loadConfig(env: NodeJS.ProcessEnv): Config {
+    const values = parse(schema, env);
 
     return {
         port: values[Key.Port],
-        database: {
-            host: values[Key.DatabaseHost],
-            port: values[Key.DatabasePort],
-            name: values[Key.DatabaseName],
-            user: values[Key.DatabaseUser],
-            password: values[Key.DatabasePassword],
-        },
+        database: toDatabaseSettings(values),
         beatmapService: {
             url: values[Key.BeatmapServiceUrl].replace(/\/+$/, ""),
             key: values[Key.BeatmapServiceKey],
@@ -100,4 +119,13 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
             maxQueue: values[Key.CalculationMaxQueue],
         },
     };
+}
+
+/**
+ * Reads only the database settings, for the prune command.
+ *
+ * @throws {ConfigError} If any database variable is missing or invalid.
+ */
+export function loadDatabaseConfig(env: NodeJS.ProcessEnv): DatabaseSettings {
+    return toDatabaseSettings(parse(databaseSchema, env));
 }

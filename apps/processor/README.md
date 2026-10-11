@@ -87,7 +87,7 @@ node apps/processor/releases/<variant>/current/prune.mjs
 ```
 
 Deletes attributes from every calculator version except the snapshot's own. Never run automatically, so rolling
-back keeps its cache until you prune.
+back keeps its cache until you prune. Needs only the `DATABASE_*` variables.
 
 ## Development
 

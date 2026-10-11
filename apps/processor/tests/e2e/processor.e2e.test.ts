@@ -4,6 +4,7 @@ import {
     startTestPostgres,
     type StartedProcess,
 } from "@dpp/server/testing";
+import type { ReplayPerformanceResponse } from "@dpp/shared";
 import { BeatmapDecoder, ModHidden, Modes } from "@rian8337/osu-base";
 import { DroidDifficultyCalculator } from "@rian8337/osu-difficulty-calculator";
 import {
@@ -16,6 +17,7 @@ import {
 } from "@test/utils/fixtures";
 import { modMap } from "@test/utils/mods";
 import { execFile, execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { mkdir, mkdtempDisposable, readFile } from "node:fs/promises";
 import { Agent, createServer, request, type Server } from "node:http";
 import { join } from "node:path";
@@ -31,11 +33,19 @@ const apiKey = "e2e-api-key-0123456789";
  * A stand-in for the beatmap service, serving the fixtures.
  */
 function startBeatmapService(port: number): Promise<Server> {
-    const beatmaps = beatmapFixtureNames.map((name) => {
-        const bytes = Buffer.from(readBeatmapFixture(name));
+    const beatmaps: { id: number; hash: string; bytes: Buffer }[] =
+        beatmapFixtureNames.map((name) => {
+            const bytes = Buffer.from(readBeatmapFixture(name));
 
-        return { id: beatmapFixtures[name].id, hash: md5Of(bytes), bytes };
-    });
+            return { id: beatmapFixtures[name].id, hash: md5Of(bytes), bytes };
+        });
+
+    // The replay fixture's beatmap, found by the hash the replay records.
+    if (hasReplayFixture) {
+        const bytes = readFileSync(replayFixture.beatmap);
+
+        beatmaps.push({ id: 1000, hash: md5Of(bytes), bytes });
+    }
 
     const server = createServer((req, res) => {
         const url = new URL(req.url ?? "/", "http://localhost");
@@ -252,14 +262,25 @@ describe("processor snapshot (e2e)", () => {
     });
 
     it.skipIf(!hasReplayFixture)("calculates replay performance", async () => {
-        // The replay's beatmap must be served by the stub beatmap service; add it to beatmapFixtures when the
-        // fixture is provided.
         const replay = (await readFile(replayFixture.replay)).toString(
             "base64",
         );
         const response = await post("/performance/replay", { replay });
 
         expect(response.status).toBe(200);
+
+        const body = (await response.json()) as ReplayPerformanceResponse;
+
+        // The fixture is an S rank: 1141/36/2/0, 1481 max combo.
+        expect(body.score).toMatchObject({
+            n300: 1141,
+            n100: 36,
+            n50: 2,
+            nmiss: 0,
+            combo: 1481,
+        });
+        expect(body.performance.total).toBeGreaterThan(0);
+        expect(body.replay.hitError).not.toBeNull();
     });
 
     it("prunes attributes of other calculator versions with the built prune command", async () => {

@@ -1,7 +1,8 @@
 import type { ParsedReplay } from "@/replays/parseReplay";
 import { toRecentPlay } from "@/services/recentPlay";
-import { ModHidden } from "@rian8337/osu-base";
+import { ModHidden, type SerializedMod } from "@rian8337/osu-base";
 import { replayPerformanceBody } from "@test/utils/bodies";
+import { readRecentPlayFixture } from "@test/utils/fixtures";
 import { testHash } from "@test/utils/rows";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -238,4 +239,55 @@ describe("toRecentPlay", () => {
             "sliderEndsDropped",
         );
     });
+
+    const oldDocument = readRecentPlayFixture();
+
+    // The fixture has no attributes: the old backend wrote it for a beatmap the beatmap service did not know, so the
+    // title came from the replay's file name.
+    it.skipIf(!oldDocument)(
+        "rebuilds a recent play document the old backend wrote",
+        () => {
+            const document = oldDocument as {
+                uid: number;
+                scoreId: number;
+                title: string;
+                combo: number;
+                score: number;
+                rank: string;
+                date: Date;
+                accuracy: ParsedReplay["accuracy"];
+                mods: SerializedMod[];
+                hash: string;
+            };
+            const fileName = `${document.title}.osu`;
+
+            expect(
+                toRecentPlay({
+                    uid: document.uid,
+                    scoreId: document.scoreId,
+                    replay: {
+                        version: 9,
+                        hash: document.hash,
+                        fileName,
+                        accuracy: document.accuracy,
+                        rank: document.rank,
+                        hit300k: 0,
+                        hit100k: 0,
+                        v3: {
+                            score: document.score,
+                            maxCombo: document.combo,
+                            mods: document.mods,
+                            playerName: "player",
+                            time: document.date,
+                        },
+                    },
+                    // As ReplaySubmissionService names a play on an unknown beatmap.
+                    title: fileName.replace(".osu", ""),
+                    droid: null,
+                    osu: null,
+                    date: document.date,
+                }),
+            ).toStrictEqual(document);
+        },
+    );
 });

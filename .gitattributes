@@ -1,0 +1,2 @@
+# Beatmap fixtures are identified by their MD5, so keep their bytes (and line endings) exactly as they are.
+*.osu -text

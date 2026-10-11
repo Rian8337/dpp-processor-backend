@@ -20,7 +20,7 @@
     "dependencies": {
         "@dpp/server": "workspace:*",
         "@dpp/shared": "workspace:*",
-        "@rian8337/osu-base": "4.0.0-beta.100",
+        "@rian8337/osu-base": "4.0.0-beta.102",
         "cors": "^2.8.6",
         "drizzle-orm": "^0.45.3",
         "express": "^5.2.1",

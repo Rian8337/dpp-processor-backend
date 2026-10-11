@@ -191,8 +191,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/shared
       '@rian8337/osu-base':
-        specifier: 4.0.0-beta.100
-        version: 4.0.0-beta.100
+        specifier: 4.0.0-beta.102
+        version: 4.0.0-beta.102
       cors:
         specifier: ^2.8.6
         version: 2.8.6
@@ -264,20 +264,20 @@ importers:
         specifier: workspace:*
         version: link:../../packages/shared
       '@rian8337/osu-base':
-        specifier: 4.0.0-beta.100
-        version: 4.0.0-beta.100
+        specifier: 4.0.0-beta.102
+        version: 4.0.0-beta.102
       '@rian8337/osu-difficulty-calculator':
-        specifier: 4.0.0-beta.101
-        version: 4.0.0-beta.101
+        specifier: 4.0.0-beta.102
+        version: 4.0.0-beta.102
       '@rian8337/osu-droid-replay-analyzer':
-        specifier: 4.0.0-beta.101
-        version: 4.0.0-beta.101
+        specifier: 4.0.0-beta.102
+        version: 4.0.0-beta.102
       '@rian8337/osu-rebalance-difficulty-calculator':
-        specifier: 4.0.0-beta.101
-        version: 4.0.0-beta.101
+        specifier: 4.0.0-beta.102
+        version: 4.0.0-beta.102
       '@rian8337/osu-strain-graph-generator':
-        specifier: 4.0.0-beta.101
-        version: 4.0.0-beta.101
+        specifier: 4.0.0-beta.102
+        version: 4.0.0-beta.102
       canvas:
         specifier: ^3.2.3
         version: 3.2.3
@@ -346,11 +346,11 @@ importers:
         specifier: workspace:*
         version: link:../../packages/shared
       '@rian8337/osu-base':
-        specifier: 4.0.0-beta.100
-        version: 4.0.0-beta.100
+        specifier: 4.0.0-beta.102
+        version: 4.0.0-beta.102
       '@rian8337/osu-droid-replay-analyzer':
-        specifier: 4.0.0-beta.101
-        version: 4.0.0-beta.101
+        specifier: 4.0.0-beta.102
+        version: 4.0.0-beta.102
       chokidar:
         specifier: ^5.0.0
         version: 5.0.0
@@ -468,14 +468,14 @@ importers:
   packages/shared:
     dependencies:
       '@rian8337/osu-base':
-        specifier: 4.0.0-beta.100
-        version: 4.0.0-beta.100
+        specifier: 4.0.0-beta.102
+        version: 4.0.0-beta.102
       '@rian8337/osu-difficulty-calculator':
-        specifier: 4.0.0-beta.101
-        version: 4.0.0-beta.101
+        specifier: 4.0.0-beta.102
+        version: 4.0.0-beta.102
       '@rian8337/osu-droid-replay-analyzer':
-        specifier: 4.0.0-beta.101
-        version: 4.0.0-beta.101
+        specifier: 4.0.0-beta.102
+        version: 4.0.0-beta.102
       zod:
         specifier: ^4.6.5
         version: 4.6.5
@@ -1426,24 +1426,24 @@ packages:
   '@quansync/fs@1.1.0':
     resolution: {integrity: sha512-qAPG/t3HqML1TlN7sY/pTbEjzFVAKsMjNNMGheyDosro+kT4iw2KCUoHcVdmliwWjorm4elZbgNQyU2eD97eDg==}
 
-  '@rian8337/osu-base@4.0.0-beta.100':
-    resolution: {integrity: sha512-TlLRWVB0Xzmprb0ZIk/Dr2DrGPu4seUVlHlAgKe1sErce4LLxnk+VRUUq9P291vsGeDjwgNYlcJrrQ5qAi5HUw==}
+  '@rian8337/osu-base@4.0.0-beta.102':
+    resolution: {integrity: sha512-qHcGmW1gJnw/+QFQpGKgZYGBTInEY8p4OJ9SbH8CtP2nAffSJRp8EXOlpIDAd26w9zAuFW0EN+qPLkPrQp8Isg==}
     engines: {node: '>=18'}
 
-  '@rian8337/osu-difficulty-calculator@4.0.0-beta.101':
-    resolution: {integrity: sha512-sIMxPtq5Pzu2u08xTVwWdPCuEpOseQPkRzdUYoV/2yhcM1TqGo6AAGSBEDkdvH4lt7LOHvr5CzgB5pz8skeRcQ==}
+  '@rian8337/osu-difficulty-calculator@4.0.0-beta.102':
+    resolution: {integrity: sha512-lsKOVE2/pWdHvAHBkY/jqilkzRQz8wklWAnCY88ya6q+k2hns7rvxo2RshP1dKl51NilqYmib/NgJnWCnaagnA==}
     engines: {node: '>=18'}
 
-  '@rian8337/osu-droid-replay-analyzer@4.0.0-beta.101':
-    resolution: {integrity: sha512-xjd4r5XJFI6qjAcQf7PskS/7tJo1Km9CKJR7oDms81VKoQGu+1tH+osVcrIx4CF7F05tYeXWk/yCA/hBuwNinw==}
+  '@rian8337/osu-droid-replay-analyzer@4.0.0-beta.102':
+    resolution: {integrity: sha512-9DF2fNaGIcEFvNGCi9eOBqlLluE36hODJ/+3tV7LXuRy5tcbPB4mmRii7xkso99BNMmNC22/7qILmihDVn/0MA==}
     engines: {node: '>=18'}
 
-  '@rian8337/osu-rebalance-difficulty-calculator@4.0.0-beta.101':
-    resolution: {integrity: sha512-6e6vpKrRzge+AKBKQ8gfR+m9ZrQUF64XzwEcQTLh5yDv0FWJQXknmWNITsAf+obpVtCu6vCe2z2LD2rrtz64Xg==}
+  '@rian8337/osu-rebalance-difficulty-calculator@4.0.0-beta.102':
+    resolution: {integrity: sha512-jcqnOPUWIKIGYaqEsXVYfROgrUGgVZ+/9K3sj0wGtBB5XyNtIfTdgdVhhfIAhRjtvKHHO1k4/8wogemlmSJ7Fg==}
     engines: {node: '>=18'}
 
-  '@rian8337/osu-strain-graph-generator@4.0.0-beta.101':
-    resolution: {integrity: sha512-CLQTtqbCEofEKwKSp4rlNEWogJ5NgrQc8U/OJK1/6V8RcnRbYHFNoTQk7BfY6nLUgLOpkcUtHiZbwf2d7BIf3Q==}
+  '@rian8337/osu-strain-graph-generator@4.0.0-beta.102':
+    resolution: {integrity: sha512-rs/sYenWYbcOBEf5XMsoeE4sNq18L28755oHIP50a+ncGPXiGquaed6hda6QrquPtoBHnDbiNtSFNMflyoo5kw==}
     engines: {node: '>=18'}
 
   '@rolldown/binding-android-arm-eabi@1.2.12':
@@ -3946,29 +3946,29 @@ snapshots:
     dependencies:
       quansync: 1.0.0
 
-  '@rian8337/osu-base@4.0.0-beta.100': {}
+  '@rian8337/osu-base@4.0.0-beta.102': {}
 
-  '@rian8337/osu-difficulty-calculator@4.0.0-beta.101':
+  '@rian8337/osu-difficulty-calculator@4.0.0-beta.102':
     dependencies:
-      '@rian8337/osu-base': 4.0.0-beta.100
+      '@rian8337/osu-base': 4.0.0-beta.102
 
-  '@rian8337/osu-droid-replay-analyzer@4.0.0-beta.101':
+  '@rian8337/osu-droid-replay-analyzer@4.0.0-beta.102':
     dependencies:
-      '@rian8337/osu-base': 4.0.0-beta.100
-      '@rian8337/osu-difficulty-calculator': 4.0.0-beta.101
-      '@rian8337/osu-rebalance-difficulty-calculator': 4.0.0-beta.101
+      '@rian8337/osu-base': 4.0.0-beta.102
+      '@rian8337/osu-difficulty-calculator': 4.0.0-beta.102
+      '@rian8337/osu-rebalance-difficulty-calculator': 4.0.0-beta.102
       java-deserialization: 0.1.0
       unzipper: 0.10.14
 
-  '@rian8337/osu-rebalance-difficulty-calculator@4.0.0-beta.101':
+  '@rian8337/osu-rebalance-difficulty-calculator@4.0.0-beta.102':
     dependencies:
-      '@rian8337/osu-base': 4.0.0-beta.100
+      '@rian8337/osu-base': 4.0.0-beta.102
 
-  '@rian8337/osu-strain-graph-generator@4.0.0-beta.101':
+  '@rian8337/osu-strain-graph-generator@4.0.0-beta.102':
     dependencies:
-      '@rian8337/osu-base': 4.0.0-beta.100
-      '@rian8337/osu-difficulty-calculator': 4.0.0-beta.101
-      '@rian8337/osu-rebalance-difficulty-calculator': 4.0.0-beta.101
+      '@rian8337/osu-base': 4.0.0-beta.102
+      '@rian8337/osu-difficulty-calculator': 4.0.0-beta.102
+      '@rian8337/osu-rebalance-difficulty-calculator': 4.0.0-beta.102
       canvas: 3.2.3
 
   '@rolldown/binding-android-arm-eabi@1.2.12':

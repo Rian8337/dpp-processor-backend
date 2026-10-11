@@ -145,9 +145,11 @@ The game server's routes, with `pp-processor-node`'s field names, in multipart, 
 - `/calculate-replay`: multipart file field `replayfile`. Only replays of version 3 or later are calculated.
 - Both accept an optional `variant` (default `LIVE_DROID_VARIANT`) for local tools.
 
-They accept only loopback connections (`403` otherwise) and have no key. They always answer `200`
-`{ "pp": number | null, "pp_multiplier": number | null }`; any failure answers `null` for both, so the game records the
-score as uncalculated.
+They accept only loopback connections (`403` otherwise) and have no key. They answer `200`
+`{ "pp": number | null, "pp_multiplier": number | null }`. Permanent failures (invalid input, an unsupported replay, a
+definite answer such as a missing beatmap) answer `null` for both, and the game stores the score without pp, as today.
+Temporary failures (the broker or processor busy or unreachable, or a configuration problem) close the connection
+without a response, so the game records the score as uncalculated and the uncalculated pass calculates it later.
 
 ## Logs
 

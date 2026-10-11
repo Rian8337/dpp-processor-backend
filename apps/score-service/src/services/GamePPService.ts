@@ -2,15 +2,15 @@ import type { PerformanceBody } from "@/clients/schemas";
 import type { CliConfig } from "@/config/config";
 import { dependencyTokens } from "@/dependencies/tokens";
 import type { ReplayParser } from "@/replays/parseReplay";
-import type { UpstreamFailure } from "@/types/upstream";
+import { isRetryLater, type UpstreamFailure } from "@/types/upstream";
 import { Injectable } from "@dpp/server";
-import type { CalculateScoreFields, GamePPResponse } from "@dpp/shared";
+import type { CalculateScoreFields } from "@dpp/shared";
 import { inject } from "tsyringe";
-import type { IGamePPService } from "./IGamePPService";
+import type { GamePPResult, IGamePPService } from "./IGamePPService";
 import type { IScoreCalculator } from "./IScoreCalculator";
 import { ppMultiplierFrom } from "./ppMultiplier";
 
-const nothing: GamePPResponse = { pp: null, pp_multiplier: null };
+const permanentFailure: GamePPResult = { kind: "failed" };
 
 @Injectable(dependencyTokens.gamePPService)
 export class GamePPService implements IGamePPService {
@@ -23,9 +23,7 @@ export class GamePPService implements IGamePPService {
         private readonly config: CliConfig,
     ) {}
 
-    async calculateScore(
-        fields: CalculateScoreFields,
-    ): Promise<GamePPResponse> {
+    async calculateScore(fields: CalculateScoreFields): Promise<GamePPResult> {
         const variant = fields.variant ?? this.config.variants.liveDroid;
         const result = await this.calculator.calculateStats(variant, {
             hash: fields.hash,
@@ -58,7 +56,7 @@ export class GamePPService implements IGamePPService {
     async calculateReplay(
         replay: Buffer,
         requestedVariant?: string,
-    ): Promise<GamePPResponse> {
+    ): Promise<GamePPResult> {
         const variant = requestedVariant ?? this.config.variants.liveDroid;
         const parsed = await this.parse(replay);
 
@@ -67,7 +65,7 @@ export class GamePPService implements IGamePPService {
             console.log(
                 `calculate-replay failed (variant ${variant}): unsupported or unreadable replay`,
             );
-            return nothing;
+            return permanentFailure;
         }
 
         const result = await this.calculator.calculateReplay(variant, replay);
@@ -91,7 +89,7 @@ export class GamePPService implements IGamePPService {
         hash: string,
         body: PerformanceBody,
         pp: number,
-    ): Promise<GamePPResponse> {
+    ): Promise<GamePPResult> {
         const noPenalty = await this.calculator.noPenaltyTotal(
             variant,
             hash,
@@ -102,7 +100,13 @@ export class GamePPService implements IGamePPService {
             return failed(route, variant, noPenalty);
         }
 
-        return { pp, pp_multiplier: ppMultiplierFrom(pp, noPenalty.value) };
+        return {
+            kind: "ok",
+            response: {
+                pp,
+                pp_multiplier: ppMultiplierFrom(pp, noPenalty.value),
+            },
+        };
     }
 }
 
@@ -110,9 +114,10 @@ function failed(
     route: string,
     variant: string,
     failure: UpstreamFailure,
-): GamePPResponse {
+): GamePPResult {
     console.log(
         `${route} failed (variant ${variant}): ${failure.code} ${failure.message}`,
     );
-    return nothing;
+
+    return isRetryLater(failure) ? { kind: "retry" } : permanentFailure;
 }

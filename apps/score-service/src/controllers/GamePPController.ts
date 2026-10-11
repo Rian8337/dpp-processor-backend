@@ -1,6 +1,6 @@
 import { dependencyTokens } from "@/dependencies/tokens";
 import { runMiddleware } from "@/http/runMiddleware";
-import type { IGamePPService } from "@/services/IGamePPService";
+import type { GamePPResult, IGamePPService } from "@/services/IGamePPService";
 import { Controller, Post } from "@dpp/server";
 import {
     calculateReplayFieldsSchema,
@@ -26,8 +26,13 @@ const multipart = multer({
 const nothing: GamePPResponse = { pp: null, pp_multiplier: null };
 
 /**
- * Drop-in replacement for pp-processor-node's routes. Every failure, including unreadable bodies, answers
- * `200 { pp: null, pp_multiplier: null }` so the game records the score as uncalculated.
+ * Drop-in replacement for pp-processor-node's routes, shaped by how the game (`submit.php`) reads them: it records a
+ * score as uncalculated only when the request fails at the transport level.
+ *
+ * - Permanent failures (unreadable bodies, invalid fields, unsupported replays, definite answers from upstream)
+ *   answer `200 { pp: null, pp_multiplier: null }`; the game stores the score without pp.
+ * - Temporary failures (upstream busy or unreachable) and unexpected errors close the connection without a response,
+ *   so the game records the score as uncalculated and the uncalculated pass calculates it later.
  */
 @Controller("")
 export class GamePPController {
@@ -41,9 +46,18 @@ export class GamePPController {
         req: Request,
         res: Response<GamePPResponse>,
     ): Promise<void> {
-        try {
-            await this.readBody(req, res, multipart.none());
+        if (
+            !(await this.readBody(
+                req,
+                res,
+                "calculate-score",
+                multipart.none(),
+            ))
+        ) {
+            return;
+        }
 
+        try {
             const fields = calculateScoreFieldsSchema.safeParse(req.body);
 
             if (!fields.success) {
@@ -54,12 +68,14 @@ export class GamePPController {
                 return;
             }
 
-            res.json(await this.service.calculateScore(fields.data));
-        } catch (e) {
-            console.log(
-                `calculate-score failed: ${e instanceof Error ? e.message : String(e)}`,
+            respond(
+                req,
+                res,
+                "calculate-score",
+                await this.service.calculateScore(fields.data),
             );
-            res.json(nothing);
+        } catch (e) {
+            fail(req, "calculate-score", e);
         }
     }
 
@@ -68,9 +84,18 @@ export class GamePPController {
         req: Request,
         res: Response<GamePPResponse>,
     ): Promise<void> {
-        try {
-            await this.readBody(req, res, multipart.single("replayfile"));
+        if (
+            !(await this.readBody(
+                req,
+                res,
+                "calculate-replay",
+                multipart.single("replayfile"),
+            ))
+        ) {
+            return;
+        }
 
+        try {
             const fields = calculateReplayFieldsSchema.safeParse(
                 req.body ?? {},
             );
@@ -83,29 +108,78 @@ export class GamePPController {
                 return;
             }
 
-            res.json(
+            respond(
+                req,
+                res,
+                "calculate-replay",
                 await this.service.calculateReplay(
                     req.file.buffer,
                     fields.data.variant,
                 ),
             );
         } catch (e) {
-            console.log(
-                `calculate-replay failed: ${e instanceof Error ? e.message : String(e)}`,
-            );
-            res.json(nothing);
+            fail(req, "calculate-replay", e);
         }
     }
 
+    /**
+     * Whether the body could be read. An unreadable body (malformed, too large, unexpected file) is the caller's
+     * fault and permanent, so it is answered with nulls here.
+     */
     private async readBody(
         req: Request,
-        res: Response,
+        res: Response<GamePPResponse>,
+        route: string,
         files: RequestHandler,
-    ): Promise<void> {
-        await runMiddleware(req, res, json);
-        await runMiddleware(req, res, urlencoded);
-        await runMiddleware(req, res, files);
+    ): Promise<boolean> {
+        try {
+            await runMiddleware(req, res, json);
+            await runMiddleware(req, res, urlencoded);
+            await runMiddleware(req, res, files);
+
+            return true;
+        } catch (e) {
+            console.log(
+                `${route} failed: ${e instanceof Error ? e.message : String(e)}`,
+            );
+            res.json(nothing);
+
+            return false;
+        }
     }
+}
+
+function respond(
+    req: Request,
+    res: Response<GamePPResponse>,
+    route: string,
+    result: GamePPResult,
+): void {
+    switch (result.kind) {
+        case "ok":
+            res.json(result.response);
+            return;
+        case "failed":
+            res.json(nothing);
+            return;
+        case "retry":
+            closeConnection(req, route, "temporary failure");
+    }
+}
+
+function fail(req: Request, route: string, e: unknown): void {
+    closeConnection(
+        req,
+        route,
+        `unexpected error: ${e instanceof Error ? e.message : String(e)}`,
+    );
+}
+
+function closeConnection(req: Request, route: string, reason: string): void {
+    console.log(
+        `${route} failed (${reason}); closing the connection so the game records the score as uncalculated`,
+    );
+    req.socket.destroy();
 }
 
 /**

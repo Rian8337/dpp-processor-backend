@@ -1,6 +1,6 @@
 import { createApp } from "@/app";
 import { dependencyTokens } from "@/dependencies/tokens";
-import type { IGamePPService } from "@/services/IGamePPService";
+import type { GamePPResult, IGamePPService } from "@/services/IGamePPService";
 import { ModHidden } from "@rian8337/osu-base";
 import type { CalculateScoreFields, GamePPResponse } from "@dpp/shared";
 import { createTestContainer } from "@test/utils/container";
@@ -45,17 +45,18 @@ const expectedFields: CalculateScoreFields = {
 };
 
 class RecordingGamePPService implements IGamePPService {
+    result: GamePPResult = { kind: "ok", response: answer };
     scores: CalculateScoreFields[] = [];
     replays: { replay: Buffer; variant: string | undefined }[] = [];
 
     calculateScore(fields: CalculateScoreFields) {
         this.scores.push(fields);
-        return Promise.resolve(answer);
+        return Promise.resolve(this.result);
     }
 
     calculateReplay(replay: Buffer, variant?: string) {
         this.replays.push({ replay, variant });
-        return Promise.resolve(answer);
+        return Promise.resolve(this.result);
     }
 }
 
@@ -79,6 +80,7 @@ describe("game pp endpoints (integration)", () => {
     });
 
     beforeEach(() => {
+        service.result = { kind: "ok", response: answer };
         service.scores = [];
         service.replays = [];
     });
@@ -198,6 +200,61 @@ describe("game pp endpoints (integration)", () => {
             expect(response.status).toBe(200);
             expect(response.body).toEqual(nothing);
             expect(service.replays).toEqual([]);
+        });
+    });
+
+    describe("failures", () => {
+        it.each([
+            [
+                "/calculate-score",
+                (r: request.Test) => r.type("form").send(form),
+            ],
+            [
+                "/calculate-replay",
+                (r: request.Test) =>
+                    r.attach("replayfile", Buffer.from("x"), "x.odr"),
+            ],
+        ])("%s answers nulls for a permanent failure", async (path, build) => {
+            service.result = { kind: "failed" };
+
+            const response = await build(request(app).post(path));
+
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual(nothing);
+        });
+
+        it.each([
+            [
+                "/calculate-score",
+                (r: request.Test) => r.type("form").send(form),
+            ],
+            [
+                "/calculate-replay",
+                (r: request.Test) =>
+                    r.attach("replayfile", Buffer.from("x"), "x.odr"),
+            ],
+        ])(
+            "%s closes the connection for a retry-later failure",
+            async (path, build) => {
+                service.result = { kind: "retry" };
+
+                await expect(
+                    build(request(app).post(path)),
+                ).rejects.toMatchObject({
+                    code: "ECONNRESET",
+                });
+            },
+        );
+
+        it("closes the connection when the service throws", async () => {
+            const throwing = vi
+                .spyOn(service, "calculateScore")
+                .mockRejectedValueOnce(new Error("bug"));
+
+            await expect(
+                request(app).post("/calculate-score").type("form").send(form),
+            ).rejects.toMatchObject({ code: "ECONNRESET" });
+            throwing.mockRestore();
         });
     });
 

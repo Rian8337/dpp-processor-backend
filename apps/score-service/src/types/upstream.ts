@@ -86,6 +86,14 @@ const configurationCodes = new Set<string>([
 ]);
 
 /**
+ * Whether a failure says nothing about the item itself: the upstream is unavailable, or this service is
+ * misconfigured (`UNAUTHORIZED`, `VARIANT_NOT_FOUND`). Waiting and trying again loses nothing.
+ */
+export function isRetryLater(failure: UpstreamFailure): boolean {
+    return failure.kind === "retry" || configurationCodes.has(failure.code);
+}
+
+/**
  * For background work: the value, `null` for a permanent failure, or a thrown {@link RetryLaterError}.
  *
  * Retry failures and configuration rejections (`UNAUTHORIZED`, `VARIANT_NOT_FOUND`) throw; every other rejection
@@ -96,16 +104,14 @@ export function requireValue<T>(result: UpstreamResult<T>): T | null {
         return result.value;
     }
 
-    if (result.kind === "retry") {
-        throw new RetryLaterError(result.message, result.retryAfterMs);
+    if (!isRetryLater(result)) {
+        return null;
     }
 
-    if (configurationCodes.has(result.code)) {
-        throw new RetryLaterError(
-            `Configuration problem (${result.code}): ${result.message}`,
-            result.retryAfterMs,
-        );
-    }
-
-    return null;
+    throw new RetryLaterError(
+        result.kind === "retry"
+            ? result.message
+            : `Configuration problem (${result.code}): ${result.message}`,
+        result.retryAfterMs,
+    );
 }

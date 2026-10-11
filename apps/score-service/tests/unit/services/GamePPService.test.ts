@@ -25,7 +25,7 @@ const fields: CalculateScoreFields = {
     sliderHits: { head: 10, tick: 20, repeat: 1, end: 9 },
     ppMultiplier: 0.5,
 };
-const nothing = { pp: null, pp_multiplier: null };
+const failed = { kind: "failed" };
 const replayFile = Buffer.from("replay");
 
 describe("GamePPService", () => {
@@ -73,8 +73,8 @@ describe("GamePPService", () => {
         totals = [80, 100];
 
         expect(await service.calculateScore(fields)).toEqual({
-            pp: 40,
-            pp_multiplier: 0.4,
+            kind: "ok",
+            response: { pp: 40, pp_multiplier: 0.4 },
         });
         expect(broker.calls).toHaveLength(2);
         expect(broker.calls[0]).toEqual({
@@ -121,8 +121,8 @@ describe("GamePPService", () => {
         totals = [80, 0];
 
         expect(await service.calculateScore(fields)).toEqual({
-            pp: 40,
-            pp_multiplier: 1,
+            kind: "ok",
+            response: { pp: 40, pp_multiplier: 1 },
         });
     });
 
@@ -137,17 +137,64 @@ describe("GamePPService", () => {
         ]);
     });
 
-    it("answers nulls and logs when the calculation fails", async () => {
+    it("is a permanent failure and logs when the calculation is rejected", async () => {
         broker.onPerformance = () => beatmapNotFound;
 
-        expect(await service.calculateScore(fields)).toEqual(nothing);
+        expect(await service.calculateScore(fields)).toEqual(failed);
         expect(broker.calls).toHaveLength(1);
         expect(log).toHaveBeenCalledWith(
             expect.stringMatching(/calculate-score failed.*BEATMAP_NOT_FOUND/),
         );
     });
 
-    it("answers nulls when the no-penalty calculation fails", async () => {
+    it.each([
+        ["a busy upstream", retryLater],
+        [
+            "a rejected UNAUTHORIZED",
+            {
+                ok: false,
+                kind: "rejected",
+                status: 401,
+                code: "UNAUTHORIZED",
+                message: "bad key",
+            } as const,
+        ],
+        [
+            "a rejected VARIANT_NOT_FOUND",
+            {
+                ok: false,
+                kind: "rejected",
+                status: 404,
+                code: "VARIANT_NOT_FOUND",
+                message: "no variant",
+            } as const,
+        ],
+    ])("is retry later for %s", async (_, answer) => {
+        broker.onPerformance = () => answer;
+        broker.onReplay = () => answer;
+        parsed = parsedReplayFor(scoreRow(), { version: 7 });
+
+        expect(await service.calculateScore(fields)).toEqual({
+            kind: "retry",
+        });
+        expect(await service.calculateReplay(replayFile)).toEqual({
+            kind: "retry",
+        });
+    });
+
+    it("answers a permanent failure when the no-penalty calculation is rejected", async () => {
+        let calls = 0;
+
+        broker.onPerformance = () =>
+            ++calls === 1
+                ? { ok: true, value: performanceBody(80) }
+                : beatmapNotFound;
+
+        expect(await service.calculateScore(fields)).toEqual(failed);
+        expect(broker.calls).toHaveLength(2);
+    });
+
+    it("is retry later when the no-penalty calculation is busy", async () => {
         let calls = 0;
 
         broker.onPerformance = () =>
@@ -155,7 +202,9 @@ describe("GamePPService", () => {
                 ? { ok: true, value: performanceBody(80) }
                 : retryLater;
 
-        expect(await service.calculateScore(fields)).toEqual(nothing);
+        expect(await service.calculateScore(fields)).toEqual({
+            kind: "retry",
+        });
         expect(broker.calls).toHaveLength(2);
     });
 
@@ -166,8 +215,8 @@ describe("GamePPService", () => {
         totals = [90, 100];
 
         expect(await service.calculateReplay(replayFile)).toEqual({
-            pp: 90,
-            pp_multiplier: 0.9,
+            kind: "ok",
+            response: { pp: 90, pp_multiplier: 0.9 },
         });
         expect(broker.calls).toEqual([
             {
@@ -210,15 +259,18 @@ describe("GamePPService", () => {
                 parsedReplayFor(row, { version: 2, v3: null }),
         ],
         ["an unparsable replay", () => null],
-    ])("answers nulls without calling the broker for %s", async (_, make) => {
-        parsed = make(scoreRow());
+    ])(
+        "is a permanent failure without calling the broker for %s",
+        async (_, make) => {
+            parsed = make(scoreRow());
 
-        expect(await service.calculateReplay(replayFile)).toEqual(nothing);
-        expect(broker.calls).toEqual([]);
-        expect(log).toHaveBeenCalledWith(
-            expect.stringContaining("unsupported or unreadable replay"),
-        );
-    });
+            expect(await service.calculateReplay(replayFile)).toEqual(failed);
+            expect(broker.calls).toEqual([]);
+            expect(log).toHaveBeenCalledWith(
+                expect.stringContaining("unsupported or unreadable replay"),
+            );
+        },
+    );
 
     it("uses the requested variant for a replay", async () => {
         parsed = parsedReplayFor(scoreRow(), { version: 7 });

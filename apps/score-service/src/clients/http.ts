@@ -28,6 +28,15 @@ export interface JsonRequest {
      * For 2xx bodies that do not match the schema.
      */
     readonly malformedCode: ErrorCode;
+
+    /**
+     * When set, only a response with this status and a body matching the schema is a definite answer; every other
+     * non-2xx response is retried, whatever its status.
+     */
+    readonly definiteRejection?: {
+        readonly status: number;
+        readonly body: z.ZodType;
+    };
 }
 
 const errorBodySchema = z.object({
@@ -88,6 +97,11 @@ export async function requestJson<T>(
 
     if (!response.ok) {
         const error = errorBodySchema.safeParse(body);
+        const rule = request.definiteRejection;
+        const definite =
+            !rule ||
+            (response.status === rule.status &&
+                rule.body.safeParse(body).success);
 
         return failureFromResponse(
             response,
@@ -97,6 +111,7 @@ export async function requestJson<T>(
             error.success
                 ? error.data.error.message
                 : `${request.service} responded with status ${response.status.toString()}`,
+            !definite,
         );
     }
 

@@ -42,7 +42,7 @@ export class ScoreRecalculationService implements IScoreRecalculationService {
         }
 
         if (score.score === 0) {
-            await this.invalidate(scoreId);
+            await this.invalidate(scoreId, "score value 0");
             return;
         }
 
@@ -50,17 +50,30 @@ export class ScoreRecalculationService implements IScoreRecalculationService {
             await this.beatmaps.getBeatmap("bulk", score.hash),
         );
 
-        if (!beatmap || !rankedStatuses.has(beatmap.rankedStatus)) {
-            await this.invalidate(scoreId);
+        if (!beatmap) {
+            await this.invalidate(scoreId, "beatmap not found");
             return;
         }
 
-        const result = requireValue(
-            await this.calculator.calculateStats(
-                this.config.variants.liveDroid,
-                score,
-            ),
+        if (!rankedStatuses.has(beatmap.rankedStatus)) {
+            await this.invalidate(
+                scoreId,
+                `beatmap not ranked or approved (status ${beatmap.rankedStatus.toString()})`,
+            );
+            return;
+        }
+
+        const calculation = await this.calculator.calculateStats(
+            this.config.variants.liveDroid,
+            score,
         );
+        const result = requireValue(calculation);
+
+        if (!result && !calculation.ok) {
+            console.log(
+                `Cleared pp of score ${scoreId.toString()}: calculation rejected (${calculation.code})`,
+            );
+        }
         const replay = result
             ? await this.replays.readScoreReplay("online", scoreId)
             : null;
@@ -91,7 +104,9 @@ export class ScoreRecalculationService implements IScoreRecalculationService {
         await this.bestScores.removeReplays(stale);
     }
 
-    private invalidate(scoreId: number): Promise<void> {
+    private invalidate(scoreId: number, reason: string): Promise<void> {
+        console.log(`Invalidated score ${scoreId.toString()}: ${reason}`);
+
         return this.official.transaction(async (repository) => {
             await repository.setScorePP(scoreId, null);
             await repository.setBestScorePP(scoreId, 0);

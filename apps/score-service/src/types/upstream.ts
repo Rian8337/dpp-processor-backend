@@ -2,10 +2,16 @@ import type { ErrorCode } from "@dpp/shared";
 import { RetryLaterError } from "./errors";
 
 /**
- * Why a call to the broker, the beatmap service, or the Discord backend failed.
+ * Why a call to the broker or the beatmap service failed.
  *
- * - `rejected`: a definite answer (4xx, 500, or a malformed body). Retrying gets the same answer.
- * - `retry`: the upstream is busy or unreachable (`502`, `503`, `504`, `429`, connection failure, timeout).
+ * Classification rule, applied everywhere: **permanent (`rejected`) means a definite answer about this item;
+ * everything else is `retry`.** Background work that gets a `retry` leaves its data untouched and tries again later;
+ * only a `rejected` answer may invalidate or skip an item.
+ *
+ * - Broker: a 4xx (except `429`) or a `CALCULATION_FAILED` answer is definite. Any other 5xx, `429`, a connection
+ *   failure, a timeout, or a malformed 2xx body (a configuration error, such as a wrong-mode processor) is `retry`.
+ * - Beatmap service: only a `404` with its JSON `{ "error": string }` body ("beatmap not found") is definite.
+ *   Everything else (`401` for a wrong key, other 4xx, 5xx, non-JSON bodies, malformed 2xx bodies) is `retry`.
  */
 export interface UpstreamFailure {
     readonly ok: false;
@@ -24,18 +30,22 @@ export type UpstreamResult<T> =
     | { readonly ok: true; readonly value: T }
     | UpstreamFailure;
 
-const retryStatuses = new Set([429, 502, 503, 504]);
-
 /**
- * Classifies a non-2xx response.
+ * Classifies a non-2xx response. With `retryAll`, every status is `retry` (the caller has already decided that this
+ * response is not a definite answer).
  */
 export function failureFromResponse(
     response: Response,
     code: ErrorCode,
     message: string,
+    retryAll = false,
 ): UpstreamFailure {
-    const retry = retryStatuses.has(response.status);
-    const retryAfter = Number(response.headers.get("retry-after"));
+    const retry =
+        retryAll ||
+        response.status === 429 ||
+        (response.status >= 500 && code !== "CALCULATION_FAILED");
+    const header = response.headers.get("retry-after")?.trim();
+    const retryAfter = header ? Number(header) : Number.NaN;
 
     return {
         ok: false,
@@ -45,8 +55,7 @@ export function failureFromResponse(
         message,
         ...(retry &&
             Number.isFinite(retryAfter) &&
-            retryAfter >= 0 &&
-            response.headers.has("retry-after") && {
+            retryAfter >= 0 && {
                 retryAfterMs: retryAfter * 1000,
             }),
     };
@@ -60,10 +69,11 @@ export function unreachable(code: ErrorCode, message: string): UpstreamFailure {
 }
 
 /**
- * The failure for a 2xx response whose body is not what was expected.
+ * The failure for a 2xx response whose body is not what was expected. It is a configuration or upstream bug, not a
+ * statement about the item, so it is retried.
  */
 export function malformed(code: ErrorCode, message: string): UpstreamFailure {
-    return { ok: false, kind: "rejected", status: 502, code, message };
+    return { ok: false, kind: "retry", status: 502, code, message };
 }
 
 /**

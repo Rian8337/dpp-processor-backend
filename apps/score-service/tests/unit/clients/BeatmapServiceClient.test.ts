@@ -77,7 +77,7 @@ describe("BeatmapServiceClient", () => {
 
     it("returns null for a beatmap that does not exist", async () => {
         const { server, client } = await stub(
-            json(404, { error: { message: "not found" } }),
+            json(404, { error: "Beatmap not found" }),
         );
 
         await using _server = server;
@@ -114,9 +114,31 @@ describe("BeatmapServiceClient", () => {
 
         expect(await client.getBeatmap("priority", hash)).toMatchObject({
             ok: false,
-            kind: "rejected",
+            kind: "retry",
             status: 502,
             code: "BEATMAP_SERVICE_UNAVAILABLE",
+        });
+    });
+
+    it.each([
+        ["401 Unauthorized", 401, JSON.stringify({ error: "Unauthorized" })],
+        ["403", 403, JSON.stringify({ error: "Forbidden" })],
+        ["400", 400, JSON.stringify({ error: "Missing hash" })],
+        ["500", 500, JSON.stringify({ error: "Boom" })],
+        ["non-JSON 404", 404, "<html>nginx</html>"],
+        ["404 with another JSON body", 404, JSON.stringify({ message: "x" })],
+    ])("retries later on %s", async (_, status, body) => {
+        const { server, client } = await stub((res) => {
+            res.statusCode = status;
+            res.end(body);
+        });
+
+        await using _server = server;
+
+        expect(await client.getBeatmap("priority", hash)).toMatchObject({
+            ok: false,
+            kind: "retry",
+            status,
         });
     });
 
@@ -129,7 +151,7 @@ describe("BeatmapServiceClient", () => {
 
         expect(await client.getBeatmap("priority", hash)).toMatchObject({
             ok: false,
-            kind: "rejected",
+            kind: "retry",
             status: 502,
         });
     });

@@ -100,7 +100,7 @@ describe("BrokerClient", () => {
             await missing.client.replayPerformance("x", { replay: "AAAA" }),
         ).toMatchObject({
             ok: false,
-            kind: "rejected",
+            kind: "retry",
             status: 502,
             code: "PROCESSOR_ERROR",
         });

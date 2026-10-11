@@ -3,6 +3,7 @@ import { dependencyTokens } from "@/dependencies/tokens";
 import type { UpstreamResult } from "@/types/upstream";
 import { Injectable } from "@dpp/server";
 import { inject } from "tsyringe";
+import { z } from "zod";
 import { requestJson } from "./http";
 import type {
     BeatmapInfo,
@@ -12,6 +13,11 @@ import type {
 import { beatmapMetadataSchema } from "./schemas";
 
 const timeoutMs = 15_000;
+
+/**
+ * The beatmap service's own "not found" body. A 404 with any other body comes from a proxy or a wrong path.
+ */
+const notFoundBodySchema = z.object({ error: z.string() });
 
 @Injectable(dependencyTokens.beatmapServiceClient)
 export class BeatmapServiceClient implements IBeatmapServiceClient {
@@ -37,6 +43,7 @@ export class BeatmapServiceClient implements IBeatmapServiceClient {
                 service: "Beatmap service",
                 fallbackCode: "BEATMAP_SERVICE_UNAVAILABLE",
                 malformedCode: "BEATMAP_SERVICE_UNAVAILABLE",
+                definiteRejection: { status: 404, body: notFoundBodySchema },
             },
             beatmapMetadataSchema.refine(
                 (beatmap) => beatmap.file_md5 === hash,
@@ -44,8 +51,11 @@ export class BeatmapServiceClient implements IBeatmapServiceClient {
         );
 
         if (!result.ok) {
-            // Only a real "not found" is 404; refusals and outages are 503 with Retry-After.
-            return result.status === 404 ? { ok: true, value: null } : result;
+            // Only the beatmap service's own 404 is "not found"; everything else (a wrong key, outages, odd bodies) is
+            // retry, so a failure here never invalidates scores.
+            return result.kind === "rejected" && result.status === 404
+                ? { ok: true, value: null }
+                : result;
         }
 
         const beatmap = result.value;

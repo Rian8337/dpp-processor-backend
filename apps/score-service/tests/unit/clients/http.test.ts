@@ -87,7 +87,7 @@ describe("requestJson", () => {
 
     it("ignores an unknown error code", async () => {
         await using server = await startHttpServer((_req, res) => {
-            res.statusCode = 500;
+            res.statusCode = 400;
             res.end(
                 JSON.stringify({ error: { code: "WHATEVER", message: "m" } }),
             );
@@ -103,7 +103,7 @@ describe("requestJson", () => {
         });
     });
 
-    it("treats a body of the wrong shape as a permanent failure", async () => {
+    it("treats a body of the wrong shape as retry later", async () => {
         await using server = await startHttpServer((_req, res) => {
             res.end(JSON.stringify({ value: "nope" }));
         });
@@ -111,7 +111,7 @@ describe("requestJson", () => {
         expect(await requestJson({ ...base, url: server.url }, schema)).toEqual(
             {
                 ok: false,
-                kind: "rejected",
+                kind: "retry",
                 status: 502,
                 code: "PROCESSOR_ERROR",
                 message: "Test returned an unexpected response",
@@ -119,7 +119,7 @@ describe("requestJson", () => {
         );
     });
 
-    it("treats non-JSON success as a permanent failure", async () => {
+    it("treats non-JSON success as retry later", async () => {
         await using server = await startHttpServer((_req, res) => {
             res.end("<html>");
         });
@@ -128,7 +128,7 @@ describe("requestJson", () => {
             await requestJson({ ...base, url: server.url }, schema),
         ).toMatchObject({
             ok: false,
-            kind: "rejected",
+            kind: "retry",
             status: 502,
         });
     });

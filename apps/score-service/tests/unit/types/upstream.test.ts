@@ -1,6 +1,7 @@
 import { RetryLaterError, UpstreamError } from "@/types/errors";
 import {
     failureFromResponse,
+    malformed,
     requireValue,
     unreachable,
 } from "@/types/upstream";
@@ -17,15 +18,40 @@ describe("failureFromResponse", () => {
         ).toBe("retry");
     });
 
-    it.each([400, 401, 403, 404, 422, 500])(
-        "treats %i as rejected",
-        (status) => {
-            expect(
-                failureFromResponse(response(status), "INTERNAL_ERROR", "m")
-                    .kind,
-            ).toBe("rejected");
-        },
-    );
+    it.each([400, 401, 403, 404, 422])("treats %i as rejected", (status) => {
+        expect(
+            failureFromResponse(response(status), "INTERNAL_ERROR", "m").kind,
+        ).toBe("rejected");
+    });
+
+    it.each([500, 501, 502])("treats %i as retry later", (status) => {
+        expect(
+            failureFromResponse(response(status), "INTERNAL_ERROR", "m").kind,
+        ).toBe("retry");
+    });
+
+    it("keeps a 5xx CALCULATION_FAILED rejected", () => {
+        expect(
+            failureFromResponse(response(500), "CALCULATION_FAILED", "m").kind,
+        ).toBe("rejected");
+    });
+
+    it("retries every status when asked to", () => {
+        expect(
+            failureFromResponse(response(404), "INTERNAL_ERROR", "m", true)
+                .kind,
+        ).toBe("retry");
+    });
+
+    it("treats a blank Retry-After as absent", () => {
+        expect(
+            failureFromResponse(
+                response(503, { "Retry-After": " " }),
+                "INTERNAL_ERROR",
+                "m",
+            ),
+        ).not.toHaveProperty("retryAfterMs");
+    });
 
     it("reads Retry-After in seconds", () => {
         expect(
@@ -52,6 +78,18 @@ describe("failureFromResponse", () => {
                 "m",
             ),
         ).not.toHaveProperty("retryAfterMs");
+    });
+});
+
+describe("malformed", () => {
+    it("is retry later with status 502", () => {
+        expect(malformed("PROCESSOR_ERROR", "m")).toEqual({
+            ok: false,
+            kind: "retry",
+            status: 502,
+            code: "PROCESSOR_ERROR",
+            message: "m",
+        });
     });
 });
 

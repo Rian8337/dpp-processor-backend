@@ -14,7 +14,7 @@ import {
     retryLater,
 } from "@test/utils/fakes";
 import { bestScoreRow, scoreRow, testHash } from "@test/utils/rows";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 describe("ScoreRecalculationService", () => {
     let official: InMemoryOfficialScoreRepository;
@@ -96,6 +96,56 @@ describe("ScoreRecalculationService", () => {
         expect(official.scores[0]!.pp).toBeNull();
         expect(official.bestScores[0]!.pp).toBe(0);
         expect(broker.calls).toEqual([]);
+    });
+
+    it.each([401, 500])(
+        "throws RetryLaterError and changes nothing when the beatmap service answers %i",
+        async (status) => {
+            official.scores = [scoreRow({ id: 1, pp: 50 })];
+            official.bestScores = [bestScoreRow({ id: 1, pp: 50 })];
+            beatmaps.answer = () => ({
+                ok: false,
+                kind: "retry",
+                status,
+                code: "BEATMAP_SERVICE_UNAVAILABLE",
+                message: "m",
+            });
+
+            await expect(service.recalculate(1)).rejects.toBeInstanceOf(
+                RetryLaterError,
+            );
+            expect(official.scores[0]!.pp).toBe(50);
+            expect(official.bestScores[0]!.pp).toBe(50);
+        },
+    );
+
+    it.each([
+        ["score value 0", { score: 0 }, undefined],
+        ["beatmap not found", {}, () => ({ ...beatmapNotFound })],
+        [
+            "beatmap not ranked or approved (status 4)",
+            {},
+            (hash: string) => ({
+                ok: true as const,
+                value: { hash, title: "T", rankedStatus: RankedStatus.Loved },
+            }),
+        ],
+    ])("logs why it invalidated: %s", async (reason, row, answer) => {
+        const log = vi.spyOn(console, "log").mockImplementation(() => {});
+
+        official.scores = [scoreRow({ id: 7, pp: 50, ...row })];
+        official.bestScores = [bestScoreRow({ id: 7, pp: 50 })];
+
+        if (answer) {
+            beatmaps.answer = answer as typeof beatmaps.answer;
+        }
+
+        await service.recalculate(7);
+
+        expect(log).toHaveBeenCalledWith(
+            expect.stringContaining(`score 7: ${reason}`),
+        );
+        log.mockRestore();
     });
 
     it("calculates a score on an approved beatmap", async () => {
@@ -184,7 +234,16 @@ describe("ScoreRecalculationService", () => {
         official.bestScores = [bestScoreRow({ id: 2, pp: 70 })];
         broker.onPerformance = () => beatmapNotFound;
 
+        const log = vi.spyOn(console, "log").mockImplementation(() => {});
+
         await service.recalculate(1);
+
+        expect(log).toHaveBeenCalledWith(
+            expect.stringContaining(
+                "score 1: calculation rejected (BEATMAP_NOT_FOUND)",
+            ),
+        );
+        log.mockRestore();
 
         expect(official.scores[0]!.pp).toBeNull();
         expect(official.bestScores).toEqual([bestScoreRow({ id: 2, pp: 70 })]);

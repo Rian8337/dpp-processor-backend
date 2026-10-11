@@ -21,7 +21,7 @@
         "@dpp/server": "workspace:*",
         "@dpp/shared": "workspace:*",
         "@rian8337/osu-base": "4.0.0-beta.100",
-        "@rian8337/osu-droid-replay-analyzer": "4.0.0-beta.100",
+        "@rian8337/osu-droid-replay-analyzer": "4.0.0-beta.101",
         "chokidar": "^5.0.0",
         "drizzle-orm": "0.45.3",
         "express": "5.2.1",

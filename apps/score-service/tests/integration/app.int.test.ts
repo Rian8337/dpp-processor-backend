@@ -11,7 +11,7 @@ import {
 } from "@test/utils/fakes";
 import { scoreRow, testHash } from "@test/utils/rows";
 import request from "supertest";
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 describe("score service API (integration)", () => {
     const resources = new AsyncDisposableStack();

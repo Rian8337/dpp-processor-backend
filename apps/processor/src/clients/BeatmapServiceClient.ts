@@ -13,6 +13,11 @@ const timeoutMs = 10_000;
 
 class InvalidBodyError extends Error {}
 
+/**
+ * The beatmap service's own "not found" body. A 404 with any other body comes from a proxy or a wrong path.
+ */
+const notFoundBodySchema = z.object({ error: z.string() });
+
 // The beatmap service returns the osu! API v1 format; only these fields are used.
 const metadataSchema = z.object({
     beatmap_id: z
@@ -63,7 +68,7 @@ export class BeatmapServiceClient implements IBeatmapServiceClient {
      * Requests a route and reads the body. Failing to reach the service, a bad status, and failing to read or
      * validate the body (including stalling past the timeout) are all "service unavailable".
      *
-     * @returns The result of `readBody`, or `null` on 404.
+     * @returns The result of `readBody`, or `null` when the beatmap service itself answers 404.
      */
     private async request<T>(
         route: string,
@@ -87,9 +92,14 @@ export class BeatmapServiceClient implements IBeatmapServiceClient {
             const response = await fetch(requestUrl, { signal });
 
             if (response.status === 404) {
-                await response.body?.cancel();
+                if (await isNotFoundBody(response)) {
+                    return null;
+                }
 
-                return null;
+                throw new ServiceUnavailableError(
+                    "BEATMAP_SERVICE_UNAVAILABLE",
+                    "Beatmap service responded with status 404 without its own not-found body",
+                );
             }
 
             if (!response.ok) {
@@ -114,5 +124,13 @@ export class BeatmapServiceClient implements IBeatmapServiceClient {
                     : "Beatmap service is unreachable or returned an unreadable response",
             );
         }
+    }
+}
+
+async function isNotFoundBody(response: Response): Promise<boolean> {
+    try {
+        return notFoundBodySchema.safeParse(await response.json()).success;
+    } catch {
+        return false;
     }
 }

@@ -46,7 +46,9 @@ function startBeatmapService(port: number): Promise<Server> {
         );
 
         if (!beatmap) {
-            res.writeHead(404).end();
+            res.writeHead(404, { "Content-Type": "application/json" }).end(
+                JSON.stringify({ error: "Beatmap not found" }),
+            );
             return;
         }
 

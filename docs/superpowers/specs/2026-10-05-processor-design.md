@@ -211,17 +211,17 @@ Data flow for `POST /performance`:
 
 Error responses are `{ error: { code, message } }`. Codes are defined in `@dpp/shared`.
 
-| Status | Code                          | Cause                                                 |
-| ------ | ----------------------------- | ----------------------------------------------------- |
-| 400    | `INVALID_REQUEST`             | body failed validation; `message` has the first issue |
-| 401    | `UNAUTHORIZED`                | missing or wrong API key                              |
-| 404    | `BEATMAP_NOT_FOUND`           | beatmap service returned 404                          |
-| 422    | `INVALID_BEATMAP`             | `.osu` text could not be decoded                      |
-| 422    | `INVALID_REPLAY`              | replay could not be decoded or analyzed               |
-| 503    | `BEATMAP_SERVICE_UNAVAILABLE` | beatmap service timed out or failed                   |
-| 503    | `OVERLOADED`                  | worker queue is full                                  |
-| 500    | `CALCULATION_FAILED`          | calculator threw, or a worker crashed during the task |
-| 500    | `INTERNAL_ERROR`              | anything else; logged, details not sent               |
+| Status | Code                          | Cause                                                      |
+| ------ | ----------------------------- | ---------------------------------------------------------- |
+| 400    | `INVALID_REQUEST`             | body failed validation; `message` has the first issue      |
+| 401    | `UNAUTHORIZED`                | missing or wrong API key                                   |
+| 404    | `BEATMAP_NOT_FOUND`           | beatmap service returned 404 with its own `{ error }` body |
+| 422    | `INVALID_BEATMAP`             | `.osu` text could not be decoded                           |
+| 422    | `INVALID_REPLAY`              | replay could not be decoded or analyzed                    |
+| 503    | `BEATMAP_SERVICE_UNAVAILABLE` | beatmap service timed out or failed (incl. any other 404)  |
+| 503    | `OVERLOADED`                  | worker queue is full                                       |
+| 500    | `CALCULATION_FAILED`          | calculator threw, or a worker crashed during the task      |
+| 500    | `INTERNAL_ERROR`              | anything else; logged, details not sent                    |
 
 - Database read failures in the cache are treated as misses; write failures are logged and the result is still returned.
 - Piscina replaces crashed workers; only the affected task fails.

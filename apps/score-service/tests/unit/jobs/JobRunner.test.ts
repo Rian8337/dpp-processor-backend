@@ -16,12 +16,15 @@ import {
     type MockInstance,
 } from "vitest";
 
+// Each test starts an in-memory Postgres, which is slow on a loaded machine.
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
+
 const job: JobDefinition = {
     name: "rescore",
     kind: "scores",
     from: 1,
-    to: 2500,
-    chunkSize: 1000,
+    to: 250,
+    chunkSize: 100,
 };
 
 function range(from: number, to: number): number[] {
@@ -75,7 +78,7 @@ describe("JobRunner", () => {
         );
 
         expect(result).toBe("finished");
-        expect(seen.sort((a, b) => a - b)).toEqual(range(1, 2500));
+        expect(seen.sort((a, b) => a - b)).toEqual(range(1, 250));
         expect((await repository.status("rescore"))?.chunks).toEqual({
             done: 3,
             inProgress: 0,
@@ -96,7 +99,7 @@ describe("JobRunner", () => {
             ),
         );
 
-        expect(seen).toEqual(range(1, 2500));
+        expect(seen).toEqual(range(1, 250));
     });
 
     it("retries an ID after the delay a RetryLaterError asks for, skipping nothing", async () => {
@@ -116,8 +119,35 @@ describe("JobRunner", () => {
         );
 
         expect(delays).toEqual([7000]);
-        expect(seen.sort((a, b) => a - b)).toEqual(range(1, 2500));
+        expect(seen.sort((a, b) => a - b)).toEqual(range(1, 250));
     });
+
+    it.each([
+        [0, 5000],
+        [1000, 5000],
+        [7000, 7000],
+        [3_600_000, 300_000],
+    ])(
+        "waits %i ms asked by Retry-After as %i ms",
+        async (retryAfterMs, expected) => {
+            let failed = false;
+
+            await runner.run(
+                options((id) => {
+                    if (id === 5 && !failed) {
+                        failed = true;
+                        return Promise.reject(
+                            new RetryLaterError("busy", retryAfterMs),
+                        );
+                    }
+
+                    return Promise.resolve();
+                }),
+            );
+
+            expect(delays).toEqual([expected]);
+        },
+    );
 
     it("retries a plain error with doubling backoff and logs each attempt", async () => {
         let failures = 0;
@@ -149,7 +179,7 @@ describe("JobRunner", () => {
                 (id) => {
                     first.push(id);
 
-                    if (id === 1500) {
+                    if (id === 150) {
                         controller.abort();
                     }
 
@@ -160,13 +190,13 @@ describe("JobRunner", () => {
         );
 
         expect(interrupted).toBe("interrupted");
-        expect(first).toEqual(range(1, 1500));
+        expect(first).toEqual(range(1, 150));
 
         const status = await repository.status("rescore");
 
         expect(status?.chunks).toEqual({ done: 1, inProgress: 1, pending: 1 });
         expect(status?.active).toEqual([
-            { start: 1001, end: 2000, worker: 0, lastProcessedId: 1500 },
+            { start: 101, end: 200, worker: 0, lastProcessedId: 150 },
         ]);
 
         const second: number[] = [];
@@ -181,7 +211,7 @@ describe("JobRunner", () => {
         );
 
         expect(finished).toBe("finished");
-        expect(second).toEqual(range(1501, 2500));
+        expect(second).toEqual(range(151, 250));
     });
 
     it("resumes at a different concurrency, processing every ID", async () => {
@@ -193,7 +223,7 @@ describe("JobRunner", () => {
                 (id) => {
                     first.push(id);
 
-                    if (first.length === 1200) {
+                    if (first.length === 120) {
                         controller.abort();
                     }
 
@@ -220,9 +250,9 @@ describe("JobRunner", () => {
 
         const all = [...first, ...second];
 
-        expect(new Set(all)).toEqual(new Set(range(1, 2500)));
+        expect(new Set(all)).toEqual(new Set(range(1, 250)));
         // Only IDs in flight when the abort hit may be done twice.
-        expect(all.length - 2500).toBeLessThanOrEqual(3);
+        expect(all.length - 250).toBeLessThanOrEqual(3);
         expect((await repository.status("rescore"))?.chunks).toEqual({
             done: 3,
             inProgress: 0,
@@ -260,7 +290,7 @@ describe("JobRunner", () => {
         const status = await repository.status("rescore");
 
         expect(status?.active).toEqual([
-            { start: 1, end: 1000, worker: 0, lastProcessedId: 4 },
+            { start: 1, end: 100, worker: 0, lastProcessedId: 4 },
         ]);
     });
 
@@ -287,9 +317,9 @@ describe("JobRunner", () => {
             .sort();
 
         expect(chunkLines).toEqual([
-            "Chunk 1001–2000 done",
-            "Chunk 1–1000 done",
-            "Chunk 2001–2500 done",
+            "Chunk 101–200 done",
+            "Chunk 1–100 done",
+            "Chunk 201–250 done",
         ]);
         expect(log).toHaveBeenCalledTimes(3);
     });

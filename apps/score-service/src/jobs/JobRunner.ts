@@ -94,7 +94,11 @@ export class JobRunner implements IJobRunner {
                 const backoff = backoffDelay(attempt, retryBaseMs, retryMaxMs);
                 const delayMs =
                     e instanceof RetryLaterError && e.retryAfterMs !== undefined
-                        ? Math.min(e.retryAfterMs, retryMaxMs)
+                        ? // Never retry sooner than the base delay, even for "Retry-After: 0".
+                          Math.min(
+                              Math.max(e.retryAfterMs, retryBaseMs),
+                              retryMaxMs,
+                          )
                         : backoff;
 
                 console.log(

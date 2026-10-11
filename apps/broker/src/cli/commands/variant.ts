@@ -46,7 +46,7 @@ export async function requireUnusedName(
     }
 }
 
-export const addVariant: Command = async (args, { repository, out }) => {
+export const addVariant: Command = (args) => {
     const { values, positionals } = parseArguments(args, {
         public: { type: "boolean", default: false },
         description: { type: "string" },
@@ -54,18 +54,22 @@ export const addVariant: Command = async (args, { repository, out }) => {
     const [name = ""] = expectPositionals(positionals, ["name"]);
 
     requireValidName(name);
-    await requireUnusedName(repository, name);
-    await repository.insertVariant({
-        name,
-        public: values.public,
-        description: values.description || null,
-    });
+    return async ({ repository, out }) => {
+        await requireUnusedName(repository, name);
+        await repository.insertVariant({
+            name,
+            public: values.public,
+            description: values.description || null,
+        });
 
-    out.info(`Added ${values.public ? "public" : "private"} variant ${name}.`);
-    out.info(reloadReminder);
+        out.info(
+            `Added ${values.public ? "public" : "private"} variant ${name}.`,
+        );
+        out.info(reloadReminder);
+    };
 };
 
-export const updateVariant: Command = async (args, { repository, out }) => {
+export const updateVariant: Command = (args) => {
     const { values, positionals } = parseArguments(args, {
         public: { type: "boolean", default: false },
         private: { type: "boolean", default: false },
@@ -83,68 +87,76 @@ export const updateVariant: Command = async (args, { repository, out }) => {
         );
     }
 
-    await requireVariant(repository, name);
+    return async ({ repository, out }) => {
+        await requireVariant(repository, name);
 
-    const changes: { public?: boolean; description?: string | null } = {};
+        const changes: { public?: boolean; description?: string | null } = {};
 
-    if (values.public || values.private) {
-        changes.public = values.public;
-    }
+        if (values.public || values.private) {
+            changes.public = values.public;
+        }
 
-    if (values.description !== undefined) {
-        // An empty description clears it.
-        changes.description = values.description || null;
-    }
+        if (values.description !== undefined) {
+            // An empty description clears it.
+            changes.description = values.description || null;
+        }
 
-    await repository.updateVariant(name, changes);
+        await repository.updateVariant(name, changes);
 
-    out.info(`Updated variant ${name}.`);
-    out.info(reloadReminder);
+        out.info(`Updated variant ${name}.`);
+        out.info(reloadReminder);
+    };
 };
 
-export const removeVariant: Command = async (args, { repository, out }) => {
+export const removeVariant: Command = (args) => {
     const { positionals } = parseArguments(args, {});
     const [name = ""] = expectPositionals(positionals, ["name"]);
 
-    await requireVariant(repository, name);
+    return async ({ repository, out }) => {
+        await requireVariant(repository, name);
 
-    const aliases = await repository.aliasesOf(name);
+        const aliases = await repository.aliasesOf(name);
 
-    if (aliases.length > 0) {
-        throw new CliError(
-            `Variant ${name} still has aliases: ${aliases.join(", ")}. Remove or repoint them first.`,
-        );
-    }
+        if (aliases.length > 0) {
+            throw new CliError(
+                `Variant ${name} still has aliases: ${aliases.join(", ")}. Remove or repoint them first.`,
+            );
+        }
 
-    await repository.deleteVariant(name);
+        await repository.deleteVariant(name);
 
-    out.info(`Removed variant ${name}, its instances, and its grants.`);
-    out.info(reloadReminder);
+        out.info(`Removed variant ${name}, its instances, and its grants.`);
+        out.info(reloadReminder);
+    };
 };
 
-export const listVariants: Command = async (args, { repository, out }) => {
+export const listVariants: Command = (args) => {
     const { positionals } = parseArguments(args, {});
 
     expectPositionals(positionals, []);
 
-    const variants = [...(await repository.loadSnapshot()).variants.values()];
+    return async ({ repository, out }) => {
+        const variants = [
+            ...(await repository.loadSnapshot()).variants.values(),
+        ];
 
-    if (variants.length === 0) {
-        out.info("No variants.");
+        if (variants.length === 0) {
+            out.info("No variants.");
 
-        return;
-    }
+            return;
+        }
 
-    for (const line of formatTable(
-        ["NAME", "ACCESS", "ALIASES", "INSTANCES", "DESCRIPTION"],
-        variants.map((variant) => [
-            variant.name,
-            variant.public ? "public" : "private",
-            variant.aliases.join(", ") || "-",
-            variant.instances.length.toString(),
-            variant.description ?? "-",
-        ]),
-    )) {
-        out.info(line);
-    }
+        for (const line of formatTable(
+            ["NAME", "ACCESS", "ALIASES", "INSTANCES", "DESCRIPTION"],
+            variants.map((variant) => [
+                variant.name,
+                variant.public ? "public" : "private",
+                variant.aliases.join(", ") || "-",
+                variant.instances.length.toString(),
+                variant.description ?? "-",
+            ]),
+        )) {
+            out.info(line);
+        }
+    };
 };

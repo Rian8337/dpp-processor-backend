@@ -13,4 +13,15 @@ export interface CliDependencies {
     readonly out: CliOutput;
 }
 
-export type Command = (args: string[], deps: CliDependencies) => Promise<void>;
+/**
+ * Runs a parsed command against the registry.
+ */
+export type CommandAction = (deps: CliDependencies) => Promise<void>;
+
+/**
+ * Checks a command's arguments without touching the registry.
+ *
+ * @throws {CliError} If the arguments are invalid.
+ * @returns The action that carries out the command.
+ */
+export type Command = (args: string[]) => CommandAction;

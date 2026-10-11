@@ -192,6 +192,29 @@ describe("broker (e2e)", () => {
         });
     });
 
+    it.each([
+        [["varient", "list"], "Usage:"],
+        [["instance", "add", variant], "Pass exactly one of --port or --url"],
+    ])(
+        "reports CLI usage errors (%j) before reading any configuration",
+        async (args, message) => {
+            const failure = await promisify(execFile)(
+                "node",
+                [join(brokerDir, "dist", "cli.mjs"), ...args],
+                { env: { PATH: process.env.PATH, CI: "1" } },
+            ).then(
+                () => {
+                    throw new Error("expected the CLI to fail");
+                },
+                (e: unknown) => e as { code: number; stderr: string },
+            );
+
+            expect(failure.code).toBe(1);
+            expect(failure.stderr).toContain(message);
+            expect(failure.stderr).not.toContain("DATABASE_");
+        },
+    );
+
     it("rejects an unknown key", async () => {
         const response = await fetch(`${baseUrl}/variants`, {
             headers: { "X-Api-Key": "not-a-key" },

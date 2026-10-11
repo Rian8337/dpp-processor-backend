@@ -37,56 +37,57 @@ function row(
 /**
  * Checks every instance's `GET /info` directly (not through the running broker) and prints one row per instance.
  */
-export const showStatus: Command = async (
-    args,
-    { repository, processors, healthCheckTimeoutMs, out },
-) => {
+export const showStatus: Command = (args) => {
     const { positionals } = parseArguments(args, {});
 
     expectPositionals(positionals, []);
 
-    const variants = [...(await repository.loadSnapshot()).variants.values()];
+    return async ({ repository, processors, healthCheckTimeoutMs, out }) => {
+        const variants = [
+            ...(await repository.loadSnapshot()).variants.values(),
+        ];
 
-    if (variants.length === 0) {
-        out.info("No variants.");
+        if (variants.length === 0) {
+            out.info("No variants.");
 
-        return;
-    }
+            return;
+        }
 
-    const rows = await Promise.all(
-        variants.flatMap((variant) =>
-            variant.instances.length === 0
-                ? [Promise.resolve(row(variant, "-", "no instances"))]
-                : variant.instances.map(async (instance) => {
-                      const probe = await probeInstance(
-                          processors,
-                          instance,
-                          healthCheckTimeoutMs,
-                      );
+        const rows = await Promise.all(
+            variants.flatMap((variant) =>
+                variant.instances.length === 0
+                    ? [Promise.resolve(row(variant, "-", "no instances"))]
+                    : variant.instances.map(async (instance) => {
+                          const probe = await probeInstance(
+                              processors,
+                              instance,
+                              healthCheckTimeoutMs,
+                          );
 
-                      return row(
-                          variant,
-                          instance.url,
-                          describeProbe(probe),
-                          probe.state === "down" ? undefined : probe.info,
-                      );
-                  }),
-        ),
-    );
+                          return row(
+                              variant,
+                              instance.url,
+                              describeProbe(probe),
+                              probe.state === "down" ? undefined : probe.info,
+                          );
+                      }),
+            ),
+        );
 
-    for (const line of formatTable(
-        [
-            "VARIANT",
-            "ALIASES",
-            "ACCESS",
-            "INSTANCE",
-            "STATE",
-            "MODE",
-            "ALGORITHM",
-            "CALCULATOR",
-        ],
-        rows,
-    )) {
-        out.info(line);
-    }
+        for (const line of formatTable(
+            [
+                "VARIANT",
+                "ALIASES",
+                "ACCESS",
+                "INSTANCE",
+                "STATE",
+                "MODE",
+                "ALGORITHM",
+                "CALCULATOR",
+            ],
+            rows,
+        )) {
+            out.info(line);
+        }
+    };
 };

@@ -18,28 +18,32 @@ function parseInstance(args: string[]): { variant: string; url: string } {
     return { variant, url: instanceUrl(values) };
 }
 
-export const addInstance: Command = async (args, { repository, out }) => {
+export const addInstance: Command = (args) => {
     const { variant, url } = parseInstance(args);
 
-    await requireVariant(repository, variant);
+    return async ({ repository, out }) => {
+        await requireVariant(repository, variant);
 
-    if (!(await repository.insertInstance(variant, url))) {
-        throw new CliError(`${url} is already an instance of ${variant}`);
-    }
+        if (!(await repository.insertInstance(variant, url))) {
+            throw new CliError(`${url} is already an instance of ${variant}`);
+        }
 
-    out.info(`Added instance ${url} to ${variant}.`);
-    out.info(reloadReminder);
+        out.info(`Added instance ${url} to ${variant}.`);
+        out.info(reloadReminder);
+    };
 };
 
-export const removeInstance: Command = async (args, { repository, out }) => {
+export const removeInstance: Command = (args) => {
     const { variant, url } = parseInstance(args);
 
-    await requireVariant(repository, variant);
+    return async ({ repository, out }) => {
+        await requireVariant(repository, variant);
 
-    if (!(await repository.deleteInstance(variant, url))) {
-        throw new CliError(`${url} is not an instance of ${variant}`);
-    }
+        if (!(await repository.deleteInstance(variant, url))) {
+            throw new CliError(`${url} is not an instance of ${variant}`);
+        }
 
-    out.info(`Removed instance ${url} from ${variant}.`);
-    out.info(reloadReminder);
+        out.info(`Removed instance ${url} from ${variant}.`);
+        out.info(reloadReminder);
+    };
 };

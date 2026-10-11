@@ -17,7 +17,12 @@ import {
     updateVariant,
 } from "./commands/variant";
 import { CliError } from "./errors";
-import type { CliDependencies, Command } from "./types";
+import type {
+    CliDependencies,
+    CliOutput,
+    Command,
+    CommandAction,
+} from "./types";
 
 const commands = new Map<string, Command>([
     ["variant add", addVariant],
@@ -62,26 +67,49 @@ export const usage = `Usage: pnpm --filter @dpp/broker cli <command>
   status`;
 
 /**
- * Runs one CLI command.
+ * Checks the command name and its arguments. Needs no configuration or database, so a mistyped command reports usage
+ * before anything is opened.
  *
- * @returns The exit code: 0 on success, 1 for an unknown command or a {@link CliError}.
+ * @returns The action to run, or `undefined` after printing usage or the argument error.
  */
-export async function runCli(
+export function parseCli(
     argv: readonly string[],
-    deps: CliDependencies,
-): Promise<number> {
+    out: CliOutput,
+): CommandAction | undefined {
     const [first = "", second = ""] = argv;
     const twoWordCommand = commands.get(`${first} ${second}`);
     const command = twoWordCommand ?? commands.get(first);
 
     if (!command) {
-        deps.out.error(usage);
+        out.error(usage);
 
-        return 1;
+        return undefined;
     }
 
     try {
-        await command(argv.slice(twoWordCommand ? 2 : 1), deps);
+        return command(argv.slice(twoWordCommand ? 2 : 1));
+    } catch (e) {
+        if (e instanceof CliError) {
+            out.error(e.message);
+
+            return undefined;
+        }
+
+        throw e;
+    }
+}
+
+/**
+ * Runs a parsed command.
+ *
+ * @returns The exit code: 0 on success, 1 for a {@link CliError}.
+ */
+export async function runAction(
+    action: CommandAction,
+    deps: CliDependencies,
+): Promise<number> {
+    try {
+        await action(deps);
 
         return 0;
     } catch (e) {
@@ -93,4 +121,18 @@ export async function runCli(
 
         throw e;
     }
+}
+
+/**
+ * Parses and runs one CLI command.
+ *
+ * @returns The exit code: 0 on success, 1 for an unknown command or a {@link CliError}.
+ */
+export async function runCli(
+    argv: readonly string[],
+    deps: CliDependencies,
+): Promise<number> {
+    const action = parseCli(argv, deps.out);
+
+    return action ? await runAction(action, deps) : 1;
 }

@@ -168,8 +168,8 @@ pnpm --filter @dpp/score-service test:e2e   # builds the service and runs the bu
 - MongoDB tests use `mongodb-memory-server`, which downloads `mongod` once into `~/.cache/mongodb-binaries`. Set
   `MONGOMS_DISTRO` if the OS is newer than its known builds.
 - MariaDB tests start a throwaway `mariadbd` in a temporary folder, and are skipped when `mariadbd` or
-  `mariadb-install-db` is missing (in CI, install `mariadb-server`).
-- Still to be provided: replay fixture `tests/fixtures/replays/v3.odr` (`replayVersion > 6`); tests that need it are
-  skipped until then. `v2.odr` (a replay older than v3) is optional: the production replay storage has none, so tests
-  cover the v1/v2 paths with made-up data. A real recent play document from the old backend at
-  `tests/fixtures/recent-play.json` would pin the recent play mapping.
+  `mariadb-install-db` is missing. With `REQUIRE_MARIADB=1` (set in CI, which installs `mariadb-server`) they fail
+  instead.
+- Fixtures: a real replay (`tests/fixtures/replays/v3.odr`) and a recent play document written by the old backend
+  (`tests/fixtures/recent-play.json`). `v2.odr` (a replay older than v3) is optional: the production replay storage
+  has none, so tests cover the v1/v2 paths with made-up data, and tests that need it are skipped without it.

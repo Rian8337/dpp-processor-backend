@@ -9,6 +9,7 @@ const base = {
     service: "Test",
     fallbackCode: "BROKER_UNAVAILABLE" as const,
     malformedCode: "PROCESSOR_ERROR" as const,
+    isDefiniteRejection: () => true,
 };
 
 describe("requestJson", () => {
@@ -100,6 +101,36 @@ describe("requestJson", () => {
             kind: "rejected",
             code: "BROKER_UNAVAILABLE",
             message: "m",
+        });
+    });
+
+    it("retries a rejection the caller does not consider definite", async () => {
+        await using server = await startHttpServer((_req, res) => {
+            res.statusCode = 404;
+            res.end("<html>nginx</html>");
+        });
+
+        const seen: [number, unknown][] = [];
+        const result = await requestJson(
+            {
+                ...base,
+                url: server.url,
+                isDefiniteRejection: (status, body) => {
+                    seen.push([status, body]);
+
+                    return false;
+                },
+            },
+            schema,
+        );
+
+        expect(seen).toEqual([[404, undefined]]);
+        expect(result).toEqual({
+            ok: false,
+            kind: "retry",
+            status: 404,
+            code: "BROKER_UNAVAILABLE",
+            message: "Test responded with status 404",
         });
     });
 

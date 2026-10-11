@@ -8,8 +8,11 @@ import { RetryLaterError } from "./errors";
  * everything else is `retry`.** Background work that gets a `retry` leaves its data untouched and tries again later;
  * only a `rejected` answer may invalidate or skip an item.
  *
- * - Broker: a 4xx (except `429`) or a `CALCULATION_FAILED` answer is definite. Any other 5xx, `429`, a connection
- *   failure, a timeout, or a malformed 2xx body (a configuration error, such as a wrong-mode processor) is `retry`.
+ * - Broker: only an error body whose code is one the broker or a processor sends about a request, with its matching
+ *   status (`400`/`413 INVALID_REQUEST`, `404 BEATMAP_NOT_FOUND`, `422 INVALID_BEATMAP`/`INVALID_REPLAY`,
+ *   `500 CALCULATION_FAILED`, and the configuration codes below), is definite. Any other status or body (a proxy's
+ *   page, another app's "Route not found" 404), `429`, a connection failure, a timeout, or a malformed 2xx body (a
+ *   configuration error, such as a wrong-mode processor) is `retry`.
  * - Beatmap service: only a `404` with its JSON `{ "error": string }` body ("beatmap not found") is definite.
  *   Everything else (`401` for a wrong key, other 4xx, 5xx, non-JSON bodies, malformed 2xx bodies) is `retry`.
  */

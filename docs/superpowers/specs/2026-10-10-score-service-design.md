@@ -94,7 +94,7 @@ Everything runs on the same machine except the two MongoDB clusters.
 ### Units
 
 - **Clients**
-    - `BrokerClient`: `performance(variant, request)`, `replayPerformance(variant, request)`, `variantInfo(variant)` (from `GET /variants/:name`, cached for 5 minutes). Results distinguish success, "not found / rejected" (4xx from the processor or broker), and "retry later" (`503`, `504`, `502`, `429`, connection failure), with any `Retry-After`.
+    - `BrokerClient`: `performance(variant, request)`, `replayPerformance(variant, request)`, `variantInfo(variant)` (from `GET /variants/:name`, cached for 5 minutes). Results distinguish success, "not found / rejected" (an error body with a code the processor or broker sends about a request, at its matching status: `400`/`413 INVALID_REQUEST`, `401 UNAUTHORIZED`, `404 BEATMAP_NOT_FOUND`/`VARIANT_NOT_FOUND`, `422 INVALID_BEATMAP`/`INVALID_REPLAY`, `500 CALCULATION_FAILED`), and "retry later" (everything else: other statuses or bodies such as a proxy page or another app's "Route not found" 404, `503`, `504`, `502`, `429`, connection failure), with any `Retry-After`.
     - `BeatmapServiceClient`: `getBeatmap(lane, hash)` returning title and ranked status, or "not found", or "retry later" (the beatmap service's `503`).
     - `DiscordMetadataClient`: `update(discordId)`.
 - **Repositories**

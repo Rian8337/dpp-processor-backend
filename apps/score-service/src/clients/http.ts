@@ -30,13 +30,12 @@ export interface JsonRequest {
     readonly malformedCode: ErrorCode;
 
     /**
-     * When set, only a response with this status and a body matching the schema is a definite answer; every other
-     * non-2xx response is retried, whatever its status.
+     * Whether a non-2xx response is a definite answer from the service itself. Every other non-2xx response (a proxy's
+     * error page, another app answering at a wrong URL) is retried, whatever its status.
+     *
+     * @param body The parsed JSON body, or `undefined` if it was not JSON.
      */
-    readonly definiteRejection?: {
-        readonly status: number;
-        readonly body: z.ZodType;
-    };
+    readonly isDefiniteRejection: (status: number, body: unknown) => boolean;
 }
 
 const errorBodySchema = z.object({
@@ -97,11 +96,7 @@ export async function requestJson<T>(
 
     if (!response.ok) {
         const error = errorBodySchema.safeParse(body);
-        const rule = request.definiteRejection;
-        const definite =
-            !rule ||
-            (response.status === rule.status &&
-                rule.body.safeParse(body).success);
+        const definite = request.isDefiniteRejection(response.status, body);
 
         return failureFromResponse(
             response,

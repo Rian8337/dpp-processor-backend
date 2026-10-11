@@ -43,7 +43,9 @@ export class BeatmapServiceClient implements IBeatmapServiceClient {
                 service: "Beatmap service",
                 fallbackCode: "BEATMAP_SERVICE_UNAVAILABLE",
                 malformedCode: "BEATMAP_SERVICE_UNAVAILABLE",
-                definiteRejection: { status: 404, body: notFoundBodySchema },
+                isDefiniteRejection: (status, body) =>
+                    status === 404 &&
+                    notFoundBodySchema.safeParse(body).success,
             },
             beatmapMetadataSchema.refine(
                 (beatmap) => beatmap.file_md5 === hash,

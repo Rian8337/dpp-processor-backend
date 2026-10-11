@@ -4,6 +4,7 @@ import type { UpstreamResult } from "@/types/upstream";
 import { Injectable } from "@dpp/server";
 import type { Modes } from "@rian8337/osu-base";
 import { inject } from "tsyringe";
+import { z } from "zod";
 import { requestJson, type JsonRequest } from "./http";
 import type {
     IBrokerClient,
@@ -23,6 +24,35 @@ import {
  */
 const timeoutMs = 70_000;
 const modeCacheMs = 5 * 60 * 1000;
+
+/**
+ * The rejections the broker and processors send about a request, by code with the statuses they come with. Any other
+ * non-2xx response is retried: a proxy's error page, or another app's "Route not found" 404 (also `INVALID_REQUEST`)
+ * at a wrong `BROKER_URL`, says nothing about the score. `UNAUTHORIZED` and `VARIANT_NOT_FOUND` are configuration
+ * problems that callers wait out (see `isRetryLater`).
+ */
+const definiteRejections: ReadonlyMap<string, readonly number[]> = new Map([
+    // 413: a body over the processor's size limit.
+    ["INVALID_REQUEST", [400, 413]],
+    ["UNAUTHORIZED", [401]],
+    ["BEATMAP_NOT_FOUND", [404]],
+    ["VARIANT_NOT_FOUND", [404]],
+    ["INVALID_BEATMAP", [422]],
+    ["INVALID_REPLAY", [422]],
+    ["CALCULATION_FAILED", [500]],
+]);
+
+const errorBodySchema = z.object({ error: z.object({ code: z.string() }) });
+
+function isDefiniteRejection(status: number, body: unknown): boolean {
+    const parsed = errorBodySchema.safeParse(body);
+
+    return (
+        parsed.success &&
+        (definiteRejections.get(parsed.data.error.code)?.includes(status) ??
+            false)
+    );
+}
 
 @Injectable(dependencyTokens.brokerClient)
 export class BrokerClient implements IBrokerClient {
@@ -105,6 +135,7 @@ export class BrokerClient implements IBrokerClient {
             service: "Broker",
             fallbackCode: "BROKER_UNAVAILABLE",
             malformedCode: "PROCESSOR_ERROR",
+            isDefiniteRejection,
         };
     }
 }

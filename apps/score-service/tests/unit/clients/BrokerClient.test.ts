@@ -186,4 +186,62 @@ describe("BrokerClient", () => {
         expect(await client.variantMode("v")).toMatchObject(expected);
         expect(requests).toHaveLength(2);
     });
+
+    it.each([
+        [400, "INVALID_REQUEST"],
+        [413, "INVALID_REQUEST"],
+        [401, "UNAUTHORIZED"],
+        [404, "BEATMAP_NOT_FOUND"],
+        [422, "INVALID_BEATMAP"],
+        [422, "INVALID_REPLAY"],
+        [500, "CALCULATION_FAILED"],
+    ])("treats %i %s as a definite answer", async (status, code) => {
+        const { server, client } = await stub(() => [
+            status,
+            { error: { code, message: "m" } },
+        ]);
+
+        await using _server = server;
+
+        expect(
+            await client.performance("v", {
+                beatmap: { hash },
+                mods: [],
+                score: {},
+            }),
+        ).toMatchObject({ ok: false, kind: "rejected", status, code });
+    });
+
+    it.each<[string, number, unknown]>([
+        [
+            "another app's Route not found",
+            404,
+            { error: { code: "INVALID_REQUEST", message: "Route not found" } },
+        ],
+        ["a proxy's 404 page", 404, "<html>nginx</html>"],
+        ["a proxy's 403 page", 403, "<html>forbidden</html>"],
+        [
+            "a known code with an unexpected status",
+            404,
+            { error: { code: "INVALID_REPLAY", message: "m" } },
+        ],
+        ["an unknown code", 400, { error: { code: "WHATEVER", message: "m" } }],
+        [
+            "a rate limit",
+            429,
+            { error: { code: "RATE_LIMITED", message: "m" } },
+        ],
+    ])("retries %s", async (_, status, payload) => {
+        const { server, client } = await stub(() => [status, payload]);
+
+        await using _server = server;
+
+        expect(
+            await client.performance("v", {
+                beatmap: { hash },
+                mods: [],
+                score: {},
+            }),
+        ).toMatchObject({ ok: false, kind: "retry", status });
+    });
 });

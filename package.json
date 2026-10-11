@@ -16,7 +16,7 @@
   "scripts": {
     "build": "pnpm -r run build",
     "typecheck": "pnpm -r run typecheck",
-    "test": "pnpm -r run test",
+    "test": "pnpm -r --workspace-concurrency=1 run test",
     "lint": "oxlint --fix",
     "format": "oxfmt",
     "build:variant": "pnpm --filter @dpp/processor run build:variant",

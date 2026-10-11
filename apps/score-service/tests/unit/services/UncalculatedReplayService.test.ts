@@ -142,8 +142,27 @@ describe("UncalculatedReplayService", () => {
         expect(replays.files.get("best")!.has("50.odr")).toBe(true);
     });
 
-    it("deletes the file when no row describes it", async () => {
+    it("keeps a young file that no row describes yet", async () => {
         official.uncalculatedScores = [];
+        replays.setModifiedAt(
+            "uncalculated",
+            "r.odr",
+            new Date(Date.now() - 14 * 60 * 1000),
+        );
+
+        await expect(service.processFile("r.odr")).resolves.toBe("kept");
+
+        expect(replays.files.get("uncalculated")!.has("r.odr")).toBe(true);
+        expect(broker.calls).toEqual([]);
+    });
+
+    it("deletes an old file that no row describes", async () => {
+        official.uncalculatedScores = [];
+        replays.setModifiedAt(
+            "uncalculated",
+            "r.odr",
+            new Date(Date.now() - 16 * 60 * 1000),
+        );
 
         await expect(service.processFile("r.odr")).resolves.toBe("processed");
 

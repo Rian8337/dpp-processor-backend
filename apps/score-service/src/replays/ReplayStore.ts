@@ -1,7 +1,14 @@
 import type { CliConfig } from "@/config/config";
 import { dependencyTokens } from "@/dependencies/tokens";
 import { Injectable } from "@dpp/server";
-import { chmod, readdir, readFile, unlink, writeFile } from "node:fs/promises";
+import {
+    chmod,
+    readdir,
+    readFile,
+    stat,
+    unlink,
+    writeFile,
+} from "node:fs/promises";
 import { basename, join } from "node:path";
 import { inject } from "tsyringe";
 import type { IReplayStore, ReplayFolder } from "./IReplayStore";
@@ -49,6 +56,21 @@ export class ReplayStore implements IReplayStore {
         return entries
             .filter((entry) => entry.isFile())
             .map((entry) => entry.name);
+    }
+
+    async modifiedAt(
+        folder: ReplayFolder,
+        fileName: string,
+    ): Promise<Date | null> {
+        try {
+            return (await stat(this.path(folder, fileName))).mtime;
+        } catch (e) {
+            if (isMissing(e)) {
+                return null;
+            }
+
+            throw e;
+        }
     }
 
     async delete(folder: ReplayFolder, fileName: string): Promise<void> {

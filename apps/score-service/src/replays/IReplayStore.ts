@@ -19,6 +19,9 @@ export interface IReplayStore {
     /** File names in a folder (not directories). A missing folder throws. */
     list(folder: ReplayFolder): Promise<string[]>;
 
+    /** When the file was last modified, or null if it does not exist. Other errors throw. */
+    modifiedAt(folder: ReplayFolder, fileName: string): Promise<Date | null>;
+
     /** Deletes a file; a missing file is not an error. */
     delete(folder: ReplayFolder, fileName: string): Promise<void>;
 }

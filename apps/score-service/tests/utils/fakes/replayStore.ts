@@ -10,8 +10,24 @@ export class InMemoryReplayStore implements IReplayStore {
         ),
     );
 
+    /** Modification times by `folder/fileName`; a file without an entry was modified when it was put. */
+    private readonly modified = new Map<string, Date>();
+
     put(folder: ReplayFolder, fileName: string, contents: Buffer | string) {
         this.files.get(folder)!.set(fileName, Buffer.from(contents));
+        this.modified.set(`${folder}/${fileName}`, new Date());
+    }
+
+    setModifiedAt(folder: ReplayFolder, fileName: string, date: Date) {
+        this.modified.set(`${folder}/${fileName}`, date);
+    }
+
+    modifiedAt(folder: ReplayFolder, fileName: string) {
+        return Promise.resolve(
+            this.files.get(folder)!.has(fileName)
+                ? (this.modified.get(`${folder}/${fileName}`) ?? new Date())
+                : null,
+        );
     }
 
     read(folder: ReplayFolder, fileName: string) {

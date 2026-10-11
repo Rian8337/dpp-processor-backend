@@ -17,6 +17,12 @@ import { ppMultiplierFrom } from "./ppMultiplier";
 import { calculateUserTotals, countedBestScores } from "./userTotals";
 
 /**
+ * The game copies a replay into the uncalculated folder before its transaction inserts the row, so a file without a
+ * row may just be waiting for that commit. Such a file is deleted only once it is older than this.
+ */
+const orphanGraceMs = 15 * 60 * 1000;
+
+/**
  * Calculates the scores the game recorded without pp (`bbl_score_uncalculated` rows with their replay files).
  */
 @Injectable(dependencyTokens.uncalculatedReplayService)
@@ -69,9 +75,15 @@ export class UncalculatedReplayService implements IUncalculatedReplayService {
                 return "processed";
             }
 
-            const stale = await this.official.transaction((repository) =>
+            const calculated = await this.official.transaction((repository) =>
                 this.calculate(repository, fileName, file),
             );
+
+            if (calculated === "no row") {
+                return await this.handleOrphan(fileName);
+            }
+
+            const stale = calculated;
 
             await this.replays.delete("uncalculated", fileName);
             await this.bestScores.removeReplays(stale);
@@ -88,17 +100,41 @@ export class UncalculatedReplayService implements IUncalculatedReplayService {
     }
 
     /**
+     * A replay file without a row: deleted if old enough, otherwise kept in case the game's transaction is pending.
+     */
+    private async handleOrphan(fileName: string): Promise<UncalculatedOutcome> {
+        const modified = await this.replays.modifiedAt(
+            "uncalculated",
+            fileName,
+        );
+
+        if (modified && Date.now() - modified.getTime() < orphanGraceMs) {
+            console.log(
+                `Uncalculated replay ${fileName} has no row yet; keeping it for the next pass`,
+            );
+            return "kept";
+        }
+
+        await this.replays.delete("uncalculated", fileName);
+        console.log(
+            `Uncalculated replay ${fileName} has no row; deleted the file`,
+        );
+
+        return "processed";
+    }
+
+    /**
      * Everything that touches the official database, in one transaction. Returns best replays to delete after commit.
      */
     private async calculate(
         repository: IOfficialScoreRepository,
         fileName: string,
         file: Buffer,
-    ): Promise<readonly number[]> {
+    ): Promise<readonly number[] | "no row"> {
         const row = await repository.findUncalculatedScore(fileName);
 
         if (!row) {
-            return [];
+            return "no row";
         }
 
         const leaderboard = await repository.findScore(row.uid, row.hash);

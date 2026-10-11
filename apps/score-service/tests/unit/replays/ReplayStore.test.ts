@@ -46,6 +46,18 @@ describe("ReplayStore", () => {
             expect(await store.read("unprocessed", "b.odr")).toBeNull();
         }));
 
+    it("gives the modification time, and null for a missing file", () =>
+        withStore(async (store, dirs) => {
+            await writeFile(join(dirs.uncalculated, "a.odr"), "abc");
+
+            const modified = await store.modifiedAt("uncalculated", "a.odr");
+
+            expect(modified).toEqual(
+                (await stat(join(dirs.uncalculated, "a.odr"))).mtime,
+            );
+            expect(await store.modifiedAt("uncalculated", "b.odr")).toBeNull();
+        }));
+
     it("reads score replays from the online and best folders", () =>
         withStore(async (store, dirs) => {
             await writeFile(join(dirs.online, "5.odr"), "online");

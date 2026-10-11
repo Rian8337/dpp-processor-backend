@@ -108,6 +108,37 @@ describe("calculateScoreFieldsSchema", () => {
         });
     });
 
+    it("treats empty optional fields as absent", () => {
+        expect(
+            calculateScoreFieldsSchema.parse({
+                ...fields,
+                slider_head_hit: "",
+                slider_tick_hit: "",
+                slider_repeat_hit: "",
+                slider_end_hit: "",
+                pp_multiplier: "",
+                variant: "",
+            }),
+        ).toMatchObject({ sliderHits: null, ppMultiplier: 1 });
+        expect(
+            calculateScoreFieldsSchema.parse({ ...fields, pp_multiplier: "" }),
+        ).not.toHaveProperty("variant");
+    });
+
+    it.each([
+        ["1.01", 1],
+        [3, 1],
+        ["1", 1],
+        ["0.25", 0.25],
+    ])("clamps the multiplier %s to %s at most", (multiplier, expected) => {
+        expect(
+            calculateScoreFieldsSchema.parse({
+                ...fields,
+                pp_multiplier: multiplier,
+            }).ppMultiplier,
+        ).toBe(expected);
+    });
+
     it.each([
         ["a missing hash", { hash: undefined }],
         ["a short hash", { hash: "abc" }],
@@ -121,7 +152,6 @@ describe("calculateScoreFieldsSchema", () => {
         ["an empty count", { good: "" }],
         ["a partial slider hit set", { slider_head_hit: "1" }],
         ["a zero multiplier", { pp_multiplier: "0" }],
-        ["a multiplier above 1", { pp_multiplier: "1.01" }],
         ["a non-numeric multiplier", { pp_multiplier: "x" }],
         ["an invalid variant", { variant: "Bad Name" }],
     ])("rejects %s", (_name, override) => {

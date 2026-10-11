@@ -73,70 +73,101 @@ const modsJson = z.string().transform((value, context) => {
     }
 });
 
+const optionalFields = [
+    "slider_head_hit",
+    "slider_tick_hit",
+    "slider_repeat_hit",
+    "slider_end_hit",
+    "pp_multiplier",
+    "variant",
+];
+
+/**
+ * The game's PHP sends SQL NULL as an empty string, so an empty optional field counts as absent.
+ */
+function emptyOptionalsAsAbsent(input: unknown): unknown {
+    if (typeof input !== "object" || input === null) {
+        return input;
+    }
+
+    return Object.fromEntries(
+        Object.entries(input).filter(
+            ([key, value]) => !(optionalFields.includes(key) && value === ""),
+        ),
+    );
+}
+
 /**
  * The fields of the game's `POST /calculate-score`, in `pp-processor-node`'s names. Field values arrive as strings
- * (multipart or URL-encoded) or JSON values.
+ * (multipart or URL-encoded) or JSON values. An empty optional field counts as absent, and a `pp_multiplier` above 1
+ * is clamped to 1.
  */
-export const calculateScoreFieldsSchema = z
-    .object({
-        hash: z
-            .string()
-            .regex(/^[0-9a-fA-F]{32}$/)
-            .transform((value) => value.toLowerCase()),
-        mods: modsJson.pipe(modsSchema),
-        combo: formCount,
-        perfect: formCount,
-        good: formCount,
-        bad: formCount,
-        miss: formCount,
-        total_score: formCount,
-        slider_head_hit: formCount.optional(),
-        slider_tick_hit: formCount.optional(),
-        slider_repeat_hit: formCount.optional(),
-        slider_end_hit: formCount.optional(),
-        pp_multiplier: formNumber.pipe(z.number().positive().max(1)).default(1),
-        variant: variantNameSchema.optional(),
-    })
-    .superRefine((fields, context) => {
-        const given = [
-            fields.slider_head_hit,
-            fields.slider_tick_hit,
-            fields.slider_repeat_hit,
-            fields.slider_end_hit,
-        ].filter((value) => value !== undefined).length;
+export const calculateScoreFieldsSchema = z.preprocess(
+    emptyOptionalsAsAbsent,
+    z
+        .object({
+            hash: z
+                .string()
+                .regex(/^[0-9a-fA-F]{32}$/)
+                .transform((value) => value.toLowerCase()),
+            mods: modsJson.pipe(modsSchema),
+            combo: formCount,
+            perfect: formCount,
+            good: formCount,
+            bad: formCount,
+            miss: formCount,
+            total_score: formCount,
+            slider_head_hit: formCount.optional(),
+            slider_tick_hit: formCount.optional(),
+            slider_repeat_hit: formCount.optional(),
+            slider_end_hit: formCount.optional(),
+            pp_multiplier: formNumber
+                .pipe(z.number().positive())
+                .transform((value) => Math.min(value, 1))
+                .default(1),
+            variant: variantNameSchema.optional(),
+        })
+        .superRefine((fields, context) => {
+            const given = [
+                fields.slider_head_hit,
+                fields.slider_tick_hit,
+                fields.slider_repeat_hit,
+                fields.slider_end_hit,
+            ].filter((value) => value !== undefined).length;
 
-        if (given !== 0 && given !== 4) {
-            context.addIssue({
-                code: "custom",
-                message:
-                    "slider_head_hit, slider_tick_hit, slider_repeat_hit, and slider_end_hit must be given together",
-            });
-        }
-    })
-    .transform((fields): CalculateScoreFields => ({
-        hash: fields.hash,
-        mods: fields.mods,
-        combo: fields.combo,
-        perfect: fields.perfect,
-        good: fields.good,
-        bad: fields.bad,
-        miss: fields.miss,
-        totalScore: fields.total_score,
-        sliderHits:
-            fields.slider_head_hit !== undefined &&
-            fields.slider_tick_hit !== undefined &&
-            fields.slider_repeat_hit !== undefined &&
-            fields.slider_end_hit !== undefined
-                ? {
-                      head: fields.slider_head_hit,
-                      tick: fields.slider_tick_hit,
-                      repeat: fields.slider_repeat_hit,
-                      end: fields.slider_end_hit,
-                  }
-                : null,
-        ppMultiplier: fields.pp_multiplier,
-        ...(fields.variant !== undefined && { variant: fields.variant }),
-    }));
+            if (given !== 0 && given !== 4) {
+                context.addIssue({
+                    code: "custom",
+                    message:
+                        "slider_head_hit, slider_tick_hit, slider_repeat_hit, and slider_end_hit must be given together",
+                });
+            }
+        })
+        .transform((fields): CalculateScoreFields => ({
+            hash: fields.hash,
+            mods: fields.mods,
+            combo: fields.combo,
+            perfect: fields.perfect,
+            good: fields.good,
+            bad: fields.bad,
+            miss: fields.miss,
+            totalScore: fields.total_score,
+            sliderHits:
+                fields.slider_head_hit !== undefined &&
+                fields.slider_tick_hit !== undefined &&
+                fields.slider_repeat_hit !== undefined &&
+                fields.slider_end_hit !== undefined
+                    ? {
+                          head: fields.slider_head_hit,
+                          tick: fields.slider_tick_hit,
+                          repeat: fields.slider_repeat_hit,
+                          end: fields.slider_end_hit,
+                      }
+                    : null,
+            ppMultiplier: fields.pp_multiplier,
+            ...(fields.variant !== undefined && { variant: fields.variant }),
+        })),
+);
 
 export interface CalculateScoreFields {
     readonly hash: string;

@@ -1,0 +1,289 @@
+import { AlgorithmInputError } from "@/algorithms/errors";
+import {
+    convertSliderHits,
+    hasSliderHits,
+    type SliderObjectCounts,
+} from "@/algorithms/sliderHits";
+import type { Algorithm, PerformanceResult } from "@/algorithms/types";
+import type { ICalculationRunner } from "@/calculation/ICalculationRunner";
+import { strainChartColor } from "@/calculation/strainChartColor";
+import { dependencyTokens } from "@/dependencies/tokens";
+import type { VariantManifest } from "@/manifest/manifest";
+import {
+    CalculationFailedError,
+    UnprocessableEntityError,
+} from "@/types/errors";
+import { LruCache } from "@/utils/LruCache";
+import { BadRequestError, Injectable } from "@dpp/server";
+import type {
+    DifficultyRequest,
+    DifficultyResponse,
+    PerformanceRequest,
+    PerformanceResponse,
+    ReplayPerformanceRequest,
+    ReplayPerformanceResponse,
+    ScoreParameters,
+} from "@dpp/shared";
+import { ModUtil, type ModMap, type SerializedMod } from "@rian8337/osu-base";
+import type {
+    CacheableDifficultyAttributes,
+    IDifficultyAttributes,
+} from "@rian8337/osu-difficulty-calculator";
+import { inject } from "tsyringe";
+import type { IBeatmapService, ResolvedBeatmap } from "./IBeatmapService";
+import type { ICalculationService } from "./ICalculationService";
+import type { IDifficultyCacheService } from "./IDifficultyCacheService";
+
+type Attributes = CacheableDifficultyAttributes<IDifficultyAttributes>;
+
+@Injectable(dependencyTokens.calculationService)
+export class CalculationService implements ICalculationService {
+    /**
+     * Slider object counts by beatmap hash. Counting needs the decoded beatmap, which a cached difficulty lookup
+     * never decodes, so the counts are kept separately.
+     */
+    private readonly sliderCounts = new LruCache<string, SliderObjectCounts>(
+        256,
+    );
+
+    constructor(
+        @inject(dependencyTokens.algorithm)
+        private readonly algorithm: Algorithm,
+        @inject(dependencyTokens.manifest)
+        private readonly manifest: VariantManifest,
+        @inject(dependencyTokens.beatmapService)
+        private readonly beatmaps: IBeatmapService,
+        @inject(dependencyTokens.difficultyCacheService)
+        private readonly difficultyCache: IDifficultyCacheService,
+        @inject(dependencyTokens.calculationRunner)
+        private readonly runner: ICalculationRunner,
+    ) {}
+
+    async calculateDifficulty(
+        request: DifficultyRequest,
+    ): Promise<DifficultyResponse> {
+        const beatmap = await this.beatmaps.resolve(request.beatmap);
+        const difficulty = await this.getDifficulty(beatmap, request.mods);
+
+        return {
+            difficulty,
+            ...(await this.renderStrainChart(
+                request.strainChart,
+                beatmap,
+                difficulty,
+            )),
+        };
+    }
+
+    async calculatePerformance(
+        request: PerformanceRequest,
+    ): Promise<PerformanceResponse> {
+        const beatmap = await this.beatmaps.resolve(request.beatmap);
+        const difficulty = await this.getDifficulty(beatmap, request.mods);
+
+        return {
+            difficulty,
+            ...this.calculatePerformanceAttributes(
+                difficulty,
+                await this.applySliderHits(beatmap, request.score),
+            ),
+            ...(await this.renderStrainChart(
+                request.strainChart,
+                beatmap,
+                difficulty,
+            )),
+        };
+    }
+
+    async calculateReplayPerformance(
+        request: ReplayPerformanceRequest,
+    ): Promise<ReplayPerformanceResponse> {
+        const replay = Buffer.from(request.replay, "base64");
+        const header = await this.runner.readReplay(replay);
+        const mods = request.mods ?? header.mods;
+
+        if (!mods) {
+            throw new UnprocessableEntityError(
+                "INVALID_REPLAY",
+                "This replay does not record its mods; pass them in `mods`",
+            );
+        }
+
+        const beatmap = await this.beatmaps.resolve({
+            hash: header.beatmapHash,
+        });
+        const difficulty = await this.getDifficulty(beatmap, mods);
+
+        const analysis = await this.runner.analyzeReplay({
+            beatmapHash: beatmap.hash,
+            osuFile: await beatmap.getFile(),
+            replay,
+            difficulty,
+        });
+
+        return {
+            difficulty,
+            ...this.calculatePerformanceAttributes(
+                difficulty,
+                await this.applySliderHits(beatmap, {
+                    ...analysis.score,
+                    // Hit counts in the overrides replace the analysis's own slider misses.
+                    ...(hasSliderHits(request.score) && {
+                        sliderTicksMissed: undefined,
+                        sliderEndsDropped: undefined,
+                    }),
+                    ...request.score,
+                }),
+            ),
+            replay: analysis.replay,
+            ...(await this.renderStrainChart(
+                request.strainChart,
+                beatmap,
+                difficulty,
+            )),
+        };
+    }
+
+    /**
+     * Gets difficulty attributes with the requested mods put back, since mods such as NoFail change performance
+     * without changing difficulty.
+     */
+    private async getDifficulty(
+        beatmap: ResolvedBeatmap,
+        mods: SerializedMod[],
+    ): Promise<Attributes> {
+        const attributes = await this.difficultyCache.get(
+            beatmap,
+            this.parseMods(mods),
+        );
+
+        return { ...attributes, mods };
+    }
+
+    private parseMods(mods: SerializedMod[]): ModMap {
+        const parsed = ModUtil.deserializeMods(mods);
+
+        if (parsed.size === mods.length) {
+            return parsed;
+        }
+
+        const unknown = new Set<string>();
+        const duplicate = new Set<string>();
+        const seen = new Set<string>();
+
+        for (const mod of mods) {
+            if (ModUtil.deserializeMods([mod]).size === 0) {
+                unknown.add(mod.acronym);
+            } else if (seen.has(mod.acronym)) {
+                duplicate.add(mod.acronym);
+            }
+
+            seen.add(mod.acronym);
+        }
+
+        const problems: string[] = [];
+
+        if (unknown.size > 0) {
+            problems.push(`unknown mods: ${[...unknown].join(", ")}`);
+        }
+
+        if (duplicate.size > 0) {
+            problems.push(`duplicate mods: ${[...duplicate].join(", ")}`);
+        }
+
+        if (problems.length === 0) {
+            // Every acronym is known and unique, yet some were dropped: certain mods exclude each other, and the
+            // map keeps only one of them. Report the mods that conflict with another requested mod.
+            const incompatible = new Set<string>();
+
+            for (const [i, first] of mods.entries()) {
+                for (const second of mods.slice(i + 1)) {
+                    if (ModUtil.deserializeMods([first, second]).size < 2) {
+                        incompatible.add(first.acronym);
+                        incompatible.add(second.acronym);
+                    }
+                }
+            }
+
+            problems.push(`incompatible mods: ${[...incompatible].join(", ")}`);
+        }
+
+        throw new BadRequestError(`mods contains ${problems.join("; ")}`);
+    }
+
+    /**
+     * Replaces slider hit counts with the miss counts they imply.
+     */
+    private async applySliderHits(
+        beatmap: ResolvedBeatmap,
+        score: ScoreParameters,
+    ): Promise<ScoreParameters> {
+        if (!hasSliderHits(score)) {
+            return score;
+        }
+
+        let counts = this.sliderCounts.get(beatmap.hash);
+
+        if (!counts) {
+            counts = await this.runner.countSliderObjects({
+                beatmapHash: beatmap.hash,
+                osuFile: await beatmap.getFile(),
+            });
+            this.sliderCounts.set(beatmap.hash, counts);
+        }
+
+        try {
+            return convertSliderHits(counts, score);
+        } catch (e) {
+            if (e instanceof AlgorithmInputError) {
+                throw e.toApiError();
+            }
+
+            throw e;
+        }
+    }
+
+    private calculatePerformanceAttributes(
+        difficulty: Attributes,
+        score: ScoreParameters,
+    ): PerformanceResult {
+        try {
+            return this.algorithm.calculatePerformance(difficulty, score);
+        } catch (e) {
+            if (e instanceof AlgorithmInputError) {
+                throw e.toApiError();
+            }
+
+            console.error("Performance calculation failed:", e);
+
+            throw new CalculationFailedError(
+                e instanceof Error
+                    ? e.message
+                    : "Performance calculation failed",
+            );
+        }
+    }
+
+    private async renderStrainChart(
+        requested: boolean,
+        beatmap: ResolvedBeatmap,
+        difficulty: Attributes,
+    ): Promise<{ strainChart?: string }> {
+        if (!requested) {
+            return {};
+        }
+
+        const chart = await this.runner.renderStrainChart({
+            beatmapHash: beatmap.hash,
+            osuFile: await beatmap.getFile(),
+            mods: difficulty.mods,
+            clockRate: difficulty.clockRate,
+            color: strainChartColor(
+                this.manifest.mode,
+                this.manifest.algorithm,
+            ),
+        });
+
+        return { strainChart: chart.toString("base64") };
+    }
+}

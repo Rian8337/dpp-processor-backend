@@ -1,0 +1,21 @@
+{
+    "extends": "../../tsconfig.base.json",
+    "compilerOptions": {
+        "rootDir": "./",
+        "outDir": "./dist",
+        "noEmit": true,
+        "allowImportingTsExtensions": true,
+        "paths": {
+            "@/*": ["./src/*"],
+            "@test/*": ["./tests/*"]
+        }
+    },
+    "include": [
+        "src",
+        "tests",
+        "drizzle.config.ts",
+        "tsdown.config.ts",
+        "vitest.config.mts",
+        "vitest.e2e.config.mts"
+    ]
+}

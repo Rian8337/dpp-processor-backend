@@ -1,0 +1,37 @@
+{
+    "name": "@dpp/server",
+    "private": true,
+    "version": "1.0.0",
+    "description": "HTTP and runtime plumbing shared by the dpp services",
+    "type": "module",
+    "sideEffects": false,
+    "exports": {
+        ".": "./src/index.ts",
+        "./errors": "./src/errors.ts",
+        "./testing": "./src/testing/index.ts"
+    },
+    "scripts": {
+        "typecheck": "tsc --noEmit",
+        "test": "vitest run"
+    },
+    "author": "Rian8337",
+    "license": "MIT",
+    "dependencies": {
+        "@dpp/shared": "workspace:*",
+        "drizzle-orm": "^0.45.3",
+        "express": "^5.2.1",
+        "pg": "^8.23.1",
+        "tsyringe": "^4.10.0",
+        "zod": "^4.6.5"
+    },
+    "devDependencies": {
+        "@electric-sql/pglite": "^0.5.8",
+        "@electric-sql/pglite-socket": "^0.2.11",
+        "@types/express": "^5.0.6",
+        "@types/pg": "^8.23.1",
+        "@types/supertest": "^7.2.1",
+        "reflect-metadata": "^0.2.2",
+        "supertest": "^7.3.1",
+        "vitest": "^5.0.3"
+    }
+}

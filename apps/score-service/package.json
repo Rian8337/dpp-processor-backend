@@ -1,0 +1,50 @@
+{
+    "name": "@dpp/score-service",
+    "private": true,
+    "version": "1.0.0",
+    "description": "Owns osu!droid scores: replay listener, online-score lookup, game pp endpoints, and recalculations",
+    "main": "dist/index.mjs",
+    "type": "module",
+    "scripts": {
+        "build": "tsdown",
+        "dev": "tsdown --watch --on-success \"node dist/index.mjs\"",
+        "typecheck": "tsc -p tsconfig.typecheck.json",
+        "test": "vitest run",
+        "test:coverage": "vitest run --coverage",
+        "test:e2e": "vitest run -c vitest.e2e.config.mts",
+        "db:generate": "drizzle-kit generate",
+        "cli": "node dist/cli.mjs"
+    },
+    "author": "Rian8337",
+    "license": "MIT",
+    "dependencies": {
+        "@dpp/server": "workspace:*",
+        "@dpp/shared": "workspace:*",
+        "@rian8337/osu-base": "4.0.0-beta.102",
+        "@rian8337/osu-droid-replay-analyzer": "4.0.0-beta.102",
+        "chokidar": "^5.0.0",
+        "drizzle-orm": "0.45.3",
+        "express": "5.2.1",
+        "mongodb": "^7.7.0",
+        "multer": "^2.4.0",
+        "mysql2": "^3.24.5",
+        "pg": "^8.23.1",
+        "reflect-metadata": "^0.2.2",
+        "tsyringe": "^4.10.0",
+        "zod": "^4.6.5"
+    },
+    "devDependencies": {
+        "@electric-sql/pglite": "^0.5.8",
+        "@electric-sql/pglite-socket": "^0.2.11",
+        "@types/express": "^5.0.6",
+        "@types/multer": "^2.3.0",
+        "@types/pg": "^8.23.1",
+        "@types/supertest": "^7.2.1",
+        "@vitest/coverage-v8": "^5.0.3",
+        "drizzle-kit": "^0.31.11",
+        "mongodb-memory-server": "^11.3.0",
+        "supertest": "^7.3.1",
+        "tsdown": "^0.23.0",
+        "vitest": "^5.0.3"
+    }
+}

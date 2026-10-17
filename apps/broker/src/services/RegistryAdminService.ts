@@ -1,6 +1,10 @@
 import { dependencyTokens } from "@/dependencies/tokens";
 import { generateApiKey, hashApiKey } from "@/registry/keys";
 import { invalidNameMessage, isValidName } from "@/registry/names";
+import {
+    invalidRateLimitMessage,
+    isValidRateLimit,
+} from "@/registry/rateLimits";
 import { RegistryChangeError } from "@/registry/RegistryChangeError";
 import type { KeyListing, UserListing } from "@/registry/types";
 import { isValidUid } from "@/registry/uids";
@@ -150,6 +154,7 @@ export class RegistryAdminService implements IRegistryAdminService {
         readonly grants: readonly string[];
     }): Promise<{ key: KeyListing; rawKey: string }> {
         this.requireValidName(input.name);
+        this.requireValidRateLimit(input.rateLimitPerMinute);
 
         if (await this.repository.findKey(input.name)) {
             throw new RegistryChangeError(
@@ -187,6 +192,10 @@ export class RegistryAdminService implements IRegistryAdminService {
         },
     ): Promise<KeyListing> {
         const key = await this.requireActiveKey(name);
+
+        if (changes.rateLimitPerMinute !== undefined) {
+            this.requireValidRateLimit(changes.rateLimitPerMinute);
+        }
 
         if (Object.keys(changes).length === 0) {
             return key;
@@ -250,6 +259,16 @@ export class RegistryAdminService implements IRegistryAdminService {
     private requireValidName(name: string): void {
         if (!isValidName(name)) {
             throw new RegistryChangeError("invalid", invalidNameMessage(name));
+        }
+    }
+
+    /** `null` means unlimited. */
+    private requireValidRateLimit(limit: number | null): void {
+        if (limit !== null && !isValidRateLimit(limit)) {
+            throw new RegistryChangeError(
+                "invalid",
+                invalidRateLimitMessage(limit),
+            );
         }
     }
 

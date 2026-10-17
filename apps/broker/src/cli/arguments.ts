@@ -1,4 +1,8 @@
 import { invalidNameMessage, isValidName } from "@/registry/names";
+import {
+    invalidRateLimitMessage,
+    isValidRateLimit,
+} from "@/registry/rateLimits";
 import { isValidUid } from "@/registry/uids";
 import type { UserRole } from "@dpp/shared";
 import { parseArgs, type ParseArgsOptionsConfig } from "node:util";
@@ -108,10 +112,8 @@ export function parseLimit(
 
     const value = Number(limit);
 
-    if (!Number.isInteger(value) || value < 1) {
-        throw new CliError(
-            `Invalid limit "${limit}": expected a whole number of requests per minute`,
-        );
+    if (!isValidRateLimit(value)) {
+        throw new CliError(invalidRateLimitMessage(limit));
     }
 
     return value;

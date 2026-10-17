@@ -512,6 +512,18 @@ describe("broker CLI (integration)", () => {
             );
         });
 
+        it("refuses a limit above the database range", async () => {
+            expect.hasAssertions();
+            await expectFailure(
+                ["key", "create", "bot", "--limit", "2147483648"],
+                /Invalid limit "2147483648"/,
+            );
+            expect(
+                (await run("key", "create", "bot", "--limit", "2147483647"))
+                    .code,
+            ).toBe(0);
+        });
+
         it("refuses an update with nothing to change", async () => {
             expect.hasAssertions();
             await run("key", "create", "bot", "--limit", "60");

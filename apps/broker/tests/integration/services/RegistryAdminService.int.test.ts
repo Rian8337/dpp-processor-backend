@@ -336,6 +336,51 @@ describe("RegistryAdminService (integration)", () => {
             );
         });
 
+        it("accepts only null or a positive 32-bit whole number as a limit", async () => {
+            expect.hasAssertions();
+
+            const input = {
+                name: "bot",
+                rateLimitPerMinute: 10,
+                allVariants: false,
+                canActForUsers: false,
+                grants: [],
+            };
+
+            for (const limit of [0, -5, 1.5, Number.NaN, 2147483648]) {
+                await expectChangeError(
+                    service.createKey({ ...input, rateLimitPerMinute: limit }),
+                    "invalid",
+                    `Invalid limit "${limit.toString()}": expected a whole number of requests per minute`,
+                );
+            }
+
+            expect(await repository.findKey("bot")).toBeUndefined();
+
+            await service.createKey({
+                ...input,
+                rateLimitPerMinute: 2147483647,
+            });
+
+            for (const limit of [0, -5, 1.5, Number.NaN, 2147483648]) {
+                await expectChangeError(
+                    service.updateKey("bot", { rateLimitPerMinute: limit }),
+                    "invalid",
+                    `Invalid limit "${limit.toString()}": expected a whole number of requests per minute`,
+                );
+            }
+
+            expect((await repository.findKey("bot"))?.rateLimitPerMinute).toBe(
+                2147483647,
+            );
+            expect(
+                await service.updateKey("bot", { rateLimitPerMinute: 1 }),
+            ).toMatchObject({ rateLimitPerMinute: 1 });
+            expect(
+                await service.updateKey("bot", { rateLimitPerMinute: null }),
+            ).toMatchObject({ rateLimitPerMinute: null });
+        });
+
         it("updates a key and refuses a missing or revoked one", async () => {
             expect.hasAssertions();
             await service.createKey({

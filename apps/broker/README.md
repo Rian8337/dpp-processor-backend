@@ -72,6 +72,10 @@ pnpm cli variant add droid-live --public --description "Live droid algorithm"
 pnpm cli instance add droid-live --port 3101
 pnpm cli instance add droid-live --url http://10.0.0.5:3101
 
+# Title and long description (a file keeps its line breaks), or take a variant out of public view
+pnpm cli variant update droid-live --title "Live droid" --description-file ./droid-live.txt
+pnpm cli variant update droid-live --private
+
 # A stable name clients can use, repointed when the live variant changes
 pnpm cli alias set live-droid droid-live
 
@@ -79,7 +83,16 @@ pnpm cli alias set live-droid droid-live
 pnpm cli key create discord-bot --unlimited --grant flowaim-experiment
 pnpm cli key create my-key --unlimited --all-variants
 pnpm cli key create some-site --limit 120
+pnpm cli key create web-backend --unlimited --act-for-users   # may send X-Acting-Uid for a user
+pnpm cli key update web-backend --no-act-for-users
 pnpm cli key revoke some-site
+
+# Users, by uid. This is how the first admin is created
+pnpm cli user role 51076 admin
+pnpm cli user grant 51076 flowaim-experiment
+pnpm cli user ungrant 51076 flowaim-experiment
+pnpm cli user role 51076 none    # removes the role
+pnpm cli user list
 
 # Is every processor up, and is each one the variant the registry says?
 pnpm cli status

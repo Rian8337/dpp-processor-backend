@@ -3,9 +3,13 @@ import { reloadReminder } from "@/cli/output";
 import { runCli } from "@/cli/run";
 import { hashApiKey } from "@/registry/keys";
 import { RegistryRepository } from "@/repositories/RegistryRepository";
+import { RegistryAdminService } from "@/services/RegistryAdminService";
 import { freePort } from "@dpp/server/testing";
 import { createTestDatabase, type TestDatabase } from "@test/utils/database";
 import { startStubProcessor } from "@test/utils/stubProcessor";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.setConfig({ testTimeout: 15_000, hookTimeout: 15_000 });
@@ -19,6 +23,7 @@ describe("broker CLI (integration)", () => {
         const error: string[] = [];
         const code = await runCli(argv, {
             repository,
+            admin: new RegistryAdminService(repository),
             processors: { getInfo: fetchInfo },
             healthCheckTimeoutMs: 1000,
             out: {
@@ -81,9 +86,9 @@ describe("broker CLI (integration)", () => {
             await run("instance", "add", "flowaim", "--port", "3102");
 
             expect((await run("variant", "list")).info).toEqual([
-                "NAME        ACCESS   ALIASES  INSTANCES  DESCRIPTION",
-                "droid-live  public   -        0          Live droid",
-                "flowaim     private  -        1          -",
+                "NAME        TITLE  ACCESS   ALIASES  INSTANCES  DESCRIPTION",
+                "droid-live  -      public   -        0          Live droid",
+                "flowaim     -      private  -        1          -",
             ]);
 
             expect(
@@ -138,6 +143,96 @@ describe("broker CLI (integration)", () => {
                 ["variant", "update", "missing", "--public"],
                 /No variant named "missing"/,
             );
+        });
+
+        it("sets a title and a multi-line description from a file", async () => {
+            const directory = await mkdtemp(join(tmpdir(), "broker-cli-"));
+
+            try {
+                const file = join(directory, "description.txt");
+
+                await writeFile(file, "First line\nSecond line\n");
+                await run("variant", "add", "droid-live");
+
+                const result = await run(
+                    "variant",
+                    "update",
+                    "droid-live",
+                    "--title",
+                    "Live droid",
+                    "--description-file",
+                    file,
+                );
+
+                expect(result.code).toBe(0);
+                expect(result.info).toEqual([
+                    "Updated variant droid-live.",
+                    reloadReminder,
+                ]);
+                expect(await repository.findVariant("droid-live")).toEqual({
+                    name: "droid-live",
+                    public: false,
+                    title: "Live droid",
+                    description: "First line\nSecond line",
+                });
+                expect((await run("variant", "list")).info[1]).toMatch(
+                    /^droid-live\s+Live droid\s+private/,
+                );
+
+                await writeFile(file, "Windows\r\n");
+                await run(
+                    "variant",
+                    "update",
+                    "droid-live",
+                    "--description-file",
+                    file,
+                );
+
+                expect(
+                    (await repository.findVariant("droid-live"))?.description,
+                ).toBe("Windows");
+
+                await run("variant", "update", "droid-live", "--title", "");
+
+                expect(
+                    (await repository.findVariant("droid-live"))?.title,
+                ).toBeNull();
+
+                await expectFailure(
+                    [
+                        "variant",
+                        "update",
+                        "droid-live",
+                        "--description",
+                        "x",
+                        "--description-file",
+                        file,
+                    ],
+                    /only one of --description or --description-file/,
+                );
+                await expectFailure(
+                    [
+                        "variant",
+                        "update",
+                        "droid-live",
+                        "--description-file",
+                        join(directory, "missing.txt"),
+                    ],
+                    /Cannot read ".*missing\.txt"/,
+                );
+                await expectFailure(
+                    [
+                        "variant",
+                        "update",
+                        "droid-live",
+                        "--title",
+                        "t".repeat(101),
+                    ],
+                    /Title is longer than 100 characters/,
+                );
+            } finally {
+                await rm(directory, { recursive: true, force: true });
+            }
         });
 
         it("refuses to remove a variant that aliases point at", async () => {
@@ -346,6 +441,7 @@ describe("broker CLI (integration)", () => {
                 "Access:   public variants, flowaim",
                 expect.stringMatching(/^Created:  \d{4}-\d{2}-\d{2}T/),
                 "Revoked:  -",
+                "Act for users: no",
             ]);
 
             expect((await run("key", "ungrant", "bot", "flowaim")).code).toBe(
@@ -375,10 +471,44 @@ describe("broker CLI (integration)", () => {
             const list = await run("key", "list");
 
             expect(list.info[0]).toMatch(
-                /^NAME\s+LIMIT\s+ACCESS\s+CREATED\s+REVOKED$/,
+                /^NAME\s+LIMIT\s+ACCESS\s+ACT FOR USERS\s+CREATED\s+REVOKED$/,
             );
             expect(list.info[1]).toMatch(
-                /^bot\s+unlimited\s+public variants\s+\S+\s+\d{4}-/,
+                /^bot\s+unlimited\s+public variants\s+no\s+\S+\s+\d{4}-/,
+            );
+        });
+
+        it("lets a key act for users", async () => {
+            expect.hasAssertions();
+            await run("key", "create", "bot", "--unlimited", "--act-for-users");
+
+            expect((await run("key", "show", "bot")).info).toContain(
+                "Act for users: yes",
+            );
+            expect((await run("key", "list")).info[1]).toMatch(
+                /^bot\s+unlimited\s+public variants\s+yes\s/,
+            );
+
+            await run("key", "update", "bot", "--no-act-for-users");
+
+            expect((await repository.findKey("bot"))?.canActForUsers).toBe(
+                false,
+            );
+
+            await run("key", "update", "bot", "--act-for-users");
+
+            expect((await repository.findKey("bot"))?.canActForUsers).toBe(
+                true,
+            );
+            await expectFailure(
+                [
+                    "key",
+                    "update",
+                    "bot",
+                    "--act-for-users",
+                    "--no-act-for-users",
+                ],
+                /only one of --act-for-users or --no-act-for-users/,
             );
         });
 
@@ -387,6 +517,67 @@ describe("broker CLI (integration)", () => {
             await run("key", "create", "bot", "--limit", "60");
 
             await expectFailure(["key", "update", "bot"], /Nothing to update/);
+        });
+    });
+
+    describe("users", () => {
+        beforeEach(async () => {
+            await run("variant", "add", "x");
+        });
+
+        it("manages user roles and grants", async () => {
+            expect((await run("user", "list")).info).toEqual(["No users."]);
+            expect((await run("user", "role", "5", "admin")).info).toEqual([
+                "Set user 5's role to admin.",
+                reloadReminder,
+            ]);
+            expect((await run("user", "grant", "6", "x")).info).toEqual([
+                "Granted user 6 access to x.",
+                reloadReminder,
+            ]);
+            expect((await run("user", "grant", "6", "x")).info[0]).toBe(
+                "User 6 already has access to x.",
+            );
+            expect((await run("user", "list")).info).toEqual([
+                "UID  ROLE   GRANTS",
+                "5    admin  -",
+                "6    -      x",
+            ]);
+
+            expect((await run("user", "role", "5", "none")).info[0]).toBe(
+                "Removed user 5's role.",
+            );
+            expect((await run("user", "ungrant", "6", "x")).info[0]).toBe(
+                "Removed user 6's access to x.",
+            );
+            expect((await run("user", "list")).info).toEqual(["No users."]);
+            await expectFailure(
+                ["user", "ungrant", "6", "x"],
+                /User 6 has no grant for x/,
+            );
+            await expectFailure(
+                ["user", "grant", "6", "missing"],
+                /No variant named "missing"/,
+            );
+        });
+
+        it("rejects an invalid role or uid", async () => {
+            expect.hasAssertions();
+            await expectFailure(
+                ["user", "role", "5", "root"],
+                /Invalid role "root": expected admin, manager, or none/,
+            );
+
+            for (const uid of ["abc", "0", "1.5", "2147483648"]) {
+                await expectFailure(
+                    ["user", "role", uid, "admin"],
+                    `Invalid uid "${uid}"`,
+                );
+            }
+
+            await expectFailure(["user", "grant", "abc", "x"], /Invalid uid/);
+            await expectFailure(["user", "role", "5"], /Expected <uid> <role>/);
+            expect((await run("user", "list")).info).toEqual(["No users."]);
         });
     });
 

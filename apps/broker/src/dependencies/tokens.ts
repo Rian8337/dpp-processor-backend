@@ -4,6 +4,7 @@ import type { Database } from "@/database/types";
 import type { IRegistryRepository } from "@/repositories/IRegistryRepository";
 import type { IHealthMonitor } from "@/services/IHealthMonitor";
 import type { IInstanceSelector } from "@/services/IInstanceSelector";
+import type { IRegistryAdminService } from "@/services/IRegistryAdminService";
 import type { IProxyService } from "@/services/IProxyService";
 import type { IRegistryService } from "@/services/IRegistryService";
 import type { IUsageStats } from "@/services/IUsageStats";
@@ -27,6 +28,9 @@ export const dependencyTokens = {
         "processorClient",
     ) as InjectionToken<IProcessorClient>,
     proxyService: Symbol.for("proxyService") as InjectionToken<IProxyService>,
+    registryAdminService: Symbol.for(
+        "registryAdminService",
+    ) as InjectionToken<IRegistryAdminService>,
     registryRepository: Symbol.for(
         "registryRepository",
     ) as InjectionToken<IRegistryRepository>,

@@ -7,6 +7,7 @@ import { fetchInfo } from "./clients/fetchInfo";
 import { ConfigError, loadDatabaseConfig } from "./config/config";
 import { schema } from "./database/schema";
 import { RegistryRepository } from "./repositories/RegistryRepository";
+import { RegistryAdminService } from "./services/RegistryAdminService";
 
 /**
  * Manages the broker registry: `node dist/cli.mjs <command>`. The arguments are checked before any configuration is
@@ -32,8 +33,11 @@ async function main(): Promise<number> {
     );
 
     // Awaited so the connection stays open until the command finishes.
+    const repository = new RegistryRepository(database.db);
+
     return await runAction(action, {
-        repository: new RegistryRepository(database.db),
+        repository,
+        admin: new RegistryAdminService(repository),
         processors: { getInfo: fetchInfo },
         healthCheckTimeoutMs: 3000,
         out: consoleOutput,

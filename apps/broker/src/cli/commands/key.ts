@@ -8,32 +8,16 @@ import { CliError } from "@/cli/errors";
 import { reloadReminder } from "@/cli/output";
 import { formatTable } from "@/cli/table";
 import type { Command } from "@/cli/types";
-import { generateApiKey, hashApiKey } from "@/registry/keys";
 import type { KeyListing } from "@/registry/types";
-import type { IRegistryRepository } from "@/repositories/IRegistryRepository";
-import { requireVariant } from "./variant";
-
-async function requireActiveKey(
-    repository: IRegistryRepository,
-    name: string,
-): Promise<KeyListing> {
-    const key = await repository.findKey(name);
-
-    if (!key) {
-        throw new CliError(`No key named "${name}"`);
-    }
-
-    if (key.revokedAt) {
-        throw new CliError(`Key ${name} is revoked`);
-    }
-
-    return key;
-}
 
 function describeLimit(key: KeyListing): string {
     return key.rateLimitPerMinute === null
         ? "unlimited"
         : `${key.rateLimitPerMinute.toString()}/min`;
+}
+
+function describeActForUsers(key: KeyListing): string {
+    return key.canActForUsers ? "yes" : "no";
 }
 
 function describeAccess(key: KeyListing): string {
@@ -50,6 +34,7 @@ export const createKey: Command = (args) => {
         unlimited: { type: "boolean", default: false },
         "all-variants": { type: "boolean", default: false },
         grant: { type: "string", multiple: true, default: [] },
+        "act-for-users": { type: "boolean", default: false },
     });
     const [name = ""] = expectPositionals(positionals, ["name"]);
     const rateLimitPerMinute = parseLimit(values.limit, values.unlimited);
@@ -66,30 +51,17 @@ export const createKey: Command = (args) => {
         );
     }
 
-    return async ({ repository, out }) => {
-        if (await repository.findKey(name)) {
-            throw new CliError(`A key named "${name}" already exists`);
-        }
-
-        const grants = [...new Set(values.grant)];
-
-        for (const variant of grants) {
-            await requireVariant(repository, variant);
-        }
-
-        const key = generateApiKey();
-
-        await repository.insertKey({
+    return async ({ admin, out }) => {
+        const { rawKey } = await admin.createKey({
             name,
-            hash: hashApiKey(key),
             rateLimitPerMinute,
             allVariants: values["all-variants"],
-            canActForUsers: false,
-            grants,
+            canActForUsers: values["act-for-users"],
+            grants: values.grant,
         });
 
         out.info(`Created key ${name}.`);
-        out.info(`Key: ${key}`);
+        out.info(`Key: ${rawKey}`);
         out.info("Store it now; it cannot be shown again.");
         out.info(reloadReminder);
     };
@@ -101,6 +73,8 @@ export const updateKey: Command = (args) => {
         unlimited: { type: "boolean", default: false },
         "all-variants": { type: "boolean", default: false },
         "granted-only": { type: "boolean", default: false },
+        "act-for-users": { type: "boolean", default: false },
+        "no-act-for-users": { type: "boolean", default: false },
     });
     const [name = ""] = expectPositionals(positionals, ["name"]);
     const rateLimitPerMinute = parseLimit(values.limit, values.unlimited);
@@ -109,9 +83,16 @@ export const updateKey: Command = (args) => {
         throw new CliError("Pass only one of --all-variants or --granted-only");
     }
 
+    if (values["act-for-users"] && values["no-act-for-users"]) {
+        throw new CliError(
+            "Pass only one of --act-for-users or --no-act-for-users",
+        );
+    }
+
     const changes: {
         rateLimitPerMinute?: number | null;
         allVariants?: boolean;
+        canActForUsers?: boolean;
     } = {};
 
     if (rateLimitPerMinute !== undefined) {
@@ -122,15 +103,18 @@ export const updateKey: Command = (args) => {
         changes.allVariants = values["all-variants"];
     }
 
+    if (values["act-for-users"] || values["no-act-for-users"]) {
+        changes.canActForUsers = values["act-for-users"];
+    }
+
     if (Object.keys(changes).length === 0) {
         throw new CliError(
-            "Nothing to update; pass --limit, --unlimited, --all-variants, or --granted-only",
+            "Nothing to update; pass --limit, --unlimited, --all-variants, --granted-only, --act-for-users, or --no-act-for-users",
         );
     }
 
-    return async ({ repository, out }) => {
-        await requireActiveKey(repository, name);
-        await repository.updateKey(name, changes);
+    return async ({ admin, out }) => {
+        await admin.updateKey(name, changes);
 
         out.info(`Updated key ${name}.`);
         out.info(reloadReminder);
@@ -143,18 +127,16 @@ export const grantKey: Command = (args) => {
         "name",
         "variant",
     ]);
-    return async ({ repository, out }) => {
-        const key = await requireActiveKey(repository, name);
-
-        await requireVariant(repository, variant);
+    return async ({ admin, out }) => {
+        const { added, allVariants } = await admin.grantKey(name, variant);
 
         out.info(
-            (await repository.grant(name, variant))
+            added
                 ? `Granted key ${name} access to ${variant}.`
                 : `Key ${name} already has access to ${variant}.`,
         );
 
-        if (key.allVariants) {
+        if (allVariants) {
             out.info(
                 `Key ${name} can use every variant; its grants only matter after \`key update ${name} --granted-only\`.`,
             );
@@ -171,12 +153,8 @@ export const ungrantKey: Command = (args) => {
         "variant",
     ]);
 
-    return async ({ repository, out }) => {
-        await requireActiveKey(repository, name);
-
-        if (!(await repository.ungrant(name, variant))) {
-            throw new CliError(`Key ${name} has no grant for ${variant}`);
-        }
+    return async ({ admin, out }) => {
+        await admin.ungrantKey(name, variant);
 
         out.info(`Removed key ${name}'s access to ${variant}.`);
         out.info(reloadReminder);
@@ -187,14 +165,8 @@ export const revokeKey: Command = (args) => {
     const { positionals } = parseArguments(args, {});
     const [name = ""] = expectPositionals(positionals, ["name"]);
 
-    return async ({ repository, out }) => {
-        if (!(await repository.findKey(name))) {
-            throw new CliError(`No key named "${name}"`);
-        }
-
-        if (!(await repository.revokeKey(name))) {
-            throw new CliError(`Key ${name} is already revoked`);
-        }
+    return async ({ admin, out }) => {
+        await admin.revokeKey(name);
 
         out.info(`Revoked key ${name}.`);
         out.info(reloadReminder);
@@ -206,8 +178,8 @@ export const listKeys: Command = (args) => {
 
     expectPositionals(positionals, []);
 
-    return async ({ repository, out }) => {
-        const keys = await repository.listKeys();
+    return async ({ admin, out }) => {
+        const keys = await admin.listKeys();
 
         if (keys.length === 0) {
             out.info("No keys.");
@@ -216,11 +188,12 @@ export const listKeys: Command = (args) => {
         }
 
         for (const line of formatTable(
-            ["NAME", "LIMIT", "ACCESS", "CREATED", "REVOKED"],
+            ["NAME", "LIMIT", "ACCESS", "ACT FOR USERS", "CREATED", "REVOKED"],
             keys.map((key) => [
                 key.name,
                 describeLimit(key),
                 describeAccess(key),
+                describeActForUsers(key),
                 key.createdAt.toISOString(),
                 key.revokedAt?.toISOString() ?? "-",
             ]),
@@ -245,5 +218,6 @@ export const showKey: Command = (args) => {
         out.info(`Access:   ${describeAccess(key)}`);
         out.info(`Created:  ${key.createdAt.toISOString()}`);
         out.info(`Revoked:  ${key.revokedAt?.toISOString() ?? "-"}`);
+        out.info(`Act for users: ${describeActForUsers(key)}`);
     };
 };

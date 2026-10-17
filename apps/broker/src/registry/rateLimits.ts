@@ -1,10 +1,10 @@
-const maxRateLimit = 2147483647;
+import { maxInt32 } from "@dpp/shared";
 
 /**
  * Whether a number can be a key's requests-per-minute limit: a positive integer that fits a 32-bit signed column.
  */
 export function isValidRateLimit(limit: number): boolean {
-    return Number.isSafeInteger(limit) && limit >= 1 && limit <= maxRateLimit;
+    return Number.isSafeInteger(limit) && limit >= 1 && limit <= maxInt32;
 }
 
 /**

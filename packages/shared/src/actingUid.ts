@@ -1,4 +1,7 @@
-const maxUid = 2147483647;
+/**
+ * The largest value of a signed 32-bit integer column; the upper bound of a uid and of a rate limit.
+ */
+export const maxInt32 = 2147483647;
 
 /**
  * Reads the value of an `X-Acting-Uid` header.
@@ -15,5 +18,5 @@ export function parseActingUid(
 
     const uid = /^[1-9][0-9]*$/.test(value) ? Number(value) : NaN;
 
-    return uid <= maxUid ? uid : "invalid";
+    return uid <= maxInt32 ? uid : "invalid";
 }

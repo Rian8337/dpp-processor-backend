@@ -40,8 +40,30 @@ export class ReplayStore implements IReplayStore {
         const path = this.path("best", `${scoreId.toString()}.odr`);
 
         await writeFile(path, replay, { mode: 0o777 });
-        // The umask can strip bits from `mode`; set them explicitly, as the old code did.
-        await chmod(path, 0o777);
+        await this.makeReadableByEveryone(path);
+    }
+
+    /**
+     * The umask can strip bits from the `mode` of a new file, so set them explicitly, as the old code did. Only the
+     * owner may change a mode: a file that another user created is left alone, because failing here would undo
+     * recording the score.
+     */
+    private async makeReadableByEveryone(path: string): Promise<void> {
+        if (((await stat(path)).mode & 0o777) === 0o777) {
+            return;
+        }
+
+        try {
+            await chmod(path, 0o777);
+        } catch (e) {
+            if (!isNotPermitted(e)) {
+                throw e;
+            }
+
+            console.warn(
+                `Could not make ${path} readable by everyone: ${e.message}`,
+            );
+        }
     }
 
     deleteBestReplay(scoreId: number): Promise<void> {
@@ -94,6 +116,10 @@ export class ReplayStore implements IReplayStore {
 
         return join(this.config.replayDirectories[folder], fileName);
     }
+}
+
+function isNotPermitted(error: unknown): error is Error {
+    return error instanceof Error && "code" in error && error.code === "EPERM";
 }
 
 function isMissing(error: unknown): boolean {

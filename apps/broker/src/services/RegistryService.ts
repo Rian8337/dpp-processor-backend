@@ -6,6 +6,7 @@ import type {
     ApiKeyRecord,
     Caller,
     RegistrySnapshot,
+    UserRecord,
     Variant,
 } from "@/registry/types";
 import type { IRegistryRepository } from "@/repositories/IRegistryRepository";
@@ -89,6 +90,14 @@ export class RegistryService implements IRegistryService {
         );
     }
 
+    findUser(uid: number): UserRecord | undefined {
+        return this.snapshot.users.get(uid);
+    }
+
+    allVariants(): Variant[] {
+        return [...this.snapshot.variants.values()];
+    }
+
     summary(): string {
         const variants = [...this.snapshot.variants.values()];
         const instances = variants.reduce(
@@ -100,10 +109,24 @@ export class RegistryService implements IRegistryService {
     }
 
     private canUse(variant: Variant, caller: Caller): boolean {
-        return (
-            variant.public ||
-            (caller.kind === "key" &&
-                (caller.key.allVariants || caller.key.grants.has(variant.name)))
-        );
+        if (variant.public) {
+            return true;
+        }
+
+        if (caller.kind !== "key") {
+            return false;
+        }
+
+        if (caller.actingUid !== undefined) {
+            // The person's access replaces the key's; an unknown uid has no role and no grants.
+            const user = this.snapshot.users.get(caller.actingUid);
+
+            return (
+                user !== undefined &&
+                (user.role !== null || user.grants.has(variant.name))
+            );
+        }
+
+        return caller.key.allVariants || caller.key.grants.has(variant.name);
     }
 }

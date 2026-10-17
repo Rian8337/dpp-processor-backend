@@ -13,6 +13,36 @@ access and rate limits. See `docs/superpowers/specs/2026-10-07-broker-design.md`
 | `POST /variants/:name/performance`        | forwarded to `POST /performance`                   |
 | `POST /variants/:name/performance/replay` | forwarded to `POST /performance/replay`            |
 
+### Acting for a person and management routes
+
+A key created with `can_act_for_users` (`--act-for-users` in the CLI) may send `X-Acting-Uid: <uid>` (a positive
+integer). The broker trusts the uid; the client verifies who the person is. Visibility then follows the person
+instead of the key: admins and managers see every variant, everyone else sees public variants and their grants. A
+key without `can_act_for_users` that sends the header gets `400 INVALID_REQUEST`.
+
+The management routes below need such a key and an `X-Acting-Uid`; without one, or with too low a role, they answer
+`403 FORBIDDEN`. Unknown aliases, keys, or grants answer `404 NOT_FOUND`, and a change that clashes with the registry
+(a taken key name, an admin removing their own role, or revoking the key the request uses or stopping it acting for
+users) answers `409 CONFLICT`. A successful write is applied at once and
+logged as `Admin change by uid <uid>: <method> <path>`, without the body.
+
+| Route                                              | Role    | Purpose                                                    |
+| -------------------------------------------------- | ------- | ---------------------------------------------------------- |
+| `GET /me`                                          | any     | `{ uid, role, grants }` for the acting person              |
+| `GET /admin/variants`                              | manager | every variant, with `public` and `instanceCount`           |
+| `PATCH /admin/variants/:name`                      | manager | `{ title?, description? }`; `public` also needs admin      |
+| `PUT /admin/aliases/:alias` `{ variant }`          | manager | create or repoint an alias                                 |
+| `DELETE /admin/aliases/:alias`                     | manager |                                                            |
+| `GET /admin/variants/:name/grants`                 | manager | uids granted the variant                                   |
+| `PUT` / `DELETE /admin/variants/:name/grants/:uid` | manager | grant or remove                                            |
+| `GET /admin/users`                                 | admin   | users with a role or a grant                               |
+| `PUT /admin/users/:uid/role` `{ role }`            | admin   | `admin`, `manager`, or `null`                              |
+| `GET /admin/keys`                                  | admin   | all keys, revoked ones included                            |
+| `POST /admin/keys`                                 | admin   | creates a key; responds `201` with the raw key, shown once |
+| `PATCH /admin/keys/:name`                          | admin   | `rateLimitPerMinute`, `allVariants`, `canActForUsers`      |
+| `PUT` / `DELETE /admin/keys/:name/grants/:variant` | admin   | key grants                                                 |
+| `POST /admin/keys/:name/revoke`                    | admin   |                                                            |
+
 Without an `X-Api-Key` header, callers are anonymous: they see public variants only and are limited per IP. To turn
 anonymous access off (for example while the beatmap service is near osu!'s rate limit), set `ANON_RATE_LIMIT=0` (change it
 in the ecosystem file and run `pm2 restart ecosystem.config.cjs --only dpp-broker --update-env`, since a plain
@@ -72,6 +102,10 @@ pnpm cli variant add droid-live --public --description "Live droid algorithm"
 pnpm cli instance add droid-live --port 3101
 pnpm cli instance add droid-live --url http://10.0.0.5:3101
 
+# Title and long description (a file keeps its line breaks), or take a variant out of public view
+pnpm cli variant update droid-live --title "Live droid" --description-file ./droid-live.txt
+pnpm cli variant update droid-live --private
+
 # A stable name clients can use, repointed when the live variant changes
 pnpm cli alias set live-droid droid-live
 
@@ -79,7 +113,16 @@ pnpm cli alias set live-droid droid-live
 pnpm cli key create discord-bot --unlimited --grant flowaim-experiment
 pnpm cli key create my-key --unlimited --all-variants
 pnpm cli key create some-site --limit 120
+pnpm cli key create web-backend --unlimited --act-for-users   # may send X-Acting-Uid for a user
+pnpm cli key update web-backend --no-act-for-users
 pnpm cli key revoke some-site
+
+# Users, by uid. This is how the first admin is created
+pnpm cli user role 51076 admin
+pnpm cli user grant 51076 flowaim-experiment
+pnpm cli user ungrant 51076 flowaim-experiment
+pnpm cli user role 51076 none    # removes the role
+pnpm cli user list
 
 # Is every processor up, and is each one the variant the registry says?
 pnpm cli status

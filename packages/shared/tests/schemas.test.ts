@@ -150,6 +150,9 @@ describe("error codes", () => {
             "VARIANT_UNAVAILABLE",
             "PROCESSOR_ERROR",
             "PROCESSOR_TIMEOUT",
+            "FORBIDDEN",
+            "NOT_FOUND",
+            "CONFLICT",
         ]);
         expect(errorCodes).toEqual([
             ...processorErrorCodes,

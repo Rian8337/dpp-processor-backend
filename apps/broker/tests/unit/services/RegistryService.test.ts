@@ -10,9 +10,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const snapshot = testSnapshot({
     variants: [
-        { name: "droid-live", public: true, description: null },
-        { name: "flowaim", public: false, description: null },
-        { name: "secret", public: false, description: null },
+        { name: "droid-live", public: true, title: null, description: null },
+        { name: "flowaim", public: false, title: null, description: null },
+        { name: "secret", public: false, title: null, description: null },
     ],
     instances: [{ variantName: "droid-live", url: "http://127.0.0.1:3101" }],
     aliases: [
@@ -26,6 +26,7 @@ const snapshot = testSnapshot({
             keyHash: hashApiKey("bot-key"),
             rateLimitPerMinute: null,
             allVariants: false,
+            canActForUsers: false,
         },
         {
             id: 2,
@@ -33,9 +34,25 @@ const snapshot = testSnapshot({
             keyHash: hashApiKey("admin-key"),
             rateLimitPerMinute: 100,
             allVariants: true,
+            canActForUsers: false,
+        },
+        {
+            id: 3,
+            name: "board",
+            keyHash: hashApiKey("board-key"),
+            rateLimitPerMinute: null,
+            allVariants: true,
+            canActForUsers: true,
         },
     ],
     grants: [{ keyId: 1, variantName: "flowaim" }],
+    users: [
+        { uid: 1001, role: null },
+        { uid: 1002, role: "admin" },
+        { uid: 1003, role: "manager" },
+        { uid: 1004, role: null },
+    ],
+    userGrants: [{ uid: 1001, variantName: "flowaim" }],
 });
 
 describe("RegistryService", () => {
@@ -123,9 +140,79 @@ describe("RegistryService", () => {
         ]);
     });
 
+    describe("acting for a person", () => {
+        const acting = (uid: number): Caller => {
+            const caller = keyCaller("board-key");
+
+            if (caller.kind !== "key") {
+                throw new Error("expected a key caller");
+            }
+
+            return { ...caller, actingUid: uid };
+        };
+        const names = (caller: Caller) =>
+            service.visibleVariants(caller).map((variant) => variant.name);
+
+        it("uses the acting person's access instead of the key's", () => {
+            // The key sees every variant, but a person with no role and no grants only sees public ones.
+            expect(names(keyCaller("board-key"))).toEqual([
+                "droid-live",
+                "flowaim",
+                "secret",
+            ]);
+            expect(names(acting(1004))).toEqual(["droid-live"]);
+            expect(service.resolve("flowaim", acting(1004))).toBeUndefined();
+            expect(service.resolve("experiment", acting(1004))).toBeUndefined();
+        });
+
+        it("lets an acting person use their granted private variants", () => {
+            expect(names(acting(1001))).toEqual(["droid-live", "flowaim"]);
+            expect(service.resolve("experiment", acting(1001))?.name).toBe(
+                "flowaim",
+            );
+            expect(service.resolve("secret", acting(1001))).toBeUndefined();
+        });
+
+        it("lets acting admins and managers see every variant", () => {
+            for (const uid of [1002, 1003]) {
+                expect(names(acting(uid))).toEqual([
+                    "droid-live",
+                    "flowaim",
+                    "secret",
+                ]);
+                expect(service.resolve("secret", acting(uid))?.name).toBe(
+                    "secret",
+                );
+            }
+        });
+
+        it("treats an unknown acting uid as having no grants", () => {
+            expect(names(acting(9999))).toEqual(["droid-live"]);
+            expect(service.resolve("flowaim", acting(9999))).toBeUndefined();
+        });
+    });
+
+    it("finds users by uid", () => {
+        expect(service.findUser(1002)).toEqual({
+            uid: 1002,
+            role: "admin",
+            grants: new Set(),
+        });
+        expect(service.findUser(1001)?.grants).toEqual(new Set(["flowaim"]));
+        expect(service.findUser(9999)).toBeUndefined();
+    });
+
+    it("lists every variant sorted by name", () => {
+        expect(service.allVariants().map((variant) => variant.name)).toEqual([
+            "droid-live",
+            "flowaim",
+            "secret",
+        ]);
+    });
+
     it("summarizes the registry", () => {
         expect(service.summary()).toBe(
-            "3 variants, 1 instances, 2 aliases, 2 keys",
+            "3 variants, 1 instances, 2 aliases, 3 keys",
         );
     });
 

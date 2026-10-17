@@ -31,17 +31,21 @@ export class ScoreCalculator implements IScoreCalculator {
             return Promise.resolve(unreadableMods());
         }
 
-        return this.broker.performance(variant, {
-            beatmap: { hash: stats.hash },
-            mods,
-            score: {
-                ...statsParameters(stats),
-                ...(stats.totalScore !== null && {
-                    totalScore: stats.totalScore,
-                }),
+        return this.broker.performance(
+            variant,
+            {
+                beatmap: { hash: stats.hash },
+                mods,
+                score: {
+                    ...statsParameters(stats),
+                    ...(stats.totalScore !== null && {
+                        totalScore: stats.totalScore,
+                    }),
+                },
+                strainChart: options.strainChart ?? false,
             },
-            strainChart: options.strainChart ?? false,
-        });
+            options.actingUid,
+        );
     }
 
     calculateReplay(
@@ -56,11 +60,15 @@ export class ScoreCalculator implements IScoreCalculator {
             return Promise.resolve(unreadableMods());
         }
 
-        return this.broker.replayPerformance(variant, {
-            replay: replay.toString("base64"),
-            ...(overrides && { mods, score: statsParameters(overrides) }),
-            strainChart: options.strainChart ?? false,
-        });
+        return this.broker.replayPerformance(
+            variant,
+            {
+                replay: replay.toString("base64"),
+                ...(overrides && { mods, score: statsParameters(overrides) }),
+                strainChart: options.strainChart ?? false,
+            },
+            options.actingUid,
+        );
     }
 
     async noPenaltyTotal(

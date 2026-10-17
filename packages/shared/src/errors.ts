@@ -22,6 +22,9 @@ export const brokerErrorCodes = [
     "VARIANT_UNAVAILABLE",
     "PROCESSOR_ERROR",
     "PROCESSOR_TIMEOUT",
+    "FORBIDDEN",
+    "NOT_FOUND",
+    "CONFLICT",
 ] as const;
 
 /**

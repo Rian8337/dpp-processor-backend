@@ -11,6 +11,7 @@ const key = (id: number, rateLimitPerMinute: number | null): ApiKeyRecord => ({
     name: `key-${id.toString()}`,
     rateLimitPerMinute,
     allVariants: false,
+    canActForUsers: false,
     grants: new Set(),
 });
 

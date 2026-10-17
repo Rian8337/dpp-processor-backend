@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import {
     expectPositionals,
     parseArguments,
@@ -54,12 +55,13 @@ export const addVariant: Command = (args) => {
     const [name = ""] = expectPositionals(positionals, ["name"]);
 
     requireValidName(name);
-    return async ({ repository, out }) => {
+    return async ({ repository, admin, out }) => {
         await requireUnusedName(repository, name);
-        await repository.insertVariant({
+        await admin.createVariant({
             name,
             public: values.public,
-            description: values.description || null,
+            title: null,
+            description: values.description ?? null,
         });
 
         out.info(
@@ -69,11 +71,30 @@ export const addVariant: Command = (args) => {
     };
 };
 
+/**
+ * Reads a description from a file as UTF-8, without the newline that ends the last line.
+ */
+async function readDescriptionFile(path: string): Promise<string> {
+    let text: string;
+
+    try {
+        text = await readFile(path, "utf8");
+    } catch (e) {
+        throw new CliError(
+            `Cannot read "${path}": ${e instanceof Error ? e.message : String(e)}`,
+        );
+    }
+
+    return text.replace(/\r?\n$/, "");
+}
+
 export const updateVariant: Command = (args) => {
     const { values, positionals } = parseArguments(args, {
         public: { type: "boolean", default: false },
         private: { type: "boolean", default: false },
+        title: { type: "string" },
         description: { type: "string" },
+        "description-file": { type: "string" },
     });
     const [name = ""] = expectPositionals(positionals, ["name"]);
 
@@ -81,27 +102,52 @@ export const updateVariant: Command = (args) => {
         throw new CliError("Pass only one of --public or --private");
     }
 
-    if (!values.public && !values.private && values.description === undefined) {
+    if (
+        values.description !== undefined &&
+        values["description-file"] !== undefined
+    ) {
         throw new CliError(
-            "Nothing to update; pass --public, --private, or --description",
+            "Pass only one of --description or --description-file",
         );
     }
 
-    return async ({ repository, out }) => {
-        await requireVariant(repository, name);
+    if (
+        !values.public &&
+        !values.private &&
+        values.title === undefined &&
+        values.description === undefined &&
+        values["description-file"] === undefined
+    ) {
+        throw new CliError(
+            "Nothing to update; pass --public, --private, --title, --description, or --description-file",
+        );
+    }
 
-        const changes: { public?: boolean; description?: string | null } = {};
+    return async ({ admin, out }) => {
+        const changes: {
+            public?: boolean;
+            title?: string;
+            description?: string;
+        } = {};
 
         if (values.public || values.private) {
             changes.public = values.public;
         }
 
-        if (values.description !== undefined) {
-            // An empty description clears it.
-            changes.description = values.description || null;
+        // An empty title or description clears it.
+        if (values.title !== undefined) {
+            changes.title = values.title;
         }
 
-        await repository.updateVariant(name, changes);
+        if (values.description !== undefined) {
+            changes.description = values.description;
+        } else if (values["description-file"] !== undefined) {
+            changes.description = await readDescriptionFile(
+                values["description-file"],
+            );
+        }
+
+        await admin.updateVariant(name, changes);
 
         out.info(`Updated variant ${name}.`);
         out.info(reloadReminder);
@@ -147,9 +193,10 @@ export const listVariants: Command = (args) => {
         }
 
         for (const line of formatTable(
-            ["NAME", "ACCESS", "ALIASES", "INSTANCES", "DESCRIPTION"],
+            ["NAME", "TITLE", "ACCESS", "ALIASES", "INSTANCES", "DESCRIPTION"],
             variants.map((variant) => [
                 variant.name,
+                variant.title ?? "-",
                 variant.public ? "public" : "private",
                 variant.aliases.join(", ") || "-",
                 variant.instances.length.toString(),

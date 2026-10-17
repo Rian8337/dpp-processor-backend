@@ -4,12 +4,16 @@ import type { UpstreamResult } from "@/types/upstream";
 
 export interface StatsOptions {
     readonly strainChart?: boolean;
+    /** Calculates on behalf of this person, so only the variants they may use are available. */
+    readonly actingUid?: number;
 }
 
 export interface ReplayOptions {
     /** For replays that do not record mods (v1/v2): the score's mods and stats override the replay's. */
     readonly overrides?: ScoreStats;
     readonly strainChart?: boolean;
+    /** Calculates on behalf of this person, so only the variants they may use are available. */
+    readonly actingUid?: number;
 }
 
 export interface IScoreCalculator {

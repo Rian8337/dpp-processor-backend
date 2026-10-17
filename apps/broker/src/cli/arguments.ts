@@ -1,4 +1,10 @@
-import { isValidName } from "@/registry/names";
+import { invalidNameMessage, isValidName } from "@/registry/names";
+import {
+    invalidRateLimitMessage,
+    isValidRateLimit,
+} from "@/registry/rateLimits";
+import { isValidUid } from "@/registry/uids";
+import type { UserRole } from "@dpp/shared";
 import { parseArgs, type ParseArgsOptionsConfig } from "node:util";
 import { CliError } from "./errors";
 
@@ -51,10 +57,38 @@ export function expectPositionals(
 
 export function requireValidName(name: string): void {
     if (!isValidName(name)) {
-        throw new CliError(
-            `Invalid name "${name}": use lowercase letters, digits, and hyphens, not starting with a hyphen`,
-        );
+        throw new CliError(invalidNameMessage(name));
     }
+}
+
+/**
+ * Reads a uid argument. The service checks the rules again; this fails before the database is opened.
+ */
+export function parseUid(value: string): number {
+    const uid = /^[0-9]+$/.test(value) ? Number(value) : NaN;
+
+    if (!isValidUid(uid)) {
+        throw new CliError(`Invalid uid "${value}"`);
+    }
+
+    return uid;
+}
+
+/**
+ * Reads a role argument: `admin`, `manager`, or `none` (no role, as `null`).
+ */
+export function parseRole(value: string): UserRole | null {
+    if (value === "admin" || value === "manager") {
+        return value;
+    }
+
+    if (value === "none") {
+        return null;
+    }
+
+    throw new CliError(
+        `Invalid role "${value}": expected admin, manager, or none`,
+    );
 }
 
 /**
@@ -78,10 +112,8 @@ export function parseLimit(
 
     const value = Number(limit);
 
-    if (!Number.isInteger(value) || value < 1) {
-        throw new CliError(
-            `Invalid limit "${limit}": expected a whole number of requests per minute`,
-        );
+    if (!isValidRateLimit(value)) {
+        throw new CliError(invalidRateLimitMessage(limit));
     }
 
     return value;

@@ -21,11 +21,13 @@ describe("RegistryRepository (integration)", () => {
         await repository.insertVariant({
             name: "droid-live",
             public: true,
+            title: null,
             description: "Live droid",
         });
         await repository.insertVariant({
             name: "flowaim",
             public: false,
+            title: null,
             description: null,
         });
         await repository.insertInstance("droid-live", "http://127.0.0.1:3101");
@@ -36,6 +38,7 @@ describe("RegistryRepository (integration)", () => {
             hash: hash("a"),
             rateLimitPerMinute: null,
             allVariants: false,
+            canActForUsers: false,
             grants: ["flowaim"],
         });
         await repository.insertKey({
@@ -43,6 +46,7 @@ describe("RegistryRepository (integration)", () => {
             hash: hash("b"),
             rateLimitPerMinute: 10,
             allVariants: true,
+            canActForUsers: false,
             grants: [],
         });
         await repository.revokeKey("old");
@@ -67,6 +71,7 @@ describe("RegistryRepository (integration)", () => {
         expect(snapshot.variants.get("droid-live")).toEqual({
             name: "droid-live",
             public: true,
+            title: null,
             description: "Live droid",
             instances: [
                 { variantName: "droid-live", url: "http://127.0.0.1:3101" },
@@ -92,6 +97,7 @@ describe("RegistryRepository (integration)", () => {
         expect(await repository.findVariant("flowaim")).toEqual({
             name: "flowaim",
             public: true,
+            title: null,
             description: "Flow aim experiment",
         });
         expect(await repository.findVariant("missing")).toBeUndefined();
@@ -201,5 +207,147 @@ describe("RegistryRepository (integration)", () => {
         expect(await repository.revokeKey("bot")).toBe(true);
         expect(await repository.revokeKey("bot")).toBe(false);
         expect((await repository.loadSnapshot()).keysByHash.size).toBe(0);
+    });
+
+    it("stores and loads a variant title", async () => {
+        await seed();
+        await repository.insertVariant({
+            name: "titled",
+            public: true,
+            title: "Titled variant",
+            description: null,
+        });
+        await repository.updateVariant("flowaim", { title: "Flow aim" });
+
+        const snapshot = await repository.loadSnapshot();
+
+        expect(snapshot.variants.get("titled")?.title).toBe("Titled variant");
+        expect(snapshot.variants.get("flowaim")?.title).toBe("Flow aim");
+        expect(snapshot.variants.get("droid-live")?.title).toBeNull();
+        expect((await repository.findVariant("titled"))?.title).toBe(
+            "Titled variant",
+        );
+
+        await repository.updateVariant("titled", { title: null });
+
+        expect((await repository.findVariant("titled"))?.title).toBeNull();
+    });
+
+    it("loads can_act_for_users for keys", async () => {
+        await seed();
+        await repository.insertKey({
+            name: "acting",
+            hash: hash("c"),
+            rateLimitPerMinute: null,
+            allVariants: false,
+            canActForUsers: true,
+            grants: [],
+        });
+
+        let snapshot = await repository.loadSnapshot();
+
+        expect(snapshot.keysByHash.get(hash("c"))?.canActForUsers).toBe(true);
+        expect(snapshot.keysByHash.get(hash("a"))?.canActForUsers).toBe(false);
+        expect(await repository.findKey("acting")).toMatchObject({
+            canActForUsers: true,
+        });
+
+        await repository.updateKey("acting", { canActForUsers: false });
+
+        snapshot = await repository.loadSnapshot();
+
+        expect(snapshot.keysByHash.get(hash("c"))?.canActForUsers).toBe(false);
+    });
+
+    it("grants a user a variant once", async () => {
+        await seed();
+
+        expect(await repository.grantUser(1001, "flowaim")).toBe(true);
+        expect(await repository.grantUser(1001, "flowaim")).toBe(false);
+
+        const snapshot = await repository.loadSnapshot();
+
+        expect(snapshot.users.get(1001)).toEqual({
+            uid: 1001,
+            role: null,
+            grants: new Set(["flowaim"]),
+        });
+        expect(await repository.ungrantUser(1001, "flowaim")).toBe(true);
+        expect(await repository.ungrantUser(1001, "flowaim")).toBe(false);
+    });
+
+    it("does not create a user when granting a missing variant", async () => {
+        await expect(repository.grantUser(1001, "missing")).rejects.toThrow(
+            "Failed query",
+        );
+        expect(await repository.findUser(1001)).toBeUndefined();
+    });
+
+    it("sets, changes, and clears a role", async () => {
+        await repository.setUserRole(1001, "manager");
+
+        expect((await repository.loadSnapshot()).users.get(1001)).toEqual({
+            uid: 1001,
+            role: "manager",
+            grants: new Set(),
+        });
+
+        await repository.setUserRole(1001, "admin");
+
+        expect((await repository.findUser(1001))?.role).toBe("admin");
+
+        await repository.setUserRole(1001, null);
+
+        expect((await repository.findUser(1001))?.role).toBeNull();
+    });
+
+    it("lists only users with a role or a grant", async () => {
+        await seed();
+        await repository.grantUser(3, "flowaim");
+        await repository.grantUser(3, "droid-live");
+        await repository.setUserRole(1, "admin");
+        await repository.setUserRole(2, "manager");
+        await repository.setUserRole(2, null);
+        // Gets a user row with no role and no grants.
+        await repository.grantUser(4, "flowaim");
+        await repository.ungrantUser(4, "flowaim");
+
+        expect(await repository.listUsers()).toEqual([
+            { uid: 1, role: "admin", grants: [] },
+            { uid: 3, role: null, grants: ["droid-live", "flowaim"] },
+        ]);
+        expect(await repository.findUser(3)).toEqual({
+            uid: 3,
+            role: null,
+            grants: ["droid-live", "flowaim"],
+        });
+        expect(await repository.findUser(999)).toBeUndefined();
+    });
+
+    it("deletes user grants with the variant", async () => {
+        await seed();
+        await repository.grantUser(1001, "flowaim");
+        await repository.grantUser(1001, "droid-live");
+        await repository.deleteVariant("flowaim");
+
+        expect(
+            (await repository.loadSnapshot()).users.get(1001)?.grants,
+        ).toEqual(new Set(["droid-live"]));
+        expect(await repository.findUser(1001)).toEqual({
+            uid: 1001,
+            role: null,
+            grants: ["droid-live"],
+        });
+    });
+
+    it("lists the uids granted a variant", async () => {
+        await seed();
+        await repository.grantUser(30, "flowaim");
+        await repository.grantUser(4, "flowaim");
+        await repository.grantUser(5, "droid-live");
+
+        expect(await repository.usersGranted("flowaim")).toEqual([4, 30]);
+        expect(await repository.usersGranted("droid-live")).toEqual([5]);
+        expect(await repository.usersGranted("missing")).toEqual([]);
     });
 });

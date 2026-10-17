@@ -20,34 +20,34 @@ the service imports no difficulty or performance calculator. See
 Variables are read from the environment; in development, `apps/score-service/.env.development` is loaded
 automatically (`.env.production` with `NODE_ENV=production`; neither is loaded when `CI` is set).
 
-| Variable                                                   | Default                  | Purpose                                                                       |
-| ---------------------------------------------------------- | ------------------------ | ----------------------------------------------------------------------------- |
-| `PORT`                                                     | required                 | HTTP port                                                                     |
-| `HOST`                                                     | `127.0.0.1`              | address to listen on                                                          |
-| `API_KEY`                                                  | required, 16+ characters | required in `X-Api-Key` by `GET /online-scores`                               |
-| `DATABASE_HOST`, `DATABASE_NAME`, `DATABASE_USER`          | required                 | the service's own Postgres database (job progress); migrations run at startup |
-| `DATABASE_PORT`                                            | `5432`                   |                                                                               |
-| `DATABASE_PASSWORD`                                        | empty                    |                                                                               |
-| `OFFICIAL_DB_HOST`, `OFFICIAL_DB_NAME`, `OFFICIAL_DB_USER` | required                 | the official osu!droid MySQL database                                         |
-| `OFFICIAL_DB_PORT`                                         | `3306`                   |                                                                               |
-| `OFFICIAL_DB_PASSWORD`                                     | empty                    |                                                                               |
-| `OFFICIAL_DB_PREFIX`                                       | `bbl_`                   | prepended to the official table names (`bbl_score`)                           |
-| `ALICE_DB_URI`, `ELAINA_DB_URI`                            | required                 | the two MongoDB clusters (`AliceDB`, `ElainaDB`)                              |
-| `BROKER_URL`                                               | required                 | the broker                                                                    |
-| `BROKER_API_KEY`                                           | required                 | the service's broker key; it needs no rate limit and `all_variants`           |
-| `BEATMAP_SERVICE_URL`                                      | required                 | the beatmap service, including its path: `http://localhost:3017/api/beatmap`  |
-| `BEATMAP_SERVICE_KEY`                                      | required                 | the beatmap service's priority key, for interactive work                      |
-| `BEATMAP_SERVICE_BULK_KEY`                                 | required                 | the bulk key, for recalculation                                               |
-| `LIVE_DROID_VARIANT`, `LIVE_OSU_VARIANT`                   | required                 | the variants the live replay listener and uncalculated pass use; see below    |
-| `UNPROCESSED_REPLAY_DIR`                                   | required, absolute       | new replays from the game (watched)                                           |
-| `ONLINE_REPLAY_DIR`                                        | required, absolute       | replays of `scores` rows, named `<score id>.odr`                              |
-| `BEST_REPLAY_DIR`                                          | required, absolute       | replays of best pp scores, named `<score id>.odr`                             |
-| `UNCALCULATED_REPLAY_DIR`                                  | required, absolute       | replays of scores the game could not calculate                                |
-| `DISCORD_METADATA_URL`, `DISCORD_METADATA_KEY`             | required                 | the Discord metadata update endpoint and its key                              |
-| `REPLAY_CONCURRENCY`                                       | `2`                      | replays processed at once                                                     |
-| `UNCALCULATED_CONCURRENCY`                                 | `1`                      | uncalculated scores processed at once                                         |
-| `UNCALCULATED_INTERVAL_MINUTES`                            | `10`                     | how often the uncalculated pass runs                                          |
-| `DAN_COURSE_REFRESH_MINUTES`                               | `60`                     | how often dan courses are reloaded from MongoDB                               |
+| Variable                                                   | Default                  | Purpose                                                                                   |
+| ---------------------------------------------------------- | ------------------------ | ----------------------------------------------------------------------------------------- |
+| `PORT`                                                     | required                 | HTTP port                                                                                 |
+| `HOST`                                                     | `127.0.0.1`              | address to listen on                                                                      |
+| `API_KEY`                                                  | required, 16+ characters | required in `X-Api-Key` by `GET /online-scores`                                           |
+| `DATABASE_HOST`, `DATABASE_NAME`, `DATABASE_USER`          | required                 | the service's own Postgres database (job progress); migrations run at startup             |
+| `DATABASE_PORT`                                            | `5432`                   |                                                                                           |
+| `DATABASE_PASSWORD`                                        | empty                    |                                                                                           |
+| `OFFICIAL_DB_HOST`, `OFFICIAL_DB_NAME`, `OFFICIAL_DB_USER` | required                 | the official osu!droid MySQL database                                                     |
+| `OFFICIAL_DB_PORT`                                         | `3306`                   |                                                                                           |
+| `OFFICIAL_DB_PASSWORD`                                     | empty                    |                                                                                           |
+| `OFFICIAL_DB_PREFIX`                                       | `bbl_`                   | prepended to the official table names (`bbl_score`)                                       |
+| `ALICE_DB_URI`, `ELAINA_DB_URI`                            | required                 | the two MongoDB clusters (`AliceDB`, `ElainaDB`)                                          |
+| `BROKER_URL`                                               | required                 | the broker                                                                                |
+| `BROKER_API_KEY`                                           | required                 | the service's broker key; it needs no rate limit, `all_variants`, and `can_act_for_users` |
+| `BEATMAP_SERVICE_URL`                                      | required                 | the beatmap service, including its path: `http://localhost:3017/api/beatmap`              |
+| `BEATMAP_SERVICE_KEY`                                      | required                 | the beatmap service's priority key, for interactive work                                  |
+| `BEATMAP_SERVICE_BULK_KEY`                                 | required                 | the bulk key, for recalculation                                                           |
+| `LIVE_DROID_VARIANT`, `LIVE_OSU_VARIANT`                   | required                 | the variants the live replay listener and uncalculated pass use; see below                |
+| `UNPROCESSED_REPLAY_DIR`                                   | required, absolute       | new replays from the game (watched)                                                       |
+| `ONLINE_REPLAY_DIR`                                        | required, absolute       | replays of `scores` rows, named `<score id>.odr`                                          |
+| `BEST_REPLAY_DIR`                                          | required, absolute       | replays of best pp scores, named `<score id>.odr`                                         |
+| `UNCALCULATED_REPLAY_DIR`                                  | required, absolute       | replays of scores the game could not calculate                                            |
+| `DISCORD_METADATA_URL`, `DISCORD_METADATA_KEY`             | required                 | the Discord metadata update endpoint and its key                                          |
+| `REPLAY_CONCURRENCY`                                       | `2`                      | replays processed at once                                                                 |
+| `UNCALCULATED_CONCURRENCY`                                 | `1`                      | uncalculated scores processed at once                                                     |
+| `UNCALCULATED_INTERVAL_MINUTES`                            | `10`                     | how often the uncalculated pass runs                                                      |
+| `DAN_COURSE_REFRESH_MINUTES`                               | `60`                     | how often dan courses are reloaded from MongoDB                                           |
 
 Make `LIVE_DROID_VARIANT` and `LIVE_OSU_VARIANT` broker aliases (for example `live-droid` and `live-osu`), so a live
 algorithm update is a repointed alias and needs no change here.
@@ -119,6 +119,12 @@ Requires `X-Api-Key: <API_KEY>` (`401 UNAUTHORIZED` otherwise).
 Query: `uid` and `hash` (the beatmap MD5) are required, `variant` (a variant name or alias) is required, `best`
 (`true` reads the player's best score for the beatmap and its replay from `BEST_REPLAY_DIR`; default `false`) and
 `strainChart` (`true` asks the processor for a strain chart; default `false`). Unknown parameters are rejected.
+
+Optional header `X-Acting-Uid: <uid>` (a positive integer, at most 2147483647; `400 INVALID_REQUEST` otherwise)
+makes the lookup on behalf of that player: the service forwards it to the broker, which then only allows the variants
+that player may use (for example private ones they were given access to). Without it the service's own broker key
+decides. Sending it needs the service's `BROKER_API_KEY` to have `can_act_for_users`; otherwise the broker rejects the
+request and the error passes through.
 
 Response:
 

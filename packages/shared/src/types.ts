@@ -97,6 +97,11 @@ export interface VariantSummary {
      * The variant name, also when the variant was looked up by alias.
      */
     readonly name: string;
+
+    /**
+     * A short display name, or `null` if the variant has none.
+     */
+    readonly title: string | null;
     readonly aliases: readonly string[];
     readonly description: string | null;
 
@@ -112,4 +117,81 @@ export interface VariantSummary {
     readonly algorithm: CalculatorAlgorithm | null;
     readonly calculatorVersion: string | null;
     readonly builtAt: string | null;
+}
+
+/**
+ * What a user may do in the variant management API. Managers see and manage every variant (titles, descriptions,
+ * aliases, and user grants); admins additionally manage visibility, roles, and API keys.
+ */
+export type UserRole = "admin" | "manager";
+
+/**
+ * The caller's identity and permissions, from `GET /me`.
+ */
+export interface MeResponse {
+    readonly uid: number;
+
+    /**
+     * `null` if the user has no role.
+     */
+    readonly role: UserRole | null;
+
+    /**
+     * Names of the private variants the user may use.
+     */
+    readonly grants: string[];
+}
+
+/**
+ * A variant as the management API describes it.
+ */
+export interface AdminVariant extends VariantSummary {
+    readonly public: boolean;
+    readonly instanceCount: number;
+}
+
+/**
+ * An API key as the management API describes it. Never includes the raw key.
+ */
+export interface AdminKey {
+    readonly name: string;
+    readonly rateLimitPerMinute: number | null;
+    readonly allVariants: boolean;
+    readonly canActForUsers: boolean;
+
+    /**
+     * Names of the variants the key may use.
+     */
+    readonly grants: string[];
+
+    /**
+     * ISO 8601.
+     */
+    readonly createdAt: string;
+
+    /**
+     * ISO 8601; `null` if the key is active.
+     */
+    readonly revokedAt: string | null;
+}
+
+/**
+ * A user as the management API describes it.
+ */
+export interface AdminUser {
+    readonly uid: number;
+    readonly role: UserRole | null;
+
+    /**
+     * Names of the private variants the user may use.
+     */
+    readonly grants: string[];
+}
+
+/**
+ * The response to creating a key: the only time the raw key is shown.
+ */
+export interface CreatedKeyResponse {
+    readonly key: AdminKey;
+    readonly rawKey: string;
 }

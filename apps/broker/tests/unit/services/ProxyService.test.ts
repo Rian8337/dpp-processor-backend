@@ -20,7 +20,14 @@ const urls = ["http://127.0.0.1:1", "http://127.0.0.1:2"];
 
 function variantWith(count: number): Variant {
     const variant = testSnapshot({
-        variants: [{ name: "droid-live", public: true, description: null }],
+        variants: [
+            {
+                name: "droid-live",
+                public: true,
+                title: null,
+                description: null,
+            },
+        ],
         instances: urls
             .slice(0, count)
             .map((url) => ({ variantName: "droid-live", url })),

@@ -12,6 +12,7 @@ interface Recorded {
     readonly method: string | undefined;
     readonly url: string | undefined;
     readonly apiKey: string | string[] | undefined;
+    readonly actingUid: string | string[] | undefined;
     readonly body: string;
 }
 
@@ -25,6 +26,7 @@ async function stub(respond: (path: string) => [number, unknown]) {
                 method: req.method,
                 url: req.url,
                 apiKey: req.headers["x-api-key"],
+                actingUid: req.headers["x-acting-uid"],
                 body,
             });
 
@@ -145,6 +147,74 @@ describe("BrokerClient", () => {
         vi.setSystemTime(Date.now() + 5 * 60 * 1000 + 1);
         await client.variantMode("live-osu");
         expect(requests).toHaveLength(2);
+    });
+
+    it("sends X-Acting-Uid when acting for a person", async () => {
+        const { server, requests, client } = await stub((path) => [
+            200,
+            path === "/variants/v"
+                ? { name: "v", mode: Modes.Osu }
+                : path.endsWith("/replay")
+                  ? replayPerformanceBody(5)
+                  : performanceBody(5),
+        ]);
+
+        await using _server = server;
+
+        await client.performance("v", { beatmap: { hash } }, 42);
+        await client.replayPerformance("v", { replay: "AAAA" }, 42);
+        await client.variantMode("v", 42);
+
+        expect(requests.map((r) => r.actingUid)).toEqual(["42", "42", "42"]);
+        expect(requests.every((r) => r.apiKey === "broker-key")).toBe(true);
+    });
+
+    it("omits X-Acting-Uid otherwise", async () => {
+        const { server, requests, client } = await stub((path) => [
+            200,
+            path === "/variants/v"
+                ? { name: "v", mode: Modes.Osu }
+                : path.endsWith("/replay")
+                  ? replayPerformanceBody(5)
+                  : performanceBody(5),
+        ]);
+
+        await using _server = server;
+
+        await client.performance("v", { beatmap: { hash } });
+        await client.replayPerformance("v", { replay: "AAAA" });
+        await client.variantMode("v");
+
+        expect(requests).toHaveLength(3);
+        expect(requests.map((r) => r.actingUid)).toEqual([
+            undefined,
+            undefined,
+            undefined,
+        ]);
+    });
+
+    it("caches modes per acting uid", async () => {
+        const { server, requests, client } = await stub(() => [
+            200,
+            { name: "v", mode: Modes.Osu },
+        ]);
+
+        await using _server = server;
+
+        await client.variantMode("v");
+        await client.variantMode("v");
+        expect(requests).toHaveLength(1);
+
+        await client.variantMode("v", 1);
+        await client.variantMode("v", 1);
+        expect(requests).toHaveLength(2);
+        expect(requests[1]!.actingUid).toBe("1");
+
+        await client.variantMode("v", 2);
+        expect(requests).toHaveLength(3);
+
+        await client.variantMode("other");
+        expect(requests).toHaveLength(4);
     });
 
     it("treats a variant without a mode as retry later and does not cache it", async () => {

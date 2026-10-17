@@ -112,3 +112,65 @@ export const replayPerformanceRequestSchema = z.strictObject({
     score: scoreParametersSchema.optional(),
     strainChart: z.boolean().default(false),
 });
+
+/**
+ * Changes to a variant. `null` clears `title` or `description`. Length limits are enforced by the broker.
+ */
+export const variantUpdateSchema = z
+    .strictObject({
+        title: z.string().nullable().optional(),
+        description: z.string().nullable().optional(),
+        public: z.boolean().optional(),
+    })
+    .refine(
+        (update) =>
+            update.title !== undefined ||
+            update.description !== undefined ||
+            update.public !== undefined,
+        { message: "Pass at least one of title, description, or public" },
+    );
+
+/**
+ * Points an alias at a variant.
+ */
+export const aliasSetSchema = z.strictObject({ variant: z.string() });
+
+/**
+ * Sets or, with `null`, removes a user's role.
+ */
+export const roleSetSchema = z.strictObject({
+    role: z.enum(["admin", "manager"]).nullable(),
+});
+
+const rateLimitPerMinute = z.number().int().positive().nullable();
+
+/**
+ * A new API key. `grants` are variant names; the broker checks that they exist.
+ */
+export const keyCreateSchema = z.strictObject({
+    name: z.string(),
+    rateLimitPerMinute,
+    allVariants: z.boolean().default(false),
+    canActForUsers: z.boolean().default(false),
+    grants: z.array(z.string()).default([]),
+});
+
+/**
+ * Changes to an API key.
+ */
+export const keyUpdateSchema = z
+    .strictObject({
+        rateLimitPerMinute: rateLimitPerMinute.optional(),
+        allVariants: z.boolean().optional(),
+        canActForUsers: z.boolean().optional(),
+    })
+    .refine(
+        (update) =>
+            update.rateLimitPerMinute !== undefined ||
+            update.allVariants !== undefined ||
+            update.canActForUsers !== undefined,
+        {
+            message:
+                "Pass at least one of rateLimitPerMinute, allVariants, or canActForUsers",
+        },
+    );

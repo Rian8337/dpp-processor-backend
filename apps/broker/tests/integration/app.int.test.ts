@@ -52,26 +52,31 @@ describe("broker API (integration)", () => {
         await repository.insertVariant({
             name: "droid-live",
             public: true,
+            title: null,
             description: "Live",
         });
         await repository.insertVariant({
             name: "flowaim",
             public: false,
+            title: null,
             description: null,
         });
         await repository.insertVariant({
             name: "pair",
             public: true,
+            title: null,
             description: null,
         });
         await repository.insertVariant({
             name: "wrong",
             public: true,
+            title: null,
             description: null,
         });
         await repository.insertVariant({
             name: "offline",
             public: true,
+            title: null,
             description: null,
         });
         await repository.insertInstance("droid-live", live.url);
@@ -90,6 +95,7 @@ describe("broker API (integration)", () => {
             hash: hashApiKey("bot-key"),
             rateLimitPerMinute: null,
             allVariants: false,
+            canActForUsers: false,
             grants: ["flowaim"],
         });
         await repository.insertKey({
@@ -97,8 +103,19 @@ describe("broker API (integration)", () => {
             hash: hashApiKey("tiny-key"),
             rateLimitPerMinute: 1,
             allVariants: false,
+            canActForUsers: false,
             grants: [],
         });
+
+        await repository.insertKey({
+            name: "board",
+            hash: hashApiKey("board-key"),
+            rateLimitPerMinute: null,
+            allVariants: false,
+            canActForUsers: true,
+            grants: [],
+        });
+        await repository.grantUser(1001, "flowaim");
 
         testContainer = resources.use(
             await createTestContainer({ db: database.db }),
@@ -127,6 +144,7 @@ describe("broker API (integration)", () => {
             expect(response.body).toEqual([
                 {
                     name: "droid-live",
+                    title: null,
                     aliases: ["live-droid"],
                     description: "Live",
                     available: true,
@@ -183,6 +201,75 @@ describe("broker API (integration)", () => {
                     },
                 });
             }
+        });
+    });
+
+    describe("acting for a person", () => {
+        const actAs = (uid: number) => ({
+            "X-Api-Key": "board-key",
+            "X-Acting-Uid": uid.toString(),
+        });
+
+        it("filters GET /variants and forwarding by the acting person", async () => {
+            const granted = await request(app)
+                .get("/variants")
+                .set(actAs(1001))
+                .expect(200);
+            const other = await request(app)
+                .get("/variants")
+                .set(actAs(1002))
+                .expect(200);
+
+            expect(granted.body).toContainEqual(
+                expect.objectContaining({ name: "flowaim", title: null }),
+            );
+            expect(other.body).not.toContainEqual(
+                expect.objectContaining({ name: "flowaim" }),
+            );
+
+            const before = flowaim.requests.length;
+
+            await request(app)
+                .post("/variants/flowaim/difficulty")
+                .set(actAs(1002))
+                .send({})
+                .expect(404, {
+                    error: {
+                        code: "VARIANT_NOT_FOUND",
+                        message: 'Variant "flowaim" not found',
+                    },
+                });
+            expect(flowaim.requests.length).toBe(before);
+
+            await request(app)
+                .post("/variants/flowaim/difficulty")
+                .set(actAs(1001))
+                .send({})
+                .expect(200);
+        });
+
+        it("rejects an acting uid from a key that cannot act", async () => {
+            const response = await request(app)
+                .get("/variants")
+                .set({ "X-Api-Key": "bot-key", "X-Acting-Uid": "1001" });
+
+            expect(response.status).toBe(400);
+            expect(response.body).toMatchObject({
+                error: { code: "INVALID_REQUEST" },
+            });
+        });
+
+        it("allows the header in CORS preflights", async () => {
+            const response = await request(app)
+                .options("/variants")
+                .set("Origin", "https://example.com")
+                .set("Access-Control-Request-Method", "GET")
+                .set("Access-Control-Request-Headers", "x-acting-uid")
+                .expect(204);
+
+            expect(response.headers["access-control-allow-headers"]).toMatch(
+                /X-Acting-Uid/i,
+            );
         });
     });
 

@@ -13,6 +13,8 @@ export function testSnapshot(rows: Partial<SnapshotRows>): RegistrySnapshot {
         aliases: [],
         keys: [],
         grants: [],
+        users: [],
+        userGrants: [],
         ...rows,
     });
 }

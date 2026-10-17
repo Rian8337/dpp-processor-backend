@@ -11,11 +11,18 @@ import {
 } from "./commands/key";
 import { showStatus } from "./commands/status";
 import {
+    grantUser,
+    listUsers,
+    setUserRole,
+    ungrantUser,
+} from "./commands/user";
+import {
     addVariant,
     listVariants,
     removeVariant,
     updateVariant,
 } from "./commands/variant";
+import { RegistryChangeError } from "@/registry/RegistryChangeError";
 import { CliError } from "./errors";
 import type {
     CliDependencies,
@@ -40,13 +47,17 @@ const commands = new Map<string, Command>([
     ["key revoke", revokeKey],
     ["key list", listKeys],
     ["key show", showKey],
+    ["user role", setUserRole],
+    ["user grant", grantUser],
+    ["user ungrant", ungrantUser],
+    ["user list", listUsers],
     ["status", showStatus],
 ]);
 
 export const usage = `Usage: pnpm --filter @dpp/broker cli <command>
 
   variant add <name> [--public] [--description <text>]
-  variant update <name> [--public | --private] [--description <text>]
+  variant update <name> [--public | --private] [--title <text>] [--description <text> | --description-file <path>]
   variant remove <name>
   variant list
 
@@ -56,13 +67,18 @@ export const usage = `Usage: pnpm --filter @dpp/broker cli <command>
   alias set <alias> <variant>
   alias remove <alias>
 
-  key create <name> (--limit <per-minute> | --unlimited) [--all-variants | --grant <variant>...]
-  key update <name> [--limit <per-minute> | --unlimited] [--all-variants | --granted-only]
+  key create <name> (--limit <per-minute> | --unlimited) [--all-variants | --grant <variant>...] [--act-for-users]
+  key update <name> [--limit <per-minute> | --unlimited] [--all-variants | --granted-only] [--act-for-users | --no-act-for-users]
   key grant <name> <variant>
   key ungrant <name> <variant>
   key revoke <name>
   key list
   key show <name>
+
+  user role <uid> (admin | manager | none)
+  user grant <uid> <variant>
+  user ungrant <uid> <variant>
+  user list
 
   status`;
 
@@ -102,7 +118,7 @@ export function parseCli(
 /**
  * Runs a parsed command.
  *
- * @returns The exit code: 0 on success, 1 for a {@link CliError}.
+ * @returns The exit code: 0 on success, 1 for a {@link CliError} or {@link RegistryChangeError}.
  */
 export async function runAction(
     action: CommandAction,
@@ -113,7 +129,7 @@ export async function runAction(
 
         return 0;
     } catch (e) {
-        if (e instanceof CliError) {
+        if (e instanceof CliError || e instanceof RegistryChangeError) {
             deps.out.error(e.message);
 
             return 1;

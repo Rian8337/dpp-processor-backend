@@ -47,6 +47,7 @@ describe("buildSnapshot", () => {
         expect(snapshot.variants.get("droid-live")).toEqual({
             name: "droid-live",
             public: true,
+            title: null,
             description: "Live droid",
             instances: [
                 { variantName: "droid-live", url: "http://127.0.0.1:3101" },

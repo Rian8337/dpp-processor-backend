@@ -47,6 +47,7 @@ export function buildSnapshot(rows: SnapshotRows): RegistrySnapshot {
         variants.set(row.name, {
             name: row.name,
             public: row.public,
+            title: null,
             description: row.description,
             instances: rows.instances
                 .filter((instance) => instance.variantName === row.name)

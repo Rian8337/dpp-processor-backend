@@ -7,6 +7,7 @@ export interface Instance {
 export interface Variant {
     readonly name: string;
     readonly public: boolean;
+    readonly title: string | null;
     readonly description: string | null;
     /** Sorted by URL. */
     readonly instances: readonly Instance[];

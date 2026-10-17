@@ -127,6 +127,7 @@ describe("broker API (integration)", () => {
             expect(response.body).toEqual([
                 {
                     name: "droid-live",
+                    title: null,
                     aliases: ["live-droid"],
                     description: "Live",
                     available: true,

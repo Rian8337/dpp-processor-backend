@@ -13,6 +13,7 @@ export function toVariantSummary(
 
     return {
         name: variant.name,
+        title: variant.title,
         aliases: variant.aliases,
         description: variant.description,
         available: variant.instances.some((instance) =>

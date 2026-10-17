@@ -105,7 +105,7 @@ Visibility when acting for a uid replaces the key's own access:
 | anyone else (or unknown uid) | public variants + their grants |
 
 Without the header, the key's own access applies as today. The header from a key without `can_act_for_users`, or with a
-value that is not a positive integer, gets `400 INVALID_REQUEST`. Rate limits stay per key.
+value that is not a positive integer, gets `400 INVALID_REQUEST`. Anonymous callers sending the header get the same 400. Rate limits stay per key.
 
 This applies to every existing route (`GET /variants`, `GET /variants/:name`, and forwarding), so a person can only
 calculate with variants they can see.
@@ -114,9 +114,10 @@ calculate with variants they can see.
 
 `VariantSummary` (in `@dpp/shared`) gains `title: string | null`.
 
-New routes. All need a key with `can_act_for_users` and an `X-Acting-Uid`. Errors use the existing shape, with one new
-code: `FORBIDDEN` (403), when the key cannot act for users, the header is missing, or the person's role does not allow
-the change. Unknown variants, aliases, keys, or grants use `VARIANT_NOT_FOUND` or a new `NOT_FOUND` (404).
+New routes. All need a key with `can_act_for_users` and an `X-Acting-Uid`. Errors use the existing shape, with three new
+codes: `FORBIDDEN` (403: no acting uid, or the person's role does not allow it), `NOT_FOUND` (404: unknown alias, key,
+or user grant), and `CONFLICT` (409: a name already used by a variant, alias, or key, or an admin removing their own
+admin role). Unknown variants keep `VARIANT_NOT_FOUND`.
 
 | Route                                              | Role    | Purpose                                                                                    |
 | -------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------ |
@@ -127,7 +128,7 @@ the change. Unknown variants, aliases, keys, or grants use `VARIANT_NOT_FOUND` o
 | `DELETE /admin/aliases/:alias`                     | manager |                                                                                            |
 | `GET /admin/variants/:name/grants`                 | manager | uids granted this variant                                                                  |
 | `PUT` / `DELETE /admin/variants/:name/grants/:uid` | manager | grant or remove                                                                            |
-| `GET /admin/users`                                 | admin   | uids with a role                                                                           |
+| `GET /admin/users`                                 | admin   | uids with a role or at least one grant, with both                                          |
 | `PUT /admin/users/:uid/role` `{ role }`            | admin   | `admin`, `manager`, or `null`                                                              |
 | `GET /admin/keys`                                  | admin   | like `key list`                                                                            |
 | `POST /admin/keys`                                 | admin   | like `key create`; responds with the raw key once                                          |
@@ -157,8 +158,10 @@ new CLI commands.
 Mahiru's prototype recalculation reaches the broker through the score service's `GET /online-scores`, whose broker key
 has `all_variants`. So the broker can enforce access there too (my call, per the anti-goal):
 
-- `GET /online-scores` accepts an optional `X-Acting-Uid` and forwards it unchanged on its broker calls for that request
-  (including `variantInfo`, which must then be cached per acting uid, not per variant only).
+- `GET /online-scores` accepts an optional `X-Acting-Uid` and forwards it unchanged on its broker calls for that request.
+  The variant's mode (`variantMode`) is cached per (acting uid, variant) pair; without an acting uid it is cached per
+  variant, as before.
+- An invalid `X-Acting-Uid` on `GET /online-scores` is rejected with `400 INVALID_REQUEST`.
 - The score service's broker key also gets `can_act_for_users`. Without the header it keeps its `all_variants` access,
   so its own work (replay listener, recalculations, game routes) is unchanged.
 

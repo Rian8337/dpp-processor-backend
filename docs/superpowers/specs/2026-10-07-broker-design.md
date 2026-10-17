@@ -17,7 +17,7 @@ Status: Draft, pending review
 - Server-side services, browsers, and third parties can all call the broker. Anonymous callers are allowed (unless turned off with `ANON_RATE_LIMIT=0`), rate-limited per IP, and see only public variants. Per-client API keys get their own rate limits (or none) and can be granted private variants. Keys can be revoked.
 - A variant can have several processor instances. The broker routes only to healthy instances and detects a registry entry that points at the wrong variant.
 - Processor API changes do not require broker changes: the broker forwards calculation requests without parsing them.
-- The operator manages the registry and keys with a CLI on the server. There are no admin routes over HTTP.
+- The operator manages the registry and keys with a CLI on the server. There are no admin routes over HTTP. (Superseded by `2026-10-17-variant-management-design.md`, which adds admin routes for keys that can act for users.)
 - Usage insight (requests, errors, latency per variant and per key) without one log line per request.
 - The HTTP plumbing shared with the processor lives in one package.
 

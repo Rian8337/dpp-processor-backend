@@ -84,7 +84,7 @@ describe("OnlineScoreService", () => {
             },
         ]);
         expect(response).toEqual({
-            score: { id: 10, uid: 7, hash: testHash, best: false },
+            score: { id: 10, uid: 7, hash: testHash, best: false, mods: [] },
             source: "replay",
             ppMultiplier: 1,
             pp: 120,
@@ -116,6 +116,31 @@ describe("OnlineScoreService", () => {
             },
         });
     });
+
+    it.each([
+        ["a replay", true],
+        ["the stored stats", false],
+    ])(
+        "reports the score's mods when calculating from %s",
+        async (_, withReplay) => {
+            const row = scoreRow({
+                id: 10,
+                mods: JSON.stringify([new ModHidden().serialize()]),
+            });
+
+            repository.scores.push(row);
+
+            if (withReplay) {
+                replays.put("online", "10.odr", replayFile);
+                parsed = parsedReplayFor(row);
+            }
+
+            const response = await service.lookup(query);
+
+            expect(response.source).toBe(withReplay ? "replay" : "score");
+            expect(response.score.mods).toEqual([new ModHidden().serialize()]);
+        },
+    );
 
     it("falls back to the stored stats when the replay is invalid", async () => {
         const row = scoreRow({ id: 10, ppMultiplier: 0.5 });
@@ -196,6 +221,7 @@ describe("OnlineScoreService", () => {
             uid: 7,
             hash: testHash,
             best: true,
+            mods: [],
         });
         expect(response.source).toBe("replay");
     });

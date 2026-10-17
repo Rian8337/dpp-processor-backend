@@ -4,7 +4,7 @@ import { dependencyTokens } from "@/dependencies/tokens";
 import type { IOfficialScoreRepository } from "@/repositories/IOfficialScoreRepository";
 import type { IReplayStore } from "@/replays/IReplayStore";
 import type { ReplayParser } from "@/replays/parseReplay";
-import { isReplayValid } from "@/replays/replayValidity";
+import { isReplayValid, parseModsColumn } from "@/replays/replayValidity";
 import { ScoreNotFoundError, UpstreamError } from "@/types/errors";
 import type { UpstreamResult } from "@/types/upstream";
 import { Injectable } from "@dpp/server";
@@ -42,7 +42,14 @@ export class OnlineScoreService implements IOnlineScoreService {
 
         const file = await this.readReplay(best ? "best" : "online", score.id);
         const replay = file ? await this.parse(file) : null;
-        const header = { id: score.id, uid, hash, best };
+        // A replay is only calculated when it agrees with the score's mods (or has none), so these are the mods used.
+        const header = {
+            id: score.id,
+            uid,
+            hash,
+            best,
+            mods: parseModsColumn(score.mods) ?? [],
+        };
 
         if (file && replay && isReplayValid(score, replay)) {
             const result = await this.calculator.calculateReplay(

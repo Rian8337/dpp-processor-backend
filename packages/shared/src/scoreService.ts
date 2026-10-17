@@ -39,6 +39,11 @@ export interface OnlineScoreResponse {
         readonly uid: number;
         readonly hash: string;
         readonly best: boolean;
+
+        /**
+         * All of the score's mods. The calculation's `difficulty.mods` holds only the difficulty-adjusting ones.
+         */
+        readonly mods: SerializedMod[];
     };
     readonly source: "replay" | "score";
     readonly ppMultiplier: number;

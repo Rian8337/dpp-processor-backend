@@ -120,12 +120,13 @@ export interface VariantSummary {
 }
 
 /**
- * What a user may do in the variant management API: `admin` manages everything, `manager` manages granted variants.
+ * What a user may do in the variant management API. Managers see and manage every variant (titles, descriptions,
+ * aliases, and user grants); admins additionally manage visibility, roles, and API keys.
  */
 export type UserRole = "admin" | "manager";
 
 /**
- * The caller's identity and permissions, from `GET /admin/me`.
+ * The caller's identity and permissions, from `GET /me`.
  */
 export interface MeResponse {
     readonly uid: number;
@@ -136,7 +137,7 @@ export interface MeResponse {
     readonly role: UserRole | null;
 
     /**
-     * Names of the variants the user manages.
+     * Names of the private variants the user may use.
      */
     readonly grants: string[];
 }
@@ -182,7 +183,7 @@ export interface AdminUser {
     readonly role: UserRole | null;
 
     /**
-     * Names of the variants the user manages.
+     * Names of the private variants the user may use.
      */
     readonly grants: string[];
 }

@@ -6,6 +6,9 @@ import type { Request, Response } from "express";
 import { inject } from "tsyringe";
 import { requireActingUid } from "./adminAccess";
 
+/**
+ * Tells a caller who it acts for and what that person may do.
+ */
 @Controller("/me")
 export class MeController extends BaseController {
     constructor(

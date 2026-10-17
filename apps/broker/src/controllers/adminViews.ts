@@ -32,6 +32,9 @@ export function toAdminKey(key: KeyListing): AdminKey {
     };
 }
 
+/**
+ * Describes a user for the management API.
+ */
 export function toAdminUser(user: UserListing): AdminUser {
     return { uid: user.uid, role: user.role, grants: [...user.grants] };
 }

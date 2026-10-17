@@ -43,7 +43,7 @@ export interface RegistrySnapshot {
     readonly aliases: ReadonlyMap<string, string>;
     /** SHA-256 hex of the key → key. Revoked keys are not included. */
     readonly keysByHash: ReadonlyMap<string, ApiKeyRecord>;
-    /** Uid → user, for users with a role or a grant. Sorted by uid. */
+    /** Uid → user, for every users row; a row without a role or grants grants nothing. Sorted by uid. */
     readonly users: ReadonlyMap<number, UserRecord>;
 }
 

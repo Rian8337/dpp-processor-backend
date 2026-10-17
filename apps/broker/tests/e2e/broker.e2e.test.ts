@@ -148,6 +148,7 @@ describe("broker (e2e)", () => {
         expect(await response.json()).toEqual([
             {
                 name: variant,
+                title: null,
                 aliases: ["live-droid"],
                 description: null,
                 available: true,

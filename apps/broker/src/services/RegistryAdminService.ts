@@ -18,6 +18,26 @@ import {
 import { inject } from "tsyringe";
 import type { IRegistryAdminService } from "./IRegistryAdminService";
 
+const uniqueViolationCode = "23505";
+
+/**
+ * Whether Postgres rejected a query for a unique constraint. Drizzle wraps the driver's error, so the code may be on
+ * its `cause`.
+ */
+function isUniqueViolation(error: unknown): boolean {
+    for (
+        let current = error;
+        typeof current === "object" && current !== null;
+        current = (current as { cause?: unknown }).cause
+    ) {
+        if ((current as { code?: unknown }).code === uniqueViolationCode) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 @Injectable(dependencyTokens.registryAdminService)
 export class RegistryAdminService implements IRegistryAdminService {
     constructor(
@@ -171,14 +191,26 @@ export class RegistryAdminService implements IRegistryAdminService {
 
         const rawKey = generateApiKey();
 
-        await this.repository.insertKey({
-            name: input.name,
-            hash: hashApiKey(rawKey),
-            rateLimitPerMinute: input.rateLimitPerMinute,
-            allVariants: input.allVariants,
-            canActForUsers: input.canActForUsers,
-            grants,
-        });
+        try {
+            await this.repository.insertKey({
+                name: input.name,
+                hash: hashApiKey(rawKey),
+                rateLimitPerMinute: input.rateLimitPerMinute,
+                allVariants: input.allVariants,
+                canActForUsers: input.canActForUsers,
+                grants,
+            });
+        } catch (e) {
+            // Another writer took the name between the check above and the insert.
+            if (isUniqueViolation(e)) {
+                throw new RegistryChangeError(
+                    "conflict",
+                    `A key named "${input.name}" already exists`,
+                );
+            }
+
+            throw e;
+        }
 
         return { key: await this.requireKey(input.name), rawKey };
     }

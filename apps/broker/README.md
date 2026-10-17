@@ -13,6 +13,35 @@ access and rate limits. See `docs/superpowers/specs/2026-10-07-broker-design.md`
 | `POST /variants/:name/performance`        | forwarded to `POST /performance`                   |
 | `POST /variants/:name/performance/replay` | forwarded to `POST /performance/replay`            |
 
+### Acting for a person and management routes
+
+A key created with `can_act_for_users` (`--act-for-users` in the CLI) may send `X-Acting-Uid: <uid>` (a positive
+integer). The broker trusts the uid; the client verifies who the person is. Visibility then follows the person
+instead of the key: admins and managers see every variant, everyone else sees public variants and their grants. A
+key without `can_act_for_users` that sends the header gets `400 INVALID_REQUEST`.
+
+The management routes below need such a key and an `X-Acting-Uid`; without one, or with too low a role, they answer
+`403 FORBIDDEN`. Unknown aliases, keys, or grants answer `404 NOT_FOUND`, and a change that clashes with the registry
+(a taken key name, an admin removing their own role) answers `409 CONFLICT`. A successful write is applied at once and
+logged as `Admin change by uid <uid>: <method> <path>`, without the body.
+
+| Route                                              | Role    | Purpose                                                    |
+| -------------------------------------------------- | ------- | ---------------------------------------------------------- |
+| `GET /me`                                          | any     | `{ uid, role, grants }` for the acting person              |
+| `GET /admin/variants`                              | manager | every variant, with `public` and `instanceCount`           |
+| `PATCH /admin/variants/:name`                      | manager | `{ title?, description? }`; `public` also needs admin      |
+| `PUT /admin/aliases/:alias` `{ variant }`          | manager | create or repoint an alias                                 |
+| `DELETE /admin/aliases/:alias`                     | manager |                                                            |
+| `GET /admin/variants/:name/grants`                 | manager | uids granted the variant                                   |
+| `PUT` / `DELETE /admin/variants/:name/grants/:uid` | manager | grant or remove                                            |
+| `GET /admin/users`                                 | admin   | users with a role or a grant                               |
+| `PUT /admin/users/:uid/role` `{ role }`            | admin   | `admin`, `manager`, or `null`                              |
+| `GET /admin/keys`                                  | admin   | all keys, revoked ones included                            |
+| `POST /admin/keys`                                 | admin   | creates a key; responds `201` with the raw key, shown once |
+| `PATCH /admin/keys/:name`                          | admin   | `rateLimitPerMinute`, `allVariants`, `canActForUsers`      |
+| `PUT` / `DELETE /admin/keys/:name/grants/:variant` | admin   | key grants                                                 |
+| `POST /admin/keys/:name/revoke`                    | admin   |                                                            |
+
 Without an `X-Api-Key` header, callers are anonymous: they see public variants only and are limited per IP. To turn
 anonymous access off (for example while the beatmap service is near osu!'s rate limit), set `ANON_RATE_LIMIT=0` (change it
 in the ecosystem file and run `pm2 restart ecosystem.config.cjs --only dpp-broker --update-env`, since a plain

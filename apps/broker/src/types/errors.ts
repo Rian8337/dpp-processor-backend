@@ -1,4 +1,5 @@
-import { APIError } from "@dpp/server";
+import type { RegistryChangeError } from "@/registry/RegistryChangeError";
+import { APIError, BadRequestError } from "@dpp/server";
 
 export class VariantNotFoundError extends APIError {
     constructor(name: string) {
@@ -69,5 +70,48 @@ export class ProcessorTimeoutError extends APIError {
             "PROCESSOR_TIMEOUT",
             `The processor for variant "${name}" did not respond in time`,
         );
+    }
+}
+
+/**
+ * The caller may not make the request: no acting person, or a role that is too low.
+ */
+export class ForbiddenError extends APIError {
+    constructor(message: string) {
+        super(403, "FORBIDDEN", message);
+    }
+}
+
+/**
+ * An alias, key, or grant named by the request does not exist.
+ */
+export class NotFoundError extends APIError {
+    constructor(message: string) {
+        super(404, "NOT_FOUND", message);
+    }
+}
+
+/**
+ * The request clashes with the registry's current state.
+ */
+export class ConflictError extends APIError {
+    constructor(message: string) {
+        super(409, "CONFLICT", message);
+    }
+}
+
+/**
+ * The API error for a change the registry refused.
+ */
+export function toApiError(error: RegistryChangeError): APIError {
+    switch (error.kind) {
+        case "invalid":
+            return new BadRequestError(error.message);
+        case "not-found":
+            return new NotFoundError(error.message);
+        case "variant-not-found":
+            return new APIError(404, "VARIANT_NOT_FOUND", error.message);
+        case "conflict":
+            return new ConflictError(error.message);
     }
 }

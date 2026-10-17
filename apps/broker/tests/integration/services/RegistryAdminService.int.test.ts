@@ -336,6 +336,28 @@ describe("RegistryAdminService (integration)", () => {
             );
         });
 
+        it("reports a name taken between the check and the insert as a conflict", async () => {
+            expect.hasAssertions();
+
+            const input = {
+                name: "bot",
+                rateLimitPerMinute: null,
+                allVariants: false,
+                canActForUsers: false,
+                grants: [],
+            };
+
+            await service.createKey(input);
+            // Another writer took the name after the existence check.
+            vi.spyOn(repository, "findKey").mockResolvedValueOnce(undefined);
+
+            await expectChangeError(
+                service.createKey(input),
+                "conflict",
+                'A key named "bot" already exists',
+            );
+        });
+
         it("accepts only null or a positive 32-bit whole number as a limit", async () => {
             expect.hasAssertions();
 

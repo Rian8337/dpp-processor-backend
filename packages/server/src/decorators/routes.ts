@@ -1,6 +1,9 @@
 export enum HttpMethod {
     Get = "get",
     Post = "post",
+    Put = "put",
+    Patch = "patch",
+    Delete = "delete",
 }
 
 /**
@@ -44,3 +47,21 @@ export const Get = createRouteDecorator(HttpMethod.Get);
  * path itself.
  */
 export const Post = createRouteDecorator(HttpMethod.Post);
+
+/**
+ * Marks a method as a PUT handler. The path is appended to the controller's base path; use `""` for the base
+ * path itself.
+ */
+export const Put = createRouteDecorator(HttpMethod.Put);
+
+/**
+ * Marks a method as a PATCH handler. The path is appended to the controller's base path; use `""` for the base
+ * path itself.
+ */
+export const Patch = createRouteDecorator(HttpMethod.Patch);
+
+/**
+ * Marks a method as a DELETE handler. The path is appended to the controller's base path; use `""` for the base
+ * path itself.
+ */
+export const Delete = createRouteDecorator(HttpMethod.Delete);

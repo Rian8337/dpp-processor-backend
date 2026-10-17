@@ -52,26 +52,31 @@ describe("broker API (integration)", () => {
         await repository.insertVariant({
             name: "droid-live",
             public: true,
+            title: null,
             description: "Live",
         });
         await repository.insertVariant({
             name: "flowaim",
             public: false,
+            title: null,
             description: null,
         });
         await repository.insertVariant({
             name: "pair",
             public: true,
+            title: null,
             description: null,
         });
         await repository.insertVariant({
             name: "wrong",
             public: true,
+            title: null,
             description: null,
         });
         await repository.insertVariant({
             name: "offline",
             public: true,
+            title: null,
             description: null,
         });
         await repository.insertInstance("droid-live", live.url);
@@ -90,6 +95,7 @@ describe("broker API (integration)", () => {
             hash: hashApiKey("bot-key"),
             rateLimitPerMinute: null,
             allVariants: false,
+            canActForUsers: false,
             grants: ["flowaim"],
         });
         await repository.insertKey({
@@ -97,6 +103,7 @@ describe("broker API (integration)", () => {
             hash: hashApiKey("tiny-key"),
             rateLimitPerMinute: 1,
             allVariants: false,
+            canActForUsers: false,
             grants: [],
         });
 

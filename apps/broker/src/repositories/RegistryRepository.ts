@@ -2,6 +2,8 @@ import {
     aliasesTable,
     apiKeysTable,
     apiKeyVariantsTable,
+    usersTable,
+    userVariantsTable,
     variantInstancesTable,
     variantsTable,
 } from "@/database/schema";
@@ -12,10 +14,12 @@ import type {
     KeyListing,
     NewApiKey,
     RegistrySnapshot,
+    UserListing,
     VariantRow,
 } from "@/registry/types";
 import { Injectable } from "@dpp/server";
-import { and, asc, eq, inArray, isNull } from "drizzle-orm";
+import type { UserRole } from "@dpp/shared";
+import { and, asc, eq, inArray, isNull, type SQL } from "drizzle-orm";
 import { inject } from "tsyringe";
 import type { IRegistryRepository } from "./IRegistryRepository";
 
@@ -34,6 +38,7 @@ export class RegistryRepository implements IRegistryRepository {
                     .select({
                         name: variantsTable.name,
                         public: variantsTable.public,
+                        title: variantsTable.title,
                         description: variantsTable.description,
                     })
                     .from(variantsTable);
@@ -51,10 +56,15 @@ export class RegistryRepository implements IRegistryRepository {
                         keyHash: apiKeysTable.keyHash,
                         rateLimitPerMinute: apiKeysTable.rateLimitPerMinute,
                         allVariants: apiKeysTable.allVariants,
+                        canActForUsers: apiKeysTable.canActForUsers,
                     })
                     .from(apiKeysTable)
                     .where(isNull(apiKeysTable.revokedAt));
                 const grants = await tx.select().from(apiKeyVariantsTable);
+                const users = await tx
+                    .select({ uid: usersTable.uid, role: usersTable.role })
+                    .from(usersTable);
+                const userGrants = await tx.select().from(userVariantsTable);
 
                 return buildSnapshot({
                     variants,
@@ -62,6 +72,8 @@ export class RegistryRepository implements IRegistryRepository {
                     aliases,
                     keys,
                     grants,
+                    users,
+                    userGrants,
                 });
             },
             { isolationLevel: "repeatable read", accessMode: "read only" },
@@ -73,6 +85,7 @@ export class RegistryRepository implements IRegistryRepository {
             .select({
                 name: variantsTable.name,
                 public: variantsTable.public,
+                title: variantsTable.title,
                 description: variantsTable.description,
             })
             .from(variantsTable)
@@ -108,6 +121,7 @@ export class RegistryRepository implements IRegistryRepository {
         name: string,
         changes: {
             readonly public?: boolean;
+            readonly title?: string | null;
             readonly description?: string | null;
         },
     ): Promise<void> {
@@ -183,6 +197,7 @@ export class RegistryRepository implements IRegistryRepository {
                     keyHash: key.hash,
                     rateLimitPerMinute: key.rateLimitPerMinute,
                     allVariants: key.allVariants,
+                    canActForUsers: key.canActForUsers,
                 })
                 .returning({ id: apiKeysTable.id });
 
@@ -202,6 +217,7 @@ export class RegistryRepository implements IRegistryRepository {
         changes: {
             readonly rateLimitPerMinute?: number | null;
             readonly allVariants?: boolean;
+            readonly canActForUsers?: boolean;
         },
     ): Promise<void> {
         await this.db
@@ -264,6 +280,96 @@ export class RegistryRepository implements IRegistryRepository {
         return revoked.length > 0;
     }
 
+    async grantUser(uid: number, variantName: string): Promise<boolean> {
+        return this.db.transaction(async (tx) => {
+            await tx.insert(usersTable).values({ uid }).onConflictDoNothing();
+
+            const inserted = await tx
+                .insert(userVariantsTable)
+                .values({ uid, variantName })
+                .onConflictDoNothing()
+                .returning({ uid: userVariantsTable.uid });
+
+            return inserted.length > 0;
+        });
+    }
+
+    async ungrantUser(uid: number, variantName: string): Promise<boolean> {
+        const deleted = await this.db
+            .delete(userVariantsTable)
+            .where(
+                and(
+                    eq(userVariantsTable.uid, uid),
+                    eq(userVariantsTable.variantName, variantName),
+                ),
+            )
+            .returning({ uid: userVariantsTable.uid });
+
+        return deleted.length > 0;
+    }
+
+    async setUserRole(uid: number, role: UserRole | null): Promise<void> {
+        await this.db
+            .insert(usersTable)
+            .values({ uid, role })
+            .onConflictDoUpdate({ target: usersTable.uid, set: { role } });
+    }
+
+    async findUser(uid: number): Promise<UserListing | undefined> {
+        const [user] = await this.selectUsers(eq(usersTable.uid, uid));
+
+        return user;
+    }
+
+    async listUsers(): Promise<UserListing[]> {
+        const users = await this.selectUsers();
+
+        return users.filter(
+            (user) => user.role !== null || user.grants.length > 0,
+        );
+    }
+
+    async usersGranted(variantName: string): Promise<number[]> {
+        const rows = await this.db
+            .select({ uid: userVariantsTable.uid })
+            .from(userVariantsTable)
+            .where(eq(userVariantsTable.variantName, variantName))
+            .orderBy(asc(userVariantsTable.uid));
+
+        return rows.map((row) => row.uid);
+    }
+
+    private async selectUsers(where?: SQL): Promise<UserListing[]> {
+        const users = await this.db
+            .select()
+            .from(usersTable)
+            .where(where)
+            .orderBy(asc(usersTable.uid));
+
+        if (users.length === 0) {
+            return [];
+        }
+
+        const grants = await this.db
+            .select()
+            .from(userVariantsTable)
+            .where(
+                inArray(
+                    userVariantsTable.uid,
+                    users.map((user) => user.uid),
+                ),
+            )
+            .orderBy(asc(userVariantsTable.variantName));
+
+        return users.map((user) => ({
+            uid: user.uid,
+            role: user.role,
+            grants: grants
+                .filter((grant) => grant.uid === user.uid)
+                .map((grant) => grant.variantName),
+        }));
+    }
+
     private async selectKeys(name?: string): Promise<KeyListing[]> {
         const keys = await this.db
             .select()
@@ -290,6 +396,7 @@ export class RegistryRepository implements IRegistryRepository {
             name: key.name,
             rateLimitPerMinute: key.rateLimitPerMinute,
             allVariants: key.allVariants,
+            canActForUsers: key.canActForUsers,
             grants: grants
                 .filter((grant) => grant.keyId === key.id)
                 .map((grant) => grant.variantName),

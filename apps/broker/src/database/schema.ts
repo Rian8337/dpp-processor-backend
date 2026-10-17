@@ -1,6 +1,9 @@
+import type { UserRole } from "@dpp/shared";
+import { sql } from "drizzle-orm";
 import {
     boolean,
     char,
+    check,
     integer,
     pgTable,
     primaryKey,
@@ -17,6 +20,7 @@ import {
 export const variantsTable = pgTable("variants", {
     name: text().primaryKey(),
     public: boolean().notNull().default(false),
+    title: text(),
     description: text(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
@@ -60,6 +64,7 @@ export const apiKeysTable = pgTable("api_keys", {
     keyHash: char({ length: 64 }).notNull().unique("api_keys_key_hash_unique"),
     rateLimitPerMinute: integer(),
     allVariants: boolean().notNull().default(false),
+    canActForUsers: boolean().notNull().default(false),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     revokedAt: timestamp({ withTimezone: true }),
 });
@@ -80,10 +85,42 @@ export const apiKeyVariantsTable = pgTable(
     (table) => [primaryKey({ columns: [table.keyId, table.variantName] })],
 );
 
+/**
+ * Users the broker knows by osu!droid uid: those with a management role or a grant of a private variant. A user
+ * without a role has `role` set to `null`.
+ */
+export const usersTable = pgTable(
+    "users",
+    {
+        uid: integer().primaryKey(),
+        role: text().$type<UserRole>(),
+        createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    },
+    () => [check("users_role_check", sql`role in ('admin', 'manager')`)],
+);
+
+/**
+ * Private variants a user may use.
+ */
+export const userVariantsTable = pgTable(
+    "user_variants",
+    {
+        uid: integer()
+            .notNull()
+            .references(() => usersTable.uid, { onDelete: "cascade" }),
+        variantName: text()
+            .notNull()
+            .references(() => variantsTable.name, { onDelete: "cascade" }),
+    },
+    (table) => [primaryKey({ columns: [table.uid, table.variantName] })],
+);
+
 export const schema = {
     variantsTable,
     variantInstancesTable,
     aliasesTable,
     apiKeysTable,
     apiKeyVariantsTable,
+    usersTable,
+    userVariantsTable,
 };

@@ -59,6 +59,7 @@ export const addVariant: Command = (args) => {
         await repository.insertVariant({
             name,
             public: values.public,
+            title: null,
             description: values.description || null,
         });
 

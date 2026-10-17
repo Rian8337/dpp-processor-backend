@@ -10,6 +10,7 @@ const bot: ApiKeyRecord = {
     name: "bot",
     rateLimitPerMinute: null,
     allVariants: false,
+    canActForUsers: false,
     grants: new Set(),
 };
 

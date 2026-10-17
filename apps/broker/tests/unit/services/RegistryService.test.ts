@@ -10,9 +10,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const snapshot = testSnapshot({
     variants: [
-        { name: "droid-live", public: true, description: null },
-        { name: "flowaim", public: false, description: null },
-        { name: "secret", public: false, description: null },
+        { name: "droid-live", public: true, title: null, description: null },
+        { name: "flowaim", public: false, title: null, description: null },
+        { name: "secret", public: false, title: null, description: null },
     ],
     instances: [{ variantName: "droid-live", url: "http://127.0.0.1:3101" }],
     aliases: [
@@ -26,6 +26,7 @@ const snapshot = testSnapshot({
             keyHash: hashApiKey("bot-key"),
             rateLimitPerMinute: null,
             allVariants: false,
+            canActForUsers: false,
         },
         {
             id: 2,
@@ -33,6 +34,7 @@ const snapshot = testSnapshot({
             keyHash: hashApiKey("admin-key"),
             rateLimitPerMinute: 100,
             allVariants: true,
+            canActForUsers: false,
         },
     ],
     grants: [{ keyId: 1, variantName: "flowaim" }],

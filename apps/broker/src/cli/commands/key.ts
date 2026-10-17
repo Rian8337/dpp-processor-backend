@@ -84,6 +84,7 @@ export const createKey: Command = (args) => {
             hash: hashApiKey(key),
             rateLimitPerMinute,
             allVariants: values["all-variants"],
+            canActForUsers: false,
             grants,
         });
 

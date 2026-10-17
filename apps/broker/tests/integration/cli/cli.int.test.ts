@@ -101,6 +101,7 @@ describe("broker CLI (integration)", () => {
             expect(await repository.findVariant("droid-live")).toEqual({
                 name: "droid-live",
                 public: false,
+                title: null,
                 description: null,
             });
 

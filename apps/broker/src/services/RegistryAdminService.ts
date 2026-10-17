@@ -69,6 +69,13 @@ export class RegistryAdminService implements IRegistryAdminService {
             // An empty title clears it.
             const title = changes.title || null;
 
+            if (title?.includes("\u0000")) {
+                throw new RegistryChangeError(
+                    "invalid",
+                    "Title must not contain NUL characters",
+                );
+            }
+
             if (title !== null && title.length > maxVariantTitleLength) {
                 throw new RegistryChangeError(
                     "invalid",
@@ -81,6 +88,13 @@ export class RegistryAdminService implements IRegistryAdminService {
 
         if (changes.description !== undefined) {
             const description = changes.description || null;
+
+            if (description?.includes("\u0000")) {
+                throw new RegistryChangeError(
+                    "invalid",
+                    "Description must not contain NUL characters",
+                );
+            }
 
             if (
                 description !== null &&

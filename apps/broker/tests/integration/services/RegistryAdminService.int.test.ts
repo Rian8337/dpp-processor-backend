@@ -66,6 +66,20 @@ describe("RegistryAdminService (integration)", () => {
             });
         });
 
+        it("rejects NUL characters, which Postgres cannot store in text", async () => {
+            expect.hasAssertions();
+            await expectChangeError(
+                service.updateVariant("x", { title: "a\u0000b" }),
+                "invalid",
+                "Title must not contain NUL characters",
+            );
+            await expectChangeError(
+                service.updateVariant("x", { description: "a\u0000b" }),
+                "invalid",
+                "Description must not contain NUL characters",
+            );
+        });
+
         it("keeps newlines in descriptions", async () => {
             await service.updateVariant("x", {
                 description: "line one\nline two\n",

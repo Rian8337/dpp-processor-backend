@@ -234,6 +234,59 @@ describe("admin and me routes (integration)", () => {
             ).toBe("Live");
         });
 
+        it("rejects NUL characters in titles and descriptions", async () => {
+            const description = await as(manager)
+                .patch("/admin/variants/droid-live")
+                .send({ description: "bad\u0000text" })
+                .expect(400);
+            const title = await as(manager)
+                .patch("/admin/variants/droid-live")
+                .send({ title: "bad\u0000title" })
+                .expect(400);
+
+            expect(description.body.error).toEqual({
+                code: "INVALID_REQUEST",
+                message: "Description must not contain NUL characters",
+            });
+            expect(title.body.error.message).toBe(
+                "Title must not contain NUL characters",
+            );
+        });
+
+        it("reports an unexpected failure without logging the request's text", async () => {
+            const failure = Object.assign(
+                new Error(
+                    "Failed query: update variants\nparams: very secret description text",
+                ),
+                {
+                    cause: Object.assign(new Error("also secret"), {
+                        code: "22021",
+                    }),
+                },
+            );
+
+            vi.spyOn(
+                RegistryRepository.prototype,
+                "updateVariant",
+            ).mockRejectedValue(failure);
+
+            const response = await as(manager)
+                .patch("/admin/variants/droid-live")
+                .send({ description: "very secret description text" })
+                .expect(500);
+
+            expect(response.body.error.code).toBe("INTERNAL_ERROR");
+
+            const logged = [console.error, console.log, console.warn]
+                .flatMap((method) => vi.mocked(method).mock.calls)
+                .map((call) => call.map(String).join(" "))
+                .join("\n");
+
+            expect(logged).not.toContain("secret");
+            expect(logged).toContain("22021");
+            expect(logged).toContain("PATCH /admin/variants/droid-live");
+        });
+
         it("rejects bodies that are not valid", async () => {
             const empty = await as(manager)
                 .patch("/admin/variants/droid-live")

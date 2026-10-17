@@ -34,7 +34,7 @@ export class AdminController extends AdminControllerBase {
     }
 
     @Get("/variants")
-    listVariants(_req: Request, res: Response<AdminVariant[]>): void {
+    listVariants(req: Request, res: Response<AdminVariant[]>): void {
         try {
             requireRole(this.registry, res, "manager");
 
@@ -44,7 +44,7 @@ export class AdminController extends AdminControllerBase {
                     .map((variant) => toAdminVariant(variant, this.health)),
             );
         } catch (e) {
-            this.handleError(res, e);
+            this.fail(req, res, e);
         }
     }
 
@@ -77,7 +77,7 @@ export class AdminController extends AdminControllerBase {
 
             res.json(toAdminVariant(variant, this.health));
         } catch (e) {
-            this.handleError(res, e);
+            this.fail(req, res, e);
         }
     }
 
@@ -95,7 +95,7 @@ export class AdminController extends AdminControllerBase {
 
             res.status(204).end();
         } catch (e) {
-            this.handleError(res, e);
+            this.fail(req, res, e);
         }
     }
 
@@ -112,7 +112,7 @@ export class AdminController extends AdminControllerBase {
 
             res.status(204).end();
         } catch (e) {
-            this.handleError(res, e);
+            this.fail(req, res, e);
         }
     }
 
@@ -126,7 +126,7 @@ export class AdminController extends AdminControllerBase {
 
             res.json(await this.admin.usersGranted(req.params.name));
         } catch (e) {
-            this.handleError(res, e);
+            this.fail(req, res, e);
         }
     }
 
@@ -144,7 +144,7 @@ export class AdminController extends AdminControllerBase {
 
             res.status(204).end();
         } catch (e) {
-            this.handleError(res, e);
+            this.fail(req, res, e);
         }
     }
 
@@ -164,18 +164,18 @@ export class AdminController extends AdminControllerBase {
 
             res.status(204).end();
         } catch (e) {
-            this.handleError(res, e);
+            this.fail(req, res, e);
         }
     }
 
     @Get("/users")
-    async listUsers(_req: Request, res: Response<AdminUser[]>): Promise<void> {
+    async listUsers(req: Request, res: Response<AdminUser[]>): Promise<void> {
         try {
             requireRole(this.registry, res, "admin");
 
             res.json((await this.admin.listUsers()).map(toAdminUser));
         } catch (e) {
-            this.handleError(res, e);
+            this.fail(req, res, e);
         }
     }
 
@@ -202,7 +202,7 @@ export class AdminController extends AdminControllerBase {
                 }),
             );
         } catch (e) {
-            this.handleError(res, e);
+            this.fail(req, res, e);
         }
     }
 }

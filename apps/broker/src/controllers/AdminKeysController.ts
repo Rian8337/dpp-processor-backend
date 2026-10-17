@@ -37,13 +37,13 @@ export class AdminKeysController extends AdminControllerBase {
     }
 
     @Get("")
-    async list(_req: Request, res: Response<AdminKey[]>): Promise<void> {
+    async list(req: Request, res: Response<AdminKey[]>): Promise<void> {
         try {
             requireRole(this.registry, res, "admin");
 
             res.json((await this.admin.listKeys()).map(toAdminKey));
         } catch (e) {
-            this.handleError(res, e);
+            this.fail(req, res, e);
         }
     }
 
@@ -64,7 +64,7 @@ export class AdminKeysController extends AdminControllerBase {
                 .setHeader("Cache-Control", "no-store")
                 .json({ key: toAdminKey(key), rawKey });
         } catch (e) {
-            this.handleError(res, e);
+            this.fail(req, res, e);
         }
     }
 
@@ -82,7 +82,7 @@ export class AdminKeysController extends AdminControllerBase {
 
             res.json(toAdminKey(key));
         } catch (e) {
-            this.handleError(res, e);
+            this.fail(req, res, e);
         }
     }
 
@@ -99,7 +99,7 @@ export class AdminKeysController extends AdminControllerBase {
 
             res.status(204).end();
         } catch (e) {
-            this.handleError(res, e);
+            this.fail(req, res, e);
         }
     }
 
@@ -116,7 +116,7 @@ export class AdminKeysController extends AdminControllerBase {
 
             res.status(204).end();
         } catch (e) {
-            this.handleError(res, e);
+            this.fail(req, res, e);
         }
     }
 
@@ -130,7 +130,7 @@ export class AdminKeysController extends AdminControllerBase {
 
             res.status(204).end();
         } catch (e) {
-            this.handleError(res, e);
+            this.fail(req, res, e);
         }
     }
 }

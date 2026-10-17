@@ -1,4 +1,9 @@
-import type { ApiKeyRecord, Caller, Variant } from "@/registry/types";
+import type {
+    ApiKeyRecord,
+    Caller,
+    UserRecord,
+    Variant,
+} from "@/registry/types";
 
 export interface IRegistryService {
     /** Loads the registry and hands it to the health monitor. Rejects if the database fails. */
@@ -13,6 +18,10 @@ export interface IRegistryService {
     resolve(name: string, caller: Caller): Variant | undefined;
     /** The variants the caller may use, sorted by name. */
     visibleVariants(caller: Caller): Variant[];
+    /** The user with the uid, or `undefined` if they have no role and no grants. */
+    findUser(uid: number): UserRecord | undefined;
+    /** Every variant regardless of caller, sorted by name. */
+    allVariants(): Variant[];
     /** e.g. `3 variants, 4 instances, 2 aliases, 5 keys`, for startup and SIGHUP logs. */
     summary(): string;
 }

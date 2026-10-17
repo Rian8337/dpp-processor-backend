@@ -49,7 +49,12 @@ export interface RegistrySnapshot {
 
 export type Caller =
     | { readonly kind: "anonymous" }
-    | { readonly kind: "key"; readonly key: ApiKeyRecord };
+    | {
+          readonly kind: "key";
+          readonly key: ApiKeyRecord;
+          /** The user the key acts for (`X-Acting-Uid`); their access replaces the key's own. */
+          readonly actingUid?: number;
+      };
 
 export interface VariantRow {
     readonly name: string;

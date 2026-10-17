@@ -21,6 +21,21 @@ export class KeyRequiredError extends APIError {
     }
 }
 
+/**
+ * The `X-Acting-Uid` header is not allowed for the caller or is not a valid uid.
+ */
+export class InvalidActingUidError extends APIError {
+    constructor(reason: "not-allowed" | "malformed") {
+        super(
+            400,
+            "INVALID_REQUEST",
+            reason === "not-allowed"
+                ? "This key cannot act for users"
+                : "X-Acting-Uid must be a positive integer",
+        );
+    }
+}
+
 export class RateLimitedError extends APIError {
     constructor() {
         super(

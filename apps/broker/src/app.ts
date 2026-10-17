@@ -43,7 +43,11 @@ export function createApp(
             .use(
                 cors({
                     origin: "*",
-                    allowedHeaders: ["Content-Type", "X-Api-Key"],
+                    allowedHeaders: [
+                        "Content-Type",
+                        "X-Api-Key",
+                        "X-Acting-Uid",
+                    ],
                     exposedHeaders: [
                         "X-Variant",
                         "RateLimit",

@@ -14,13 +14,24 @@ const bot: ApiKeyRecord = {
     grants: new Set(),
 };
 
+const actor: ApiKeyRecord = {
+    ...bot,
+    id: 2,
+    name: "board",
+    canActForUsers: true,
+};
+
 function createApp(allowAnonymous = true) {
     return express()
         .use(
             createAuthMiddleware(
                 {
                     authenticate: (raw) =>
-                        raw === "good-key" ? bot : undefined,
+                        raw === "good-key"
+                            ? bot
+                            : raw === "actor-key"
+                              ? actor
+                              : undefined,
                 },
                 { allowAnonymous },
             ),
@@ -79,5 +90,85 @@ describe("auth middleware", () => {
                 message: "Missing or invalid API key",
             },
         });
+    });
+
+    it("attaches the acting uid for a key that can act for users", async () => {
+        const response = await request(createApp())
+            .get("/")
+            .set("X-Api-Key", "actor-key")
+            .set("X-Acting-Uid", "1001")
+            .expect(200);
+
+        expect(response.body).toMatchObject({
+            kind: "key",
+            key: { name: "board" },
+            actingUid: 1001,
+        });
+    });
+
+    it("leaves the acting uid unset when the header is absent", async () => {
+        const response = await request(createApp())
+            .get("/")
+            .set("X-Api-Key", "actor-key")
+            .expect(200);
+
+        expect(response.body).not.toHaveProperty("actingUid");
+    });
+
+    it("rejects an acting uid from a key that cannot act for users", async () => {
+        const response = await request(createApp())
+            .get("/")
+            .set("X-Api-Key", "good-key")
+            .set("X-Acting-Uid", "1001");
+
+        expect(response.status).toBe(400);
+        expect(response.body).toEqual({
+            error: {
+                code: "INVALID_REQUEST",
+                message: "This key cannot act for users",
+            },
+        });
+    });
+
+    it("rejects an acting uid without a key", async () => {
+        const response = await request(createApp())
+            .get("/")
+            .set("X-Acting-Uid", "1001");
+
+        expect(response.status).toBe(400);
+        expect(response.body).toEqual({
+            error: {
+                code: "INVALID_REQUEST",
+                message: "This key cannot act for users",
+            },
+        });
+    });
+
+    it.each(["0", "-1", "1.5", "abc", "", "2147483648", "01"])(
+        "rejects the acting uid %j",
+        async (uid) => {
+            const response = await request(createApp())
+                .get("/")
+                .set("X-Api-Key", "actor-key")
+                .set("X-Acting-Uid", uid);
+
+            expect(response.status).toBe(400);
+            expect(response.body).toEqual({
+                error: {
+                    code: "INVALID_REQUEST",
+                    message: "X-Acting-Uid must be a positive integer",
+                },
+            });
+        },
+    );
+
+    it("accepts the largest acting uid", async () => {
+        const response = await request(createApp())
+            .get("/")
+            .set("X-Api-Key", "actor-key")
+            .set("X-Acting-Uid", "2147483647")
+            .expect(200);
+
+        expect(response.body).toMatchObject({ actingUid: 2147483647 });
     });
 });

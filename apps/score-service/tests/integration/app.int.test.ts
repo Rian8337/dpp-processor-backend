@@ -83,7 +83,7 @@ describe("score service API (integration)", () => {
 
         expect(response.status).toBe(200);
         expect(response.body).toMatchObject({
-            score: { id: 10, uid: 7, hash: testHash, best: false },
+            score: { id: 10, uid: 7, hash: testHash, best: false, mods: [] },
             source: "score",
             calculation: performanceBody(120),
         });

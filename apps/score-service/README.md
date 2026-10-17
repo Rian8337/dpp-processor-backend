@@ -124,7 +124,7 @@ Response:
 
 ```json
 {
-    "score": { "id": 1, "uid": 2, "hash": "…", "best": false },
+    "score": { "id": 1, "uid": 2, "hash": "…", "best": false, "mods": [] },
     "source": "replay",
     "ppMultiplier": 1,
     "pp": 123.4,
@@ -132,6 +132,7 @@ Response:
 }
 ```
 
+`score.mods` is all of the score's mods; the calculation's `difficulty.mods` holds only the difficulty-adjusting ones.
 `source` is `replay` when the score's replay was calculated, or `score` when it was calculated from the stored statistics
 (then `ppMultiplier` is the score's `pp_multiplier`, at most 1, for droid variants). `calculation` is the processor's
 response unchanged. Errors use `{ error: { code, message } }`: `404 SCORE_NOT_FOUND` when there is no such score, and

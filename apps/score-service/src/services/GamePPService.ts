@@ -1,3 +1,4 @@
+import type { IBeatmapServiceClient } from "@/clients/IBeatmapServiceClient";
 import type { PerformanceBody } from "@/clients/schemas";
 import type { CliConfig } from "@/config/config";
 import { dependencyTokens } from "@/dependencies/tokens";
@@ -9,6 +10,7 @@ import { inject } from "tsyringe";
 import type { GamePPResult, IGamePPService } from "./IGamePPService";
 import type { IScoreCalculator } from "./IScoreCalculator";
 import { ppMultiplierFrom } from "./ppMultiplier";
+import { noPPReason } from "./rankedStatus";
 
 const permanentFailure: GamePPResult = { kind: "failed" };
 
@@ -17,6 +19,8 @@ export class GamePPService implements IGamePPService {
     constructor(
         @inject(dependencyTokens.scoreCalculator)
         private readonly calculator: IScoreCalculator,
+        @inject(dependencyTokens.beatmapServiceClient)
+        private readonly beatmaps: IBeatmapServiceClient,
         @inject(dependencyTokens.replayParser)
         private readonly parse: ReplayParser,
         @inject(dependencyTokens.cliConfig)
@@ -25,6 +29,16 @@ export class GamePPService implements IGamePPService {
 
     async calculateScore(fields: CalculateScoreFields): Promise<GamePPResult> {
         const variant = fields.variant ?? this.config.variants.liveDroid;
+        const unranked = await this.checkBeatmap(
+            "calculate-score",
+            variant,
+            fields.hash,
+        );
+
+        if (unranked) {
+            return unranked;
+        }
+
         const result = await this.calculator.calculateStats(variant, {
             hash: fields.hash,
             mods: JSON.stringify(fields.mods),
@@ -68,6 +82,16 @@ export class GamePPService implements IGamePPService {
             return permanentFailure;
         }
 
+        const unranked = await this.checkBeatmap(
+            "calculate-replay",
+            variant,
+            parsed.hash,
+        );
+
+        if (unranked) {
+            return unranked;
+        }
+
         const result = await this.calculator.calculateReplay(variant, replay);
 
         if (!result.ok) {
@@ -81,6 +105,30 @@ export class GamePPService implements IGamePPService {
             result.value,
             result.value.performance.total,
         );
+    }
+
+    /**
+     * The failure to answer when the beatmap awards no pp or cannot be looked up, otherwise null.
+     */
+    private async checkBeatmap(
+        route: string,
+        variant: string,
+        hash: string,
+    ): Promise<GamePPResult | null> {
+        const beatmap = await this.beatmaps.getBeatmap("priority", hash);
+
+        if (!beatmap.ok) {
+            return failed(route, variant, beatmap);
+        }
+
+        const reason = noPPReason(beatmap.value);
+
+        if (reason) {
+            console.log(`${route} failed (variant ${variant}): ${reason}`);
+            return permanentFailure;
+        }
+
+        return null;
     }
 
     private async withMultiplier(

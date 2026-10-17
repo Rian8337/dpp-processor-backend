@@ -6,14 +6,12 @@ import type { IOfficialScoreRepository } from "@/repositories/IOfficialScoreRepo
 import type { IReplayStore } from "@/replays/IReplayStore";
 import { requireValue } from "@/types/upstream";
 import { Injectable } from "@dpp/server";
-import { RankedStatus } from "@rian8337/osu-base";
 import { inject } from "tsyringe";
 import type { IBestScoreWriter } from "./IBestScoreWriter";
 import type { IScoreCalculator } from "./IScoreCalculator";
 import type { IScoreRecalculationService } from "./IScoreRecalculationService";
 import { effectiveMultiplier } from "./ppMultiplier";
-
-const rankedStatuses = new Set([RankedStatus.Ranked, RankedStatus.Approved]);
+import { noPPReason } from "./rankedStatus";
 
 @Injectable(dependencyTokens.scoreRecalculationService)
 export class ScoreRecalculationService implements IScoreRecalculationService {
@@ -55,11 +53,10 @@ export class ScoreRecalculationService implements IScoreRecalculationService {
             return;
         }
 
-        if (!rankedStatuses.has(beatmap.rankedStatus)) {
-            await this.invalidate(
-                scoreId,
-                `beatmap not ranked or approved (status ${beatmap.rankedStatus.toString()})`,
-            );
+        const reason = noPPReason(beatmap);
+
+        if (reason) {
+            await this.invalidate(scoreId, reason);
             return;
         }
 

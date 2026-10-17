@@ -1,12 +1,13 @@
 import type { ReplayParser } from "@/replays/parseReplay";
 import { GamePPService } from "@/services/GamePPService";
 import { ScoreCalculator } from "@/services/ScoreCalculator";
-import { ModDoubleTime, ModHidden } from "@rian8337/osu-base";
+import { ModDoubleTime, ModHidden, RankedStatus } from "@rian8337/osu-base";
 import type { CalculateScoreFields } from "@dpp/shared";
 import { performanceBody, replayPerformanceBody } from "@test/utils/bodies";
 import { testConfig } from "@test/utils/config";
 import {
     beatmapNotFound,
+    FakeBeatmapServiceClient,
     FakeBrokerClient,
     retryLater,
 } from "@test/utils/fakes";
@@ -30,6 +31,7 @@ const replayFile = Buffer.from("replay");
 
 describe("GamePPService", () => {
     let broker: FakeBrokerClient;
+    let beatmaps: FakeBeatmapServiceClient;
     let totals: number[];
     let parsed: ReturnType<typeof parsedReplayFor> | null;
     let log: ReturnType<typeof vi.spyOn>;
@@ -60,10 +62,13 @@ describe("GamePPService", () => {
             }),
         );
 
+        beatmaps = new FakeBeatmapServiceClient();
+
         const parse: ReplayParser = () => Promise.resolve(parsed);
 
         service = new GamePPService(
             new ScoreCalculator(broker),
+            beatmaps,
             parse,
             testConfig,
         );
@@ -282,5 +287,95 @@ describe("GamePPService", () => {
             "droid-test",
             "droid-test",
         ]);
+    });
+
+    describe("beatmap status", () => {
+        function withStatus(rankedStatus: RankedStatus) {
+            beatmaps.answer = (hash) => ({
+                ok: true,
+                value: { hash, title: "T", rankedStatus },
+            });
+        }
+
+        const calls = [
+            ["calculate-score", () => service.calculateScore(fields)],
+            [
+                "calculate-replay",
+                () => {
+                    parsed = parsedReplayFor(scoreRow(), { version: 7 });
+                    return service.calculateReplay(replayFile);
+                },
+            ],
+        ] as const;
+
+        it.each(calls)(
+            "%s looks the beatmap up on the priority lane",
+            async (_, call) => {
+                totals = [80, 100];
+
+                await call();
+
+                expect(beatmaps.calls).toEqual([
+                    { lane: "priority", hash: testHash },
+                ]);
+            },
+        );
+
+        it.each(calls)("%s calculates an approved beatmap", async (_, call) => {
+            withStatus(RankedStatus.Approved);
+            totals = [80, 100];
+
+            expect(await call()).toMatchObject({ kind: "ok" });
+        });
+
+        it.each(
+            calls.flatMap(([route, call]) =>
+                [
+                    RankedStatus.Graveyard,
+                    RankedStatus.Wip,
+                    RankedStatus.Pending,
+                    RankedStatus.Qualified,
+                    RankedStatus.Loved,
+                ].map((status) => [route, status, call] as const),
+            ),
+        )(
+            "%s is a permanent failure without calling the broker for status %i",
+            async (route, status, call) => {
+                withStatus(status);
+
+                expect(await call()).toEqual(failed);
+                expect(broker.calls).toEqual([]);
+                expect(log).toHaveBeenCalledWith(
+                    expect.stringMatching(
+                        new RegExp(`${route} failed.*not ranked or approved`),
+                    ),
+                );
+            },
+        );
+
+        it.each(calls)(
+            "%s is a permanent failure without calling the broker for a missing beatmap",
+            async (route, call) => {
+                beatmaps.answer = () => ({ ok: true, value: null });
+
+                expect(await call()).toEqual(failed);
+                expect(broker.calls).toEqual([]);
+                expect(log).toHaveBeenCalledWith(
+                    expect.stringMatching(
+                        new RegExp(`${route} failed.*beatmap not found`),
+                    ),
+                );
+            },
+        );
+
+        it.each(calls)(
+            "%s is retry later when the beatmap service is unavailable",
+            async (_, call) => {
+                beatmaps.answer = () => retryLater;
+
+                expect(await call()).toEqual({ kind: "retry" });
+                expect(broker.calls).toEqual([]);
+            },
+        );
     });
 });

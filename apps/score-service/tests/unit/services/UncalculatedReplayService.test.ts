@@ -2,10 +2,12 @@ import { BestScoreWriter } from "@/services/BestScoreWriter";
 import { ScoreCalculator } from "@/services/ScoreCalculator";
 import { calculateUserTotals } from "@/services/userTotals";
 import { UncalculatedReplayService } from "@/services/UncalculatedReplayService";
+import { RankedStatus } from "@rian8337/osu-base";
 import { performanceBody, replayPerformanceBody } from "@test/utils/bodies";
 import { testConfig } from "@test/utils/config";
 import {
     beatmapNotFound,
+    FakeBeatmapServiceClient,
     FakeBrokerClient,
     InMemoryOfficialScoreRepository,
     InMemoryReplayStore,
@@ -20,6 +22,7 @@ describe("UncalculatedReplayService", () => {
     let official: InMemoryOfficialScoreRepository;
     let replays: InMemoryReplayStore;
     let broker: FakeBrokerClient;
+    let beatmaps: FakeBeatmapServiceClient;
     let service: UncalculatedReplayService;
     let log: ReturnType<typeof vi.spyOn>;
     let error: ReturnType<typeof vi.spyOn>;
@@ -31,6 +34,7 @@ describe("UncalculatedReplayService", () => {
             official,
             replays,
             new ScoreCalculator(broker),
+            beatmaps,
             new BestScoreWriter(
                 new ScoreCalculator(broker),
                 replays,
@@ -70,6 +74,7 @@ describe("UncalculatedReplayService", () => {
             () => (performanceResults.shift() ?? totals(100))(),
             () => ({ ok: true, value: replayPerformanceBody(90) }),
         );
+        beatmaps = new FakeBeatmapServiceClient();
         build();
     });
 
@@ -204,6 +209,77 @@ describe("UncalculatedReplayService", () => {
         expect(official.bestScores).toEqual([]);
         expect(official.uncalculatedScores).toEqual([]);
         expect(replays.files.get("uncalculated")!.has("r.odr")).toBe(false);
+    });
+
+    it("looks the beatmap up on the bulk lane", async () => {
+        await service.processFile("r.odr");
+
+        expect(beatmaps.calls).toEqual([
+            { lane: "bulk", hash: uncalculatedRow().hash },
+        ]);
+    });
+
+    it.each<[string, FakeBeatmapServiceClient["answer"], string]>([
+        [
+            "the beatmap is missing",
+            () => ({ ok: true, value: null }),
+            "beatmap not found",
+        ],
+        ...[
+            RankedStatus.Graveyard,
+            RankedStatus.Wip,
+            RankedStatus.Pending,
+            RankedStatus.Qualified,
+            RankedStatus.Loved,
+        ].map(
+            (rankedStatus) =>
+                [
+                    `the beatmap has status ${rankedStatus.toString()}`,
+                    (hash: string) => ({
+                        ok: true as const,
+                        value: { hash, title: "T", rankedStatus },
+                    }),
+                    "not ranked or approved",
+                ] as [string, FakeBeatmapServiceClient["answer"], string],
+        ),
+    ])(
+        "clears the pp without calculating when %s",
+        async (_name, answer, reason) => {
+            official.scores = [scoreRow({ id: 50, score: 1_000_000, pp: 33 })];
+            beatmaps.answer = answer;
+
+            await expect(service.processFile("r.odr")).resolves.toBe(
+                "processed",
+            );
+
+            expect(broker.calls).toEqual([]);
+            expect(official.scores[0]!.pp).toBeNull();
+            expect(official.bestScores).toEqual([]);
+            expect(official.users[0]!.pp).toBe(0);
+            expect(official.uncalculatedScores).toEqual([]);
+            expect(replays.files.get("uncalculated")!.has("r.odr")).toBe(false);
+            expect(log).toHaveBeenCalledWith(expect.stringContaining(reason));
+        },
+    );
+
+    it("calculates a score on an approved beatmap", async () => {
+        beatmaps.answer = (hash) => ({
+            ok: true,
+            value: { hash, title: "T", rankedStatus: RankedStatus.Approved },
+        });
+
+        await service.processFile("r.odr");
+
+        expect(official.scores[0]!.pp).toBe(90);
+    });
+
+    it("keeps everything when the beatmap service is unavailable", async () => {
+        beatmaps.answer = () => retryLater;
+
+        await expect(service.processFile("r.odr")).resolves.toBe("kept");
+
+        expectUntouched();
+        expect(broker.calls).toEqual([]);
     });
 
     it("keeps everything when the replay calculation must be retried", async () => {

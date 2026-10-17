@@ -167,13 +167,14 @@ Same paths, field names, body formats (multipart, URL-encoded, or JSON), and res
     - optional `slider_head_hit`, `slider_tick_hit`, `slider_repeat_hit`, `slider_end_hit`, `pp_multiplier` (default 1, clamped to [0, 1]; an empty field counts as absent, as for every optional field).
 - `POST /calculate-replay`: multipart field `replayfile`. Only replays of version 3 or later with `replayVersion > 6` are calculated, as today.
 - Both accept an optional `variant` field (default `LIVE_DROID_VARIANT`). The game never sends it; it lets local tools calculate other variants.
+- Only ranked and approved beatmaps award pp. Before calculating, both endpoints look the beatmap up (priority key) by the given hash or the replay's hash; a missing beatmap or any other status is a permanent failure, and the broker is not called.
 - Response: `200 { "pp": number | null, "pp_multiplier": number | null }`.
     - `/calculate-score`: first call `/performance` with the score's stats, slider hit counts, and `totalScore`; `pp` = its total × the given `pp_multiplier`. A second call with the same stats but `tapPenalty: 1`, `sliderCheesePenalty: 1`, and no `totalScore` gives the no-penalty total. Response `pp_multiplier` = `pp / no-penalty total` (as `pp-processor-node` computes it).
     - `/calculate-replay`: `/performance/replay`; the no-penalty total comes from `/performance` with the resolved score from the first response (the beatmap by the replay's hash, its mods, `tapPenalty: 1`, `sliderCheesePenalty: 1`, no `totalScore`). `pp_multiplier` = `pp / no-penalty total`.
     - If the no-penalty total is 0, `pp_multiplier` is 1.
 - Failures, as the game reads them (`submit.php` records a score as uncalculated only when the request fails at the transport level, so `200 { "pp": null }` loses the play's pp permanently):
-    - **Permanent failures** answer `200 { "pp": null, "pp_multiplier": null }` and the game stores the score without pp, as today: invalid input or an unreadable body, an unsupported or unreadable replay, and definite answers from the broker (missing beatmap, `INVALID_*`, `CALCULATION_FAILED`).
-    - **Temporary failures** close the connection without a response, so the game records the score as uncalculated and the uncalculated pass calculates it later: the broker or processor being busy or unreachable, a timeout, a malformed upstream answer, and this service's own configuration problems (`UNAUTHORIZED`, `VARIANT_NOT_FOUND`), which are not the request's fault. An unexpected error in the controller also closes the connection.
+    - **Permanent failures** answer `200 { "pp": null, "pp_multiplier": null }` and the game stores the score without pp, as today: invalid input or an unreadable body, an unsupported or unreadable replay, and a beatmap that is missing or not ranked or approved, and definite answers from the broker (missing beatmap, `INVALID_*`, `CALCULATION_FAILED`).
+    - **Temporary failures** close the connection without a response, so the game records the score as uncalculated and the uncalculated pass calculates it later: the broker, processor, or beatmap service being busy or unreachable, a timeout, a malformed upstream answer, and this service's own configuration problems (`UNAUTHORIZED`, `VARIANT_NOT_FOUND`), which are not the request's fault. An unexpected error in the controller also closes the connection.
     - Every failure is logged with the reason (and the variant, when one was given).
 - No key, as today. These two routes only accept connections from loopback (`127.0.0.1`, `::1`, `::ffff:127.0.0.1`) and answer `403` otherwise, so they stay internal even if `HOST` is widened. Anyone who can reach them can calculate any variant, including private ones, through the score service's broker key; loopback is trusted, as with `pp-processor-node` today.
 
@@ -255,11 +256,12 @@ Port of `pp-processor-node`'s `processUncalculatedReplay`.
 - **Per file in `UNCALCULATED_REPLAY_DIR`**, in one MySQL transaction:
     1. Find the uncalculated score row by `replayfilename`. Missing: delete the file and move on.
     2. Find the leaderboard score by uid and hash. Missing: delete the row and the file.
-    3. Calculate the replay with `LIVE_DROID_VARIANT`, plus the no-penalty call (as in `/calculate-replay`).
-    4. If the leaderboard score has the same score value as the uncalculated one, set its `pp`.
-    5. `BestScoreWriter.consider` the new score: the leaderboard score's ID, the stats from the uncalculated row, the replay's pp, `pp_multiplier` = pp ÷ no-penalty pp (1 if the no-penalty total is 0), and this replay file. (Today's code keeps the old best row's stats and ID while writing the new pp and saving the replay under the new ID; that mismatch is not carried over.)
-    6. If the best score changed, recalculate the user's total pp and accuracy (`UserTotalsCalculator`) and update the user.
-    7. Delete the row and the file.
+    3. Look the beatmap up (bulk key). Missing, or not ranked or approved: if the leaderboard score has the same score value as the uncalculated one, set its `pp` to `null`; delete the row and the file, without calculating or touching best scores.
+    4. Calculate the replay with `LIVE_DROID_VARIANT`, plus the no-penalty call (as in `/calculate-replay`).
+    5. If the leaderboard score has the same score value as the uncalculated one, set its `pp`.
+    6. `BestScoreWriter.consider` the new score: the leaderboard score's ID, the stats from the uncalculated row, the replay's pp, `pp_multiplier` = pp ÷ no-penalty pp (1 if the no-penalty total is 0), and this replay file. (Today's code keeps the old best row's stats and ID while writing the new pp and saving the replay under the new ID; that mismatch is not carried over.)
+    7. If the best score changed, recalculate the user's total pp and accuracy (`UserTotalsCalculator`) and update the user.
+    8. Delete the row and the file.
 - **On failure:** a "retry later" or database error rolls back and keeps the row and the file for the next pass. A calculation that fails permanently (e.g. the beatmap does not exist) behaves as today: the row and file are deleted, and the leaderboard score keeps a `null` pp.
 
 ## Score recalculation

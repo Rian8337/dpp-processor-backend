@@ -1,3 +1,4 @@
+import type { IBeatmapServiceClient } from "@/clients/IBeatmapServiceClient";
 import type { Config } from "@/config/config";
 import { dependencyTokens } from "@/dependencies/tokens";
 import type { IOfficialScoreRepository } from "@/repositories/IOfficialScoreRepository";
@@ -14,6 +15,7 @@ import type {
     UncalculatedOutcome,
 } from "./IUncalculatedReplayService";
 import { ppMultiplierFrom } from "./ppMultiplier";
+import { noPPReason } from "./rankedStatus";
 import { calculateUserTotals, countedBestScores } from "./userTotals";
 
 /**
@@ -34,6 +36,8 @@ export class UncalculatedReplayService implements IUncalculatedReplayService {
         private readonly replays: IReplayStore,
         @inject(dependencyTokens.scoreCalculator)
         private readonly calculator: IScoreCalculator,
+        @inject(dependencyTokens.beatmapServiceClient)
+        private readonly beatmaps: IBeatmapServiceClient,
         @inject(dependencyTokens.bestScoreWriter)
         private readonly bestScores: IBestScoreWriter,
         @inject(dependencyTokens.config) private readonly config: Config,
@@ -141,6 +145,22 @@ export class UncalculatedReplayService implements IUncalculatedReplayService {
 
         if (!leaderboard) {
             await repository.deleteUncalculatedScore(fileName);
+            return [];
+        }
+
+        const reason = noPPReason(
+            requireValue(await this.beatmaps.getBeatmap("bulk", row.hash)),
+        );
+
+        if (reason) {
+            if (row.score === leaderboard.score) {
+                await repository.setScorePP(leaderboard.id, null);
+            }
+
+            await repository.deleteUncalculatedScore(fileName);
+            console.log(
+                `Uncalculated replay ${fileName} earns no pp: ${reason}`,
+            );
             return [];
         }
 

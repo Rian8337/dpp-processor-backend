@@ -35,7 +35,7 @@ automatically (`.env.production` with `NODE_ENV=production`; neither is loaded w
 | `ALICE_DB_URI`, `ELAINA_DB_URI`                            | required                 | the two MongoDB clusters (`AliceDB`, `ElainaDB`)                              |
 | `BROKER_URL`                                               | required                 | the broker                                                                    |
 | `BROKER_API_KEY`                                           | required                 | the service's broker key; it needs no rate limit and `all_variants`           |
-| `BEATMAP_SERVICE_URL`                                      | required                 | the beatmap service                                                           |
+| `BEATMAP_SERVICE_URL`                                      | required                 | the beatmap service, including its path: `http://localhost:3017/api/beatmap`  |
 | `BEATMAP_SERVICE_KEY`                                      | required                 | the beatmap service's priority key, for interactive work                      |
 | `BEATMAP_SERVICE_BULK_KEY`                                 | required                 | the bulk key, for recalculation                                               |
 | `LIVE_DROID_VARIANT`, `LIVE_OSU_VARIANT`                   | required                 | the variants the live replay listener and uncalculated pass use; see below    |

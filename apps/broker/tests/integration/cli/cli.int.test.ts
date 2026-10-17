@@ -114,6 +114,33 @@ describe("broker CLI (integration)", () => {
             expect(await repository.findVariant("flowaim")).toBeUndefined();
         });
 
+        it("applies the description rules when adding a variant", async () => {
+            expect.hasAssertions();
+            await expectFailure(
+                [
+                    "variant",
+                    "add",
+                    "droid-live",
+                    "--description",
+                    "d".repeat(4001),
+                ],
+                /Description is longer than 4000 characters/,
+            );
+            expect(await repository.findVariant("droid-live")).toBeUndefined();
+
+            expect(
+                (
+                    await run(
+                        "variant",
+                        "add",
+                        "droid-live",
+                        "--description",
+                        "d".repeat(4000),
+                    )
+                ).code,
+            ).toBe(0);
+        });
+
         it("refuses bad names, taken names, and empty or contradictory updates", async () => {
             expect.hasAssertions();
             await run("variant", "add", "droid-live");

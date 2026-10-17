@@ -7,6 +7,19 @@ import type { UserRole } from "@dpp/shared";
  */
 export interface IRegistryAdminService {
     /**
+     * Creates a variant, checking its name, title, and description as `updateVariant` does. An empty title or
+     * description becomes `null`. The caller checks that the name is unused.
+     *
+     * @throws {RegistryChangeError} `invalid` for a bad name, or a title or description that is too long.
+     */
+    createVariant(row: {
+        readonly name: string;
+        readonly public: boolean;
+        readonly title: string | null;
+        readonly description: string | null;
+    }): Promise<void>;
+
+    /**
      * Changes a variant. An empty title or description becomes `null`, which clears it.
      *
      * @throws {RegistryChangeError} `variant-not-found`, or `invalid` for a title or description that is too long.

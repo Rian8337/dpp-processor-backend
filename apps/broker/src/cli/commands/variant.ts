@@ -55,13 +55,13 @@ export const addVariant: Command = (args) => {
     const [name = ""] = expectPositionals(positionals, ["name"]);
 
     requireValidName(name);
-    return async ({ repository, out }) => {
+    return async ({ repository, admin, out }) => {
         await requireUnusedName(repository, name);
-        await repository.insertVariant({
+        await admin.createVariant({
             name,
             public: values.public,
             title: null,
-            description: values.description || null,
+            description: values.description ?? null,
         });
 
         out.info(

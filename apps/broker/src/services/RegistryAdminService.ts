@@ -45,6 +45,22 @@ export class RegistryAdminService implements IRegistryAdminService {
         private readonly repository: IRegistryRepository,
     ) {}
 
+    async createVariant(row: {
+        readonly name: string;
+        readonly public: boolean;
+        readonly title: string | null;
+        readonly description: string | null;
+    }): Promise<void> {
+        this.requireValidName(row.name);
+
+        await this.repository.insertVariant({
+            name: row.name,
+            public: row.public,
+            title: this.checkedTitle(row.title),
+            description: this.checkedDescription(row.description),
+        });
+    }
+
     async updateVariant(
         name: string,
         changes: {
@@ -66,47 +82,11 @@ export class RegistryAdminService implements IRegistryAdminService {
         }
 
         if (changes.title !== undefined) {
-            // An empty title clears it.
-            const title = changes.title || null;
-
-            if (title?.includes("\u0000")) {
-                throw new RegistryChangeError(
-                    "invalid",
-                    "Title must not contain NUL characters",
-                );
-            }
-
-            if (title !== null && title.length > maxVariantTitleLength) {
-                throw new RegistryChangeError(
-                    "invalid",
-                    `Title is longer than ${maxVariantTitleLength.toString()} characters`,
-                );
-            }
-
-            update.title = title;
+            update.title = this.checkedTitle(changes.title);
         }
 
         if (changes.description !== undefined) {
-            const description = changes.description || null;
-
-            if (description?.includes("\u0000")) {
-                throw new RegistryChangeError(
-                    "invalid",
-                    "Description must not contain NUL characters",
-                );
-            }
-
-            if (
-                description !== null &&
-                description.length > maxVariantDescriptionLength
-            ) {
-                throw new RegistryChangeError(
-                    "invalid",
-                    `Description is longer than ${maxVariantDescriptionLength.toString()} characters`,
-                );
-            }
-
-            update.description = description;
+            update.description = this.checkedDescription(changes.description);
         }
 
         if (Object.keys(update).length > 0) {
@@ -300,6 +280,51 @@ export class RegistryAdminService implements IRegistryAdminService {
 
     listKeys(): Promise<KeyListing[]> {
         return this.repository.listKeys();
+    }
+
+    /** An empty title becomes `null`, which clears it. */
+    private checkedTitle(value: string | null): string | null {
+        const title = value || null;
+
+        if (title?.includes("\u0000")) {
+            throw new RegistryChangeError(
+                "invalid",
+                "Title must not contain NUL characters",
+            );
+        }
+
+        if (title !== null && title.length > maxVariantTitleLength) {
+            throw new RegistryChangeError(
+                "invalid",
+                `Title is longer than ${maxVariantTitleLength.toString()} characters`,
+            );
+        }
+
+        return title;
+    }
+
+    /** An empty description becomes `null`, which clears it. */
+    private checkedDescription(value: string | null): string | null {
+        const description = value || null;
+
+        if (description?.includes("\u0000")) {
+            throw new RegistryChangeError(
+                "invalid",
+                "Description must not contain NUL characters",
+            );
+        }
+
+        if (
+            description !== null &&
+            description.length > maxVariantDescriptionLength
+        ) {
+            throw new RegistryChangeError(
+                "invalid",
+                `Description is longer than ${maxVariantDescriptionLength.toString()} characters`,
+            );
+        }
+
+        return description;
     }
 
     private requireValidName(name: string): void {

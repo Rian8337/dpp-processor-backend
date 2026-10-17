@@ -120,6 +120,12 @@ Query: `uid` and `hash` (the beatmap MD5) are required, `variant` (a variant nam
 (`true` reads the player's best score for the beatmap and its replay from `BEST_REPLAY_DIR`; default `false`) and
 `strainChart` (`true` asks the processor for a strain chart; default `false`). Unknown parameters are rejected.
 
+Optional header `X-Acting-Uid: <uid>` (a positive integer, at most 2147483647; `400 INVALID_REQUEST` otherwise)
+makes the lookup on behalf of that player: the service forwards it to the broker, which then only allows the variants
+that player may use (for example private ones they were given access to). Without it the service's own broker key
+decides. Sending it needs the service's `BROKER_API_KEY` to have `can_act_for_users`; otherwise the broker rejects the
+request and the error passes through.
+
 Response:
 
 ```json

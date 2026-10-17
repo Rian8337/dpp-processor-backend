@@ -4,9 +4,8 @@ import type { IRegistryService } from "@/services/IRegistryService";
 import type { ApiKeyRecord } from "@/registry/types";
 import { InvalidActingUidError, KeyRequiredError } from "@/types/errors";
 import { UnauthorizedError } from "@dpp/server";
+import { parseActingUid as parseActingUidValue } from "@dpp/shared";
 import type { RequestHandler } from "express";
-
-const maxUid = 2147483647;
 
 /**
  * Reads the `X-Acting-Uid` header value: `undefined` if the header is absent, otherwise the uid.
@@ -27,9 +26,9 @@ export function parseActingUid(
         throw new InvalidActingUidError("not-allowed");
     }
 
-    const uid = /^[1-9][0-9]*$/.test(header) ? Number(header) : NaN;
+    const uid = parseActingUidValue(header);
 
-    if (!(uid <= maxUid)) {
+    if (uid === "invalid") {
         throw new InvalidActingUidError("malformed");
     }
 

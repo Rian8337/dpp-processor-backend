@@ -13,21 +13,28 @@ export type ReplayPerformanceRequestInput = z.input<
 >;
 
 /**
- * Calls processors through the broker.
+ * Calls processors through the broker. With `actingUid`, a call is made on behalf of that person (`X-Acting-Uid`), so
+ * the broker only offers the variants that person may use; this needs a broker key with `can_act_for_users`.
  */
 export interface IBrokerClient {
     performance(
         variant: string,
         request: PerformanceRequestInput,
+        actingUid?: number,
     ): Promise<UpstreamResult<PerformanceBody>>;
 
     replayPerformance(
         variant: string,
         request: ReplayPerformanceRequestInput,
+        actingUid?: number,
     ): Promise<UpstreamResult<ReplayPerformanceBody>>;
 
     /**
-     * The variant's mode from `GET /variants/:name`, cached for 5 minutes. A variant with no mode yet is "retry later".
+     * The variant's mode from `GET /variants/:name`, cached for 5 minutes per acting uid. A variant with no mode yet
+     * is "retry later".
      */
-    variantMode(variant: string): Promise<UpstreamResult<Modes>>;
+    variantMode(
+        variant: string,
+        actingUid?: number,
+    ): Promise<UpstreamResult<Modes>>;
 }

@@ -8,11 +8,17 @@ import type { UpstreamResult } from "@/types/upstream";
 import { Modes } from "@rian8337/osu-base";
 
 export type BrokerCall =
-    | { kind: "performance"; variant: string; request: PerformanceRequestInput }
+    | {
+          kind: "performance";
+          variant: string;
+          request: PerformanceRequestInput;
+          actingUid?: number;
+      }
     | {
           kind: "replay";
           variant: string;
           request: ReplayPerformanceRequestInput;
+          actingUid?: number;
       };
 
 /**
@@ -20,6 +26,7 @@ export type BrokerCall =
  */
 export class FakeBrokerClient implements IBrokerClient {
     readonly calls: BrokerCall[] = [];
+    readonly modeCalls: { variant: string; actingUid?: number }[] = [];
     modes = new Map<string, Modes>([
         ["live-droid", Modes.Droid],
         ["live-osu", Modes.Osu],
@@ -40,17 +47,43 @@ export class FakeBrokerClient implements IBrokerClient {
         },
     ) {}
 
-    performance(variant: string, request: PerformanceRequestInput) {
-        this.calls.push({ kind: "performance", variant, request });
+    performance(
+        variant: string,
+        request: PerformanceRequestInput,
+        actingUid?: number,
+    ) {
+        this.calls.push({
+            kind: "performance",
+            variant,
+            request,
+            ...(actingUid !== undefined && { actingUid }),
+        });
         return Promise.resolve(this.onPerformance(variant, request));
     }
 
-    replayPerformance(variant: string, request: ReplayPerformanceRequestInput) {
-        this.calls.push({ kind: "replay", variant, request });
+    replayPerformance(
+        variant: string,
+        request: ReplayPerformanceRequestInput,
+        actingUid?: number,
+    ) {
+        this.calls.push({
+            kind: "replay",
+            variant,
+            request,
+            ...(actingUid !== undefined && { actingUid }),
+        });
         return Promise.resolve(this.onReplay(variant, request));
     }
 
-    variantMode(variant: string): Promise<UpstreamResult<Modes>> {
+    variantMode(
+        variant: string,
+        actingUid?: number,
+    ): Promise<UpstreamResult<Modes>> {
+        this.modeCalls.push({
+            variant,
+            ...(actingUid !== undefined && { actingUid }),
+        });
+
         const mode = this.modes.get(variant);
 
         return Promise.resolve(

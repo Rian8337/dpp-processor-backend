@@ -30,7 +30,10 @@ export class OnlineScoreService implements IOnlineScoreService {
         private readonly parse: ReplayParser,
     ) {}
 
-    async lookup(query: OnlineScoreQuery): Promise<OnlineScoreResponse> {
+    async lookup(
+        query: OnlineScoreQuery,
+        actingUid?: number,
+    ): Promise<OnlineScoreResponse> {
         const { uid, hash, variant, best, strainChart } = query;
         const score = best
             ? ((await this.official.findBestScores(uid, hash))[0] ?? null)
@@ -59,13 +62,14 @@ export class OnlineScoreService implements IOnlineScoreService {
                     // Replays older than v3 do not record mods; take mods and stats from the score.
                     ...(!replay.v3 && { overrides: score }),
                     strainChart,
+                    actingUid,
                 },
             );
 
             return respond(header, "replay", 1, result);
         }
 
-        const mode = await this.broker.variantMode(variant);
+        const mode = await this.broker.variantMode(variant, actingUid);
 
         if (!mode.ok) {
             throw UpstreamError.from(mode);
@@ -73,6 +77,7 @@ export class OnlineScoreService implements IOnlineScoreService {
 
         const result = await this.calculator.calculateStats(variant, score, {
             strainChart,
+            actingUid,
         });
         // pp_multiplier carries replay-based penalties of droid scores whose replay is gone.
         const multiplier =

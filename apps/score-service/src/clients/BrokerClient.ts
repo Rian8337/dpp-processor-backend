@@ -69,9 +69,10 @@ export class BrokerClient implements IBrokerClient {
     performance(
         variant: string,
         request: PerformanceRequestInput,
+        actingUid?: number,
     ): Promise<UpstreamResult<PerformanceBody>> {
         return requestJson(
-            this.request(variant, "/performance", "POST", request),
+            this.request(variant, "/performance", "POST", actingUid, request),
             performanceBodySchema,
         );
     }
@@ -79,22 +80,33 @@ export class BrokerClient implements IBrokerClient {
     replayPerformance(
         variant: string,
         request: ReplayPerformanceRequestInput,
+        actingUid?: number,
     ): Promise<UpstreamResult<ReplayPerformanceBody>> {
         return requestJson(
-            this.request(variant, "/performance/replay", "POST", request),
+            this.request(
+                variant,
+                "/performance/replay",
+                "POST",
+                actingUid,
+                request,
+            ),
             replayPerformanceBodySchema,
         );
     }
 
-    async variantMode(variant: string): Promise<UpstreamResult<Modes>> {
-        const cached = this.modes.get(variant);
+    async variantMode(
+        variant: string,
+        actingUid?: number,
+    ): Promise<UpstreamResult<Modes>> {
+        const cacheKey = `${actingUid?.toString() ?? ""}:${variant}`;
+        const cached = this.modes.get(cacheKey);
 
         if (cached && cached.expiresAt > Date.now()) {
             return { ok: true, value: cached.mode };
         }
 
         const result = await requestJson(
-            this.request(variant, "", "GET"),
+            this.request(variant, "", "GET", actingUid),
             variantSummarySchema,
         );
 
@@ -112,7 +124,7 @@ export class BrokerClient implements IBrokerClient {
             };
         }
 
-        this.modes.set(variant, {
+        this.modes.set(cacheKey, {
             mode: result.value.mode,
             expiresAt: Date.now() + modeCacheMs,
         });
@@ -124,12 +136,18 @@ export class BrokerClient implements IBrokerClient {
         variant: string,
         path: string,
         method: "GET" | "POST",
+        actingUid: number | undefined,
         body?: unknown,
     ): JsonRequest {
         return {
             url: `${this.config.broker.url}/variants/${encodeURIComponent(variant)}${path}`,
             method,
-            headers: { "X-Api-Key": this.config.broker.apiKey },
+            headers: {
+                "X-Api-Key": this.config.broker.apiKey,
+                ...(actingUid !== undefined && {
+                    "X-Acting-Uid": actingUid.toString(),
+                }),
+            },
             body,
             timeoutMs,
             service: "Broker",

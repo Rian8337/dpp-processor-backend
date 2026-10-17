@@ -89,6 +89,40 @@ describe("score service API (integration)", () => {
         });
     });
 
+    it("forwards X-Acting-Uid from GET /online-scores", async () => {
+        // The score stored by the previous test is reused.
+        broker.calls.length = 0;
+        broker.modeCalls.length = 0;
+
+        const response = await get(path).set("X-Acting-Uid", "42");
+
+        expect(response.status).toBe(200);
+        expect(broker.modeCalls).toEqual([
+            { variant: "live-droid", actingUid: 42 },
+        ]);
+        expect(broker.calls).toMatchObject([
+            { kind: "performance", actingUid: 42 },
+        ]);
+    });
+
+    it.each(["", "0", "-1", "abc", "1.5", "2147483648"])(
+        "rejects an invalid X-Acting-Uid %j",
+        async (value) => {
+            broker.calls.length = 0;
+
+            const response = await get(path).set("X-Acting-Uid", value);
+
+            expect(response.status).toBe(400);
+            expect(response.body).toEqual({
+                error: {
+                    code: "INVALID_REQUEST",
+                    message: "X-Acting-Uid must be a positive integer",
+                },
+            });
+            expect(broker.calls).toHaveLength(0);
+        },
+    );
+
     it("passes a broker failure through", async () => {
         broker.onPerformance = () => retryLater;
 

@@ -256,6 +256,39 @@ describe("OnlineScoreService", () => {
         ]);
     });
 
+    it("passes the acting uid to every broker call", async () => {
+        const row = scoreRow({ id: 10 });
+
+        repository.scores.push(row);
+
+        await service.lookup(query, 5);
+
+        expect(broker.modeCalls).toEqual([
+            { variant: "live-droid", actingUid: 5 },
+        ]);
+        expect(broker.calls).toMatchObject([
+            { kind: "performance", actingUid: 5 },
+        ]);
+
+        replays.put("online", "10.odr", replayFile);
+        parsed = parsedReplayFor(row);
+        broker.calls.length = 0;
+        broker.modeCalls.length = 0;
+
+        await service.lookup(query, 5);
+
+        expect(broker.calls).toMatchObject([{ kind: "replay", actingUid: 5 }]);
+    });
+
+    it("sends no acting uid when none is given", async () => {
+        repository.scores.push(scoreRow({ id: 10 }));
+
+        await service.lookup(query);
+
+        expect(broker.modeCalls).toEqual([{ variant: "live-droid" }]);
+        expect(broker.calls[0]).not.toHaveProperty("actingUid");
+    });
+
     it("passes broker failures through as upstream errors", async () => {
         repository.scores.push(scoreRow({ id: 10 }));
         broker.onPerformance = () => beatmapNotFound;

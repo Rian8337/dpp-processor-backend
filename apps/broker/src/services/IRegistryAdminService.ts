@@ -79,7 +79,10 @@ export interface IRegistryAdminService {
         readonly grants: readonly string[];
     }): Promise<{ key: KeyListing; rawKey: string }>;
     /**
-     * @throws {RegistryChangeError} `not-found` for an unknown key, or `conflict` for a revoked one.
+     * @param actingKeyName The key the change is made with, if there is one. It cannot stop itself acting for users,
+     * which would lock out the clients that manage the registry through it.
+     * @throws {RegistryChangeError} `not-found` for an unknown key, or `conflict` for a revoked one or for the
+     * acting key stopping itself acting for users.
      */
     updateKey(
         name: string,
@@ -88,6 +91,7 @@ export interface IRegistryAdminService {
             readonly allVariants?: boolean;
             readonly canActForUsers?: boolean;
         },
+        actingKeyName?: string,
     ): Promise<KeyListing>;
     /**
      * @returns Whether the grant is new, and whether the key can use every variant anyway.
@@ -99,8 +103,12 @@ export interface IRegistryAdminService {
     ): Promise<{ added: boolean; allVariants: boolean }>;
     /** @throws {RegistryChangeError} `not-found` or `conflict` for the key, or `not-found` if it had no such grant. */
     ungrantKey(name: string, variant: string): Promise<void>;
-    /** @throws {RegistryChangeError} `not-found` for an unknown key, or `conflict` if it is already revoked. */
-    revokeKey(name: string): Promise<void>;
+    /**
+     * @param actingKeyName The key the change is made with, if there is one. It cannot revoke itself.
+     * @throws {RegistryChangeError} `not-found` for an unknown key, or `conflict` if it is already revoked or is the
+     * acting key.
+     */
+    revokeKey(name: string, actingKeyName?: string): Promise<void>;
 
     /** Users with a role or at least one grant; sorted by uid. */
     listUsers(): Promise<UserListing[]>;

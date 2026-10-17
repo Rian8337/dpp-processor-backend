@@ -291,6 +291,51 @@ describe("RegistryAdminService (integration)", () => {
     });
 
     describe("keys", () => {
+        it("refuses locking out the key making the change", async () => {
+            expect.hasAssertions();
+            await service.createKey({
+                name: "board",
+                rateLimitPerMinute: null,
+                allVariants: false,
+                canActForUsers: true,
+                grants: [],
+            });
+
+            await expectChangeError(
+                service.revokeKey("board", "board"),
+                "conflict",
+                "You cannot revoke the key this request uses",
+            );
+            await expectChangeError(
+                service.updateKey("board", { canActForUsers: false }, "board"),
+                "conflict",
+                "You cannot stop the key this request uses from acting for users",
+            );
+
+            const key = await repository.findKey("board");
+
+            expect(key?.revokedAt).toBeNull();
+            expect(key?.canActForUsers).toBe(true);
+
+            // Other changes to the same key, and lockout changes from another key or the CLI, are allowed.
+            await service.updateKey(
+                "board",
+                { rateLimitPerMinute: 60 },
+                "board",
+            );
+            await service.updateKey("board", { canActForUsers: true }, "board");
+            await service.updateKey(
+                "board",
+                { canActForUsers: false },
+                "other",
+            );
+            await service.revokeKey("board");
+
+            expect(
+                (await repository.findKey("board"))?.revokedAt,
+            ).not.toBeNull();
+        });
+
         it("creates a key that can act for users and returns the raw key once", async () => {
             const { key, rawKey } = await service.createKey({
                 name: "bot",

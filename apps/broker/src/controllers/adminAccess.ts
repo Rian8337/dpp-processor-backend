@@ -32,6 +32,15 @@ export function requireRole(
 }
 
 /**
+ * The name of the key the request was made with, or `undefined` for an anonymous request.
+ */
+export function callerKeyName(res: Response): string | undefined {
+    const caller = getCaller(res);
+
+    return caller.kind === "key" ? caller.key.name : undefined;
+}
+
+/**
  * The uid the request acts for.
  *
  * @throws {ForbiddenError} If the request does not act for anyone.

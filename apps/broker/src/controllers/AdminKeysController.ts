@@ -19,7 +19,7 @@ import {
 } from "@dpp/shared";
 import type { Request, Response } from "express";
 import { inject } from "tsyringe";
-import { requireRole } from "./adminAccess";
+import { callerKeyName, requireRole } from "./adminAccess";
 import { AdminControllerBase } from "./AdminControllerBase";
 import { toAdminKey } from "./adminViews";
 
@@ -76,7 +76,11 @@ export class AdminKeysController extends AdminControllerBase {
         try {
             const { uid } = requireRole(this.registry, res, "admin");
             const changes = parseBody(keyUpdateSchema, readJsonBody(req));
-            const key = await this.admin.updateKey(req.params.name, changes);
+            const key = await this.admin.updateKey(
+                req.params.name,
+                changes,
+                callerKeyName(res),
+            );
 
             await this.applied(req, uid);
 
@@ -125,7 +129,7 @@ export class AdminKeysController extends AdminControllerBase {
         try {
             const { uid } = requireRole(this.registry, res, "admin");
 
-            await this.admin.revokeKey(req.params.name);
+            await this.admin.revokeKey(req.params.name, callerKeyName(res));
             await this.applied(req, uid);
 
             res.status(204).end();

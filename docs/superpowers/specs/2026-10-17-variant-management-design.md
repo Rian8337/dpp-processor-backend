@@ -116,8 +116,8 @@ calculate with variants they can see.
 
 New routes. All need a key with `can_act_for_users` and an `X-Acting-Uid`. Errors use the existing shape, with three new
 codes: `FORBIDDEN` (403: no acting uid, or the person's role does not allow it), `NOT_FOUND` (404: unknown alias, key,
-or user grant), and `CONFLICT` (409: a name already used by a variant, alias, or key, or an admin removing their own
-admin role). Unknown variants keep `VARIANT_NOT_FOUND`.
+or user grant), and `CONFLICT` (409: a name already used by a variant, alias, or key, an admin removing their own
+admin role, or a change that would lock out the key the request uses). Unknown variants keep `VARIANT_NOT_FOUND`.
 
 | Route                                              | Role    | Purpose                                                                                    |
 | -------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------ |
@@ -137,7 +137,8 @@ admin role). Unknown variants keep `VARIANT_NOT_FOUND`.
 | `POST /admin/keys/:name/revoke`                    | admin   |                                                                                            |
 
 Validation and name rules are the CLI's (shared, not copied). An admin cannot remove their own admin role, so there is
-always at least one admin (my call). Every successful admin write:
+always at least one admin (my call). Likewise, a request cannot revoke the key it is made with or stop that key acting
+for users, so the board cannot lock itself out; the CLI can still do both. Every successful admin write:
 
 - reloads the registry snapshot in-process before responding, so the change applies at once;
 - logs one line: acting uid, route, target (never key material or descriptions).

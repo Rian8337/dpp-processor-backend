@@ -216,11 +216,19 @@ export class RegistryAdminService implements IRegistryAdminService {
             readonly allVariants?: boolean;
             readonly canActForUsers?: boolean;
         },
+        actingKeyName?: string,
     ): Promise<KeyListing> {
         const key = await this.requireActiveKey(name);
 
         if (changes.rateLimitPerMinute !== undefined) {
             this.requireValidRateLimit(changes.rateLimitPerMinute);
+        }
+
+        if (actingKeyName === name && changes.canActForUsers === false) {
+            throw new RegistryChangeError(
+                "conflict",
+                "You cannot stop the key this request uses from acting for users",
+            );
         }
 
         if (Object.keys(changes).length === 0) {
@@ -257,8 +265,15 @@ export class RegistryAdminService implements IRegistryAdminService {
         }
     }
 
-    async revokeKey(name: string): Promise<void> {
+    async revokeKey(name: string, actingKeyName?: string): Promise<void> {
         await this.requireKey(name);
+
+        if (actingKeyName === name) {
+            throw new RegistryChangeError(
+                "conflict",
+                "You cannot revoke the key this request uses",
+            );
+        }
 
         if (!(await this.repository.revokeKey(name))) {
             throw new RegistryChangeError(

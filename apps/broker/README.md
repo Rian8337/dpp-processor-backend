@@ -22,7 +22,8 @@ key without `can_act_for_users` that sends the header gets `400 INVALID_REQUEST`
 
 The management routes below need such a key and an `X-Acting-Uid`; without one, or with too low a role, they answer
 `403 FORBIDDEN`. Unknown aliases, keys, or grants answer `404 NOT_FOUND`, and a change that clashes with the registry
-(a taken key name, an admin removing their own role) answers `409 CONFLICT`. A successful write is applied at once and
+(a taken key name, an admin removing their own role, or revoking the key the request uses or stopping it acting for
+users) answers `409 CONFLICT`. A successful write is applied at once and
 logged as `Admin change by uid <uid>: <method> <path>`, without the body.
 
 | Route                                              | Role    | Purpose                                                    |

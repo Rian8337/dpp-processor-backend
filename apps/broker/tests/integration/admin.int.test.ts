@@ -570,6 +570,31 @@ describe("admin and me routes (integration)", () => {
             );
         });
 
+        it("refuses an admin locking out the key the request uses", async () => {
+            const revoke = await as(admin)
+                .post("/admin/keys/board/revoke")
+                .expect(409);
+
+            expect(revoke.body.error).toEqual({
+                code: "CONFLICT",
+                message: "You cannot revoke the key this request uses",
+            });
+
+            const disable = await as(admin)
+                .patch("/admin/keys/board")
+                .send({ canActForUsers: false })
+                .expect(409);
+
+            expect(disable.body.error).toEqual({
+                code: "CONFLICT",
+                message:
+                    "You cannot stop the key this request uses from acting for users",
+            });
+
+            // The board key still works for the admin afterwards.
+            await as(admin).get("/admin/keys").expect(200);
+        });
+
         it("rejects an unknown role", async () => {
             const response = await as(admin)
                 .put("/admin/users/5/role")

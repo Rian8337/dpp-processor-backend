@@ -1,6 +1,10 @@
 name: CI
 
-on: [push, pull_request]
+# Pull requests are checked by the pull_request run, so pushes only need checking on master.
+on:
+    push:
+        branches: [master]
+    pull_request:
 
 permissions:
     contents: read

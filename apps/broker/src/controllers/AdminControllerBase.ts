@@ -64,15 +64,27 @@ export abstract class AdminControllerBase extends BaseController {
 
     /**
      * Applies a successful write at once by reloading the registry snapshot, then logs it. The log line never
-     * includes the request body.
+     * includes the request body. If the reload fails, the write is still committed, so the request succeeds; a warning
+     * says the change is not applied yet.
      *
      * @param uid The person who made the change.
+     * @param target What the change is about, such as `key site`, appended to the line. Never pass key material,
+     * hashes, titles, or descriptions.
      */
-    protected async applied(req: Request, uid: number): Promise<void> {
-        await this.registry.reload();
+    protected async applied(
+        req: Request,
+        uid: number,
+        target?: string,
+    ): Promise<void> {
+        const reloaded = await this.registry.reload();
+        const line = `Admin change by uid ${uid.toString()}: ${req.method} ${req.path}${target === undefined ? "" : ` (${target})`}`;
 
-        console.log(
-            `Admin change by uid ${uid.toString()}: ${req.method} ${req.path}`,
-        );
+        if (reloaded) {
+            console.log(line);
+        } else {
+            console.warn(
+                `${line} written but not yet applied; the registry reload failed`,
+            );
+        }
     }
 }

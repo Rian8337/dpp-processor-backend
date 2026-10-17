@@ -131,21 +131,124 @@ describe("admin and me routes (integration)", () => {
             expect(anonymous.body.error.code).toBe("FORBIDDEN");
         });
 
-        it("keeps key and role routes to admins", async () => {
-            await as(manager).get("/admin/keys").expect(403);
-            await as(manager).get("/admin/users").expect(403);
-            await as(manager)
-                .put("/admin/users/5/role")
-                .send({ role: "manager" })
-                .expect(403);
-            await as(manager)
-                .post("/admin/keys")
-                .send({ name: "x", rateLimitPerMinute: null })
-                .expect(403);
-            await as(manager).post("/admin/keys/board/revoke").expect(403);
+        interface Route {
+            readonly method: "get" | "put" | "patch" | "post" | "delete";
+            readonly path: string;
+            readonly body?: object;
+            /** Whether a manager is refused too. */
+            readonly adminOnly: boolean;
+        }
 
-            expect(await repository.findKey("x")).toBeUndefined();
-        });
+        const routes: Route[] = [
+            { method: "get", path: "/admin/variants", adminOnly: false },
+            {
+                method: "patch",
+                path: "/admin/variants/droid-live",
+                body: { title: "Changed" },
+                adminOnly: false,
+            },
+            {
+                method: "patch",
+                path: "/admin/variants/flowaim",
+                body: { public: true },
+                adminOnly: true,
+            },
+            {
+                method: "put",
+                path: "/admin/aliases/fresh",
+                body: { variant: "droid-live" },
+                adminOnly: false,
+            },
+            {
+                method: "delete",
+                path: "/admin/aliases/experiment",
+                adminOnly: false,
+            },
+            {
+                method: "get",
+                path: "/admin/variants/flowaim/grants",
+                adminOnly: false,
+            },
+            {
+                method: "put",
+                path: "/admin/variants/flowaim/grants/7",
+                adminOnly: false,
+            },
+            {
+                method: "delete",
+                path: "/admin/variants/flowaim/grants/2",
+                adminOnly: false,
+            },
+            { method: "get", path: "/admin/users", adminOnly: true },
+            {
+                method: "put",
+                path: "/admin/users/5/role",
+                body: { role: "manager" },
+                adminOnly: true,
+            },
+            { method: "get", path: "/admin/keys", adminOnly: true },
+            {
+                method: "post",
+                path: "/admin/keys",
+                body: { name: "fresh-key", rateLimitPerMinute: null },
+                adminOnly: true,
+            },
+            {
+                method: "patch",
+                path: "/admin/keys/board",
+                body: { allVariants: true },
+                adminOnly: true,
+            },
+            {
+                method: "put",
+                path: "/admin/keys/board/grants/flowaim",
+                adminOnly: true,
+            },
+            {
+                method: "delete",
+                path: "/admin/keys/board/grants/flowaim",
+                adminOnly: true,
+            },
+            {
+                method: "post",
+                path: "/admin/keys/board/revoke",
+                adminOnly: true,
+            },
+        ];
+
+        /** Everything a refused change could touch. */
+        async function registryState(): Promise<string> {
+            const snapshot = await repository.loadSnapshot();
+
+            return JSON.stringify({
+                variants: [...snapshot.variants.values()],
+                aliases: [...snapshot.aliases],
+                users: await repository.listUsers(),
+                keys: await repository.listKeys(),
+            });
+        }
+
+        it.each(routes)(
+            "refuses $method $path without a role and changes nothing",
+            async ({ method, path, body, adminOnly }) => {
+                const before = await registryState();
+                const callers = [
+                    undefined,
+                    plain,
+                    ...(adminOnly ? [manager] : []),
+                ];
+
+                for (const caller of callers) {
+                    const response = await as(caller)[method](path).send(body);
+
+                    expect(
+                        [caller, response.status, response.body.error?.code],
+                        `${method} ${path} as ${String(caller)}`,
+                    ).toEqual([caller, 403, "FORBIDDEN"]);
+                    expect(await registryState()).toBe(before);
+                }
+            },
+        );
     });
 
     describe("variants", () => {
@@ -387,6 +490,34 @@ describe("admin and me routes (integration)", () => {
             expect(response.body.error.code).toBe("VARIANT_NOT_FOUND");
         });
 
+        it("rejects path uids that are not plain positive integers", async () => {
+            for (const raw of ["1e3", "0x10", "%207", "007", "1.5"]) {
+                const role = await as(admin)
+                    .put(`/admin/users/${raw}/role`)
+                    .send({ role: "manager" })
+                    .expect(400);
+                const grant = await as(manager)
+                    .put(`/admin/variants/droid-live/grants/${raw}`)
+                    .expect(400);
+                const ungrant = await as(manager)
+                    .delete(`/admin/variants/flowaim/grants/${raw}`)
+                    .expect(400);
+
+                for (const response of [role, grant, ungrant]) {
+                    expect(response.body.error.code).toBe("INVALID_REQUEST");
+                    expect(response.body.error.message).toBe(
+                        `Invalid uid "${decodeURIComponent(raw)}"`,
+                    );
+                }
+            }
+
+            expect(await repository.usersGranted("droid-live")).toEqual([]);
+            expect(await repository.usersGranted("flowaim")).toEqual([manager]);
+            expect(
+                (await repository.listUsers()).map((user) => user.uid),
+            ).toEqual([admin, manager]);
+        });
+
         it("rejects an alias that is a variant name", async () => {
             const response = await as(manager)
                 .put("/admin/aliases/flowaim")
@@ -580,6 +711,78 @@ describe("admin and me routes (integration)", () => {
                 "Admin change by uid 2: PATCH /admin/variants/droid-live",
             );
             expect(lines.join("\n")).not.toContain("secret");
+        });
+
+        it("logs what a key or role change targets, never key material", async () => {
+            const created = await as(admin)
+                .post("/admin/keys")
+                .send({ name: "site", rateLimitPerMinute: 30 })
+                .expect(201);
+
+            await as(admin)
+                .put("/admin/users/5/role")
+                .send({ role: "manager" })
+                .expect(200);
+            await as(admin)
+                .put("/admin/users/5/role")
+                .send({ role: null })
+                .expect(200);
+
+            // eslint-disable-next-line @typescript-eslint/unbound-method
+            const lines = vi
+                .mocked(console.log)
+                .mock.calls.map((call) => call.join(" "));
+
+            expect(lines).toContain(
+                "Admin change by uid 1: POST /admin/keys (key site)",
+            );
+            expect(lines).toContain(
+                "Admin change by uid 1: PUT /admin/users/5/role (role manager)",
+            );
+            expect(lines).toContain(
+                "Admin change by uid 1: PUT /admin/users/5/role (role none)",
+            );
+            expect(lines.join("\n")).not.toContain(
+                (created.body as { rawKey: string }).rawKey,
+            );
+            expect(lines.join("\n")).not.toContain(hashApiKey("board-key"));
+        });
+
+        it("warns instead of confirming when the registry reload failed", async () => {
+            vi.spyOn(
+                testContainer.container.resolve(
+                    dependencyTokens.registryService,
+                ),
+                "reload",
+            ).mockResolvedValue(false);
+
+            // The write is committed, so the request still succeeds.
+            await as(manager)
+                .patch("/admin/variants/droid-live")
+                .send({ title: "Kept" })
+                .expect(200);
+            await as(admin)
+                .put("/admin/users/5/role")
+                .send({ role: "manager" })
+                .expect(200);
+
+            // eslint-disable-next-line @typescript-eslint/unbound-method
+            const warnings = vi
+                .mocked(console.warn)
+                .mock.calls.map((call) => call.join(" "))
+                .filter((line) => line.startsWith("Admin change"));
+
+            expect(warnings).toEqual([
+                "Admin change by uid 2: PATCH /admin/variants/droid-live written but not yet applied; the registry reload failed",
+                "Admin change by uid 1: PUT /admin/users/5/role (role manager) written but not yet applied; the registry reload failed",
+            ]);
+            // eslint-disable-next-line @typescript-eslint/unbound-method
+            expect(vi.mocked(console.log).mock.calls.join("\n")).not.toContain(
+                "Admin change",
+            );
+            expect((await repository.findVariant("droid-live"))?.title).toBe(
+                "Kept",
+            );
         });
 
         it("does not log reads or refused changes", async () => {

@@ -57,7 +57,7 @@ export class AdminKeysController extends AdminControllerBase {
             const input = parseBody(keyCreateSchema, readJsonBody(req));
             const { key, rawKey } = await this.admin.createKey(input);
 
-            await this.applied(req, uid);
+            await this.applied(req, uid, `key ${key.name}`);
 
             // The raw key is shown once; it must not be kept by caches.
             res.status(201)

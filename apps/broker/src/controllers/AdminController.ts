@@ -3,10 +3,12 @@ import type { IHealthMonitor } from "@/services/IHealthMonitor";
 import type { IRegistryAdminService } from "@/services/IRegistryAdminService";
 import type { IRegistryService } from "@/services/IRegistryService";
 import { readJsonBody } from "@/http/jsonBody";
+import { RegistryChangeError } from "@/registry/RegistryChangeError";
 import { VariantNotFoundError } from "@/types/errors";
 import { Controller, Delete, Get, Patch, parseBody, Put } from "@dpp/server";
 import {
     aliasSetSchema,
+    parseActingUid,
     roleSetSchema,
     variantUpdateSchema,
     type AdminUser,
@@ -17,6 +19,22 @@ import { inject } from "tsyringe";
 import { requireRole } from "./adminAccess";
 import { AdminControllerBase } from "./AdminControllerBase";
 import { toAdminUser, toAdminVariant } from "./adminViews";
+
+/**
+ * Reads a uid from a path. Like the `X-Acting-Uid` header, it is a plain positive integer: `Number` would also accept
+ * `1e3`, `0x10`, and a padded ` 7`.
+ *
+ * @throws {RegistryChangeError} `invalid` if it is not a uid.
+ */
+function pathUid(raw: string): number {
+    const uid = parseActingUid(raw);
+
+    if (uid === undefined || uid === "invalid") {
+        throw new RegistryChangeError("invalid", `Invalid uid "${raw}"`);
+    }
+
+    return uid;
+}
 
 /**
  * Variants, aliases, grants, and roles. Keys are in `AdminKeysController`.
@@ -138,8 +156,10 @@ export class AdminController extends AdminControllerBase {
         try {
             const { uid } = requireRole(this.registry, res, "manager");
 
-            // The service rejects a uid that is not valid.
-            await this.admin.grantUser(Number(req.params.uid), req.params.name);
+            await this.admin.grantUser(
+                pathUid(req.params.uid),
+                req.params.name,
+            );
             await this.applied(req, uid);
 
             res.status(204).end();
@@ -157,7 +177,7 @@ export class AdminController extends AdminControllerBase {
             const { uid } = requireRole(this.registry, res, "manager");
 
             await this.admin.ungrantUser(
-                Number(req.params.uid),
+                pathUid(req.params.uid),
                 req.params.name,
             );
             await this.applied(req, uid);
@@ -187,10 +207,10 @@ export class AdminController extends AdminControllerBase {
         try {
             const { uid } = requireRole(this.registry, res, "admin");
             const { role } = parseBody(roleSetSchema, readJsonBody(req));
-            const target = Number(req.params.uid);
+            const target = pathUid(req.params.uid);
 
             await this.admin.setRole(target, role, uid);
-            await this.applied(req, uid);
+            await this.applied(req, uid, `role ${role ?? "none"}`);
 
             const user = this.registry.findUser(target);
 

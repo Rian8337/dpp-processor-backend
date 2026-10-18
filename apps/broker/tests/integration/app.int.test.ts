@@ -147,6 +147,7 @@ describe("broker API (integration)", () => {
                     title: null,
                     aliases: ["live-droid"],
                     description: "Live",
+                    public: true,
                     available: true,
                     healthyInstanceCount: 1,
                     mode: Modes.Droid,

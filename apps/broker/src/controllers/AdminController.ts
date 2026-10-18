@@ -16,7 +16,12 @@ import {
 } from "@dpp/shared";
 import type { Request, Response } from "express";
 import { inject } from "tsyringe";
-import { requireRole } from "./adminAccess";
+import {
+    canManageVariant,
+    requireGrantChangeAllowed,
+    requireRole,
+    requireVariantManager,
+} from "./adminAccess";
 import { AdminControllerBase } from "./AdminControllerBase";
 import { toAdminUser, toAdminVariant } from "./adminViews";
 
@@ -51,14 +56,36 @@ export class AdminController extends AdminControllerBase {
         super(registry);
     }
 
+    /**
+     * Requires that the acting person may manage the variant the alias points to now. A new alias points nowhere, so
+     * it passes.
+     *
+     * @throws {ForbiddenError} If the person may not manage the variant the alias points to.
+     */
+    private requireAliasTargetManager(res: Response, alias: string): void {
+        const current = this.registry
+            .allVariants()
+            .find((variant) => variant.aliases.includes(alias));
+
+        if (current) {
+            requireVariantManager(this.registry, res, current.name);
+        }
+    }
+
     @Get("/variants")
     listVariants(req: Request, res: Response<AdminVariant[]>): void {
         try {
-            requireRole(this.registry, res, "manager");
+            const { uid, role } = requireRole(this.registry, res, "manager");
+            const user = this.registry.findUser(uid);
 
             res.json(
                 this.registry
                     .allVariants()
+                    .filter(
+                        (variant) =>
+                            role === "admin" ||
+                            canManageVariant(user, variant.name),
+                    )
                     .map((variant) => toAdminVariant(variant, this.health)),
             );
         } catch (e) {
@@ -72,15 +99,14 @@ export class AdminController extends AdminControllerBase {
         res: Response<AdminVariant>,
     ): Promise<void> {
         try {
-            const { uid } = requireRole(this.registry, res, "manager");
+            const { name } = req.params;
+            const { uid } = requireVariantManager(this.registry, res, name);
             const changes = parseBody(variantUpdateSchema, readJsonBody(req));
 
             // Checked before anything is written, so a refused change applies none of its fields.
             if (changes.public !== undefined) {
                 requireRole(this.registry, res, "admin");
             }
-
-            const { name } = req.params;
 
             await this.admin.updateVariant(name, changes);
             await this.applied(req, uid);
@@ -108,6 +134,11 @@ export class AdminController extends AdminControllerBase {
             const { uid } = requireRole(this.registry, res, "manager");
             const { variant } = parseBody(aliasSetSchema, readJsonBody(req));
 
+            // Both ends are checked before anything is written: the variant the alias will point to, and the one it
+            // points to now (none for a new alias).
+            requireVariantManager(this.registry, res, variant);
+            this.requireAliasTargetManager(res, req.params.alias);
+
             await this.admin.setAlias(req.params.alias, variant);
             await this.applied(req, uid);
 
@@ -125,6 +156,8 @@ export class AdminController extends AdminControllerBase {
         try {
             const { uid } = requireRole(this.registry, res, "manager");
 
+            this.requireAliasTargetManager(res, req.params.alias);
+
             await this.admin.removeAlias(req.params.alias);
             await this.applied(req, uid);
 
@@ -140,7 +173,7 @@ export class AdminController extends AdminControllerBase {
         res: Response<number[]>,
     ): Promise<void> {
         try {
-            requireRole(this.registry, res, "manager");
+            requireVariantManager(this.registry, res, req.params.name);
 
             res.json(await this.admin.usersGranted(req.params.name));
         } catch (e) {
@@ -154,13 +187,17 @@ export class AdminController extends AdminControllerBase {
         res: Response,
     ): Promise<void> {
         try {
-            const { uid } = requireRole(this.registry, res, "manager");
-
-            await this.admin.grantUser(
-                pathUid(req.params.uid),
+            const actor = requireVariantManager(
+                this.registry,
+                res,
                 req.params.name,
             );
-            await this.applied(req, uid);
+            const target = pathUid(req.params.uid);
+
+            requireGrantChangeAllowed(this.registry, actor, target);
+
+            await this.admin.grantUser(target, req.params.name);
+            await this.applied(req, actor.uid);
 
             res.status(204).end();
         } catch (e) {
@@ -174,13 +211,17 @@ export class AdminController extends AdminControllerBase {
         res: Response,
     ): Promise<void> {
         try {
-            const { uid } = requireRole(this.registry, res, "manager");
-
-            await this.admin.ungrantUser(
-                pathUid(req.params.uid),
+            const actor = requireVariantManager(
+                this.registry,
+                res,
                 req.params.name,
             );
-            await this.applied(req, uid);
+            const target = pathUid(req.params.uid);
+
+            requireGrantChangeAllowed(this.registry, actor, target);
+
+            await this.admin.ungrantUser(target, req.params.name);
+            await this.applied(req, actor.uid);
 
             res.status(204).end();
         } catch (e) {

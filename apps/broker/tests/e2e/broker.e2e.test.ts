@@ -151,6 +151,7 @@ describe("broker (e2e)", () => {
                 title: null,
                 aliases: ["live-droid"],
                 description: null,
+                public: true,
                 available: true,
                 healthyInstanceCount: 1,
                 mode: Modes.Droid,

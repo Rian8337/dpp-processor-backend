@@ -106,6 +106,11 @@ export interface VariantSummary {
     readonly description: string | null;
 
     /**
+     * Whether everyone may use the variant; people who can see a private variant are told it is private.
+     */
+    readonly public: boolean;
+
+    /**
      * Whether at least one of the variant's processor instances is healthy.
      */
     readonly available: boolean;
@@ -122,12 +127,17 @@ export interface VariantSummary {
     readonly mode: Modes | null;
     readonly algorithm: CalculatorAlgorithm | null;
     readonly calculatorVersion: string | null;
+
+    /**
+     * The newest build time among healthy instances, or the last known one while every instance is down; `null` if never seen.
+     */
     readonly builtAt: string | null;
 }
 
 /**
- * What a user may do in the variant management API. Managers see and manage every variant (titles, descriptions,
- * aliases, and user grants); admins additionally manage visibility, roles, and API keys.
+ * What a user may do in the variant management API. Managers manage the variants they are granted (titles, descriptions,
+ * aliases, and grants for people without a role). Admins manage every variant and additionally manage visibility,
+ * roles, and API keys.
  */
 export type UserRole = "admin" | "manager";
 
@@ -152,7 +162,6 @@ export interface MeResponse {
  * A variant as the management API describes it.
  */
 export interface AdminVariant extends VariantSummary {
-    readonly public: boolean;
     readonly instanceCount: number;
 }
 

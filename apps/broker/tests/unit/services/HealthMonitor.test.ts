@@ -90,6 +90,30 @@ describe("HealthMonitor", () => {
         expect(monitor.lastInfo("a")).toEqual(testInfo("a"));
     });
 
+    it("remembers /info per instance", async () => {
+        const older = { ...testInfo("a"), builtAt: "2026-10-01T00:00:00.000Z" };
+        const newer = { ...testInfo("a"), builtAt: "2026-10-10T00:00:00.000Z" };
+
+        answers.set(a1.url, { kind: "ok", info: older });
+        answers.set(a2.url, { kind: "ok", info: newer });
+        await monitor.checkAll();
+
+        expect(monitor.infoOf(a1)).toEqual(older);
+        expect(monitor.infoOf(a2)).toEqual(newer);
+
+        monitor.sync(
+            testSnapshot({
+                variants: [
+                    { name: "a", public: true, title: null, description: null },
+                ],
+                instances: [a1],
+            }),
+        );
+
+        expect(monitor.infoOf(a1)).toEqual(older);
+        expect(monitor.infoOf(a2)).toBeUndefined();
+    });
+
     it("makes a processor that starts after the broker available at the next check", async () => {
         await monitor.checkAll();
 

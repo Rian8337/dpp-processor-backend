@@ -15,4 +15,6 @@ export interface IHealthMonitor {
     markDown(instance: Instance, reason: string): void;
     /** The `/info` of the variant's most recent successful check, kept while the variant is down. */
     lastInfo(variantName: string): InfoResponse | undefined;
+    /** The `/info` of the instance's most recent healthy check; `undefined` if it has not been healthy since it was added. */
+    infoOf(instance: Instance): InfoResponse | undefined;
 }

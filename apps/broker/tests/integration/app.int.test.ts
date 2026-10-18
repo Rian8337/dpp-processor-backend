@@ -148,6 +148,7 @@ describe("broker API (integration)", () => {
                     aliases: ["live-droid"],
                     description: "Live",
                     available: true,
+                    healthyInstanceCount: 1,
                     mode: Modes.Droid,
                     algorithm: "live",
                     calculatorVersion: "0123456789abcdef",
@@ -156,9 +157,14 @@ describe("broker API (integration)", () => {
                 expect.objectContaining({
                     name: "offline",
                     available: false,
+                    healthyInstanceCount: 0,
                     mode: null,
                 }),
-                expect.objectContaining({ name: "pair", available: true }),
+                expect.objectContaining({
+                    name: "pair",
+                    available: true,
+                    healthyInstanceCount: 2,
+                }),
                 expect.objectContaining({
                     name: "wrong",
                     available: false,

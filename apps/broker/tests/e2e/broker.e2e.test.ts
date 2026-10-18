@@ -152,6 +152,7 @@ describe("broker (e2e)", () => {
                 aliases: ["live-droid"],
                 description: null,
                 available: true,
+                healthyInstanceCount: 1,
                 mode: Modes.Droid,
                 algorithm: "live",
                 calculatorVersion: expect.stringMatching(/^[0-9a-f]{16}$/),

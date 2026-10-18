@@ -34,17 +34,19 @@
 ### Task 1: Per-variant manager access
 
 **Files:**
+
 - Modify: `apps/broker/src/controllers/adminAccess.ts`
 - Modify: `apps/broker/src/controllers/AdminController.ts` (`listVariants`, `updateVariant`, `setAlias`, `removeAlias`, `listGrants`, `grantUser`, `ungrantUser`)
 - Test: `apps/broker/tests/integration/admin.int.test.ts`
 - Test: `apps/broker/tests/unit/controllers/adminAccess.test.ts` (create)
 
 **Interfaces:**
+
 - Consumes: `requireRole(registry, res, role)`, `IRegistryService.findUser(uid): UserRecord | undefined` (`UserRecord` has `role` and `grants: ReadonlySet<string>`), `IRegistryService.allVariants(): Variant[]` (each `Variant` has `name` and `aliases`).
 - Produces:
-  - `requireVariantManager(registry: Pick<IRegistryService, "findUser">, res: Response, variantName: string): { uid: number; role: UserRole }` — passes for admins, and for managers whose `grants` contain `variantName`; otherwise throws `ForbiddenError("You cannot manage this variant")`.
-  - `requireGrantChangeAllowed(registry: Pick<IRegistryService, "findUser">, actor: { uid: number; role: UserRole }, targetUid: number): void` — admins always pass; a manager passes only when `targetUid !== actor.uid` and the target has no role; otherwise throws `ForbiddenError("Managers can only change access for people without a role")`.
-  - `canManageVariant(user: UserRecord | undefined, variantName: string): boolean` — the pure predicate both helpers share.
+    - `requireVariantManager(registry: Pick<IRegistryService, "findUser">, res: Response, variantName: string): { uid: number; role: UserRole }` — passes for admins, and for managers whose `grants` contain `variantName`; otherwise throws `ForbiddenError("You cannot manage this variant")`.
+    - `requireGrantChangeAllowed(registry: Pick<IRegistryService, "findUser">, actor: { uid: number; role: UserRole }, targetUid: number): void` — admins always pass; a manager passes only when `targetUid !== actor.uid` and the target has no role; otherwise throws `ForbiddenError("Managers can only change access for people without a role")`.
+    - `canManageVariant(user: UserRecord | undefined, variantName: string): boolean` — the pure predicate both helpers share.
 
 - [ ] **Step 1: Create the branch**
 
@@ -55,16 +57,36 @@ Run: `cd ~/Projects/dpp-processor-backend && git checkout -b client-redesign`, t
 ```ts
 describe("canManageVariant", () => {
     it("allows an admin on any variant", () => {
-        expect(canManageVariant({ uid: 1, role: "admin", grants: new Set() }, "flowaim")).toBe(true);
+        expect(
+            canManageVariant(
+                { uid: 1, role: "admin", grants: new Set() },
+                "flowaim",
+            ),
+        ).toBe(true);
     });
     it("allows a manager with a grant on the variant", () => {
-        expect(canManageVariant({ uid: 2, role: "manager", grants: new Set(["flowaim"]) }, "flowaim")).toBe(true);
+        expect(
+            canManageVariant(
+                { uid: 2, role: "manager", grants: new Set(["flowaim"]) },
+                "flowaim",
+            ),
+        ).toBe(true);
     });
     it("refuses a manager without a grant on the variant", () => {
-        expect(canManageVariant({ uid: 2, role: "manager", grants: new Set(["other"]) }, "flowaim")).toBe(false);
+        expect(
+            canManageVariant(
+                { uid: 2, role: "manager", grants: new Set(["other"]) },
+                "flowaim",
+            ),
+        ).toBe(false);
     });
     it("refuses a grant without a role, and an unknown person", () => {
-        expect(canManageVariant({ uid: 3, role: null, grants: new Set(["flowaim"]) }, "flowaim")).toBe(false);
+        expect(
+            canManageVariant(
+                { uid: 3, role: null, grants: new Set(["flowaim"]) },
+                "flowaim",
+            ),
+        ).toBe(false);
         expect(canManageVariant(undefined, "flowaim")).toBe(false);
     });
 });
@@ -98,7 +120,11 @@ it("lists only granted variants for a manager", async () => {
 });
 it("lists every variant for an admin", async () => {
     const res = await as(admin).get("/admin/variants");
-    expect(res.body.map((v: { name: string }) => v.name)).toEqual(["droid-live", "flowaim", "secret"]);
+    expect(res.body.map((v: { name: string }) => v.name)).toEqual([
+        "droid-live",
+        "flowaim",
+        "secret",
+    ]);
 });
 it("lists nothing for a manager without grants", async () => {
     const res = await as(otherManager).get("/admin/variants");
@@ -106,38 +132,91 @@ it("lists nothing for a manager without grants", async () => {
     expect(res.body).toEqual([]);
 });
 it("refuses a manager editing a variant they are not granted, writing nothing", async () => {
-    const res = await as(manager).patch("/admin/variants/secret").send({ title: "Hijacked" });
+    const res = await as(manager)
+        .patch("/admin/variants/secret")
+        .send({ title: "Hijacked" });
     expect(res.status).toBe(403);
     const list = await as(admin).get("/admin/variants");
-    expect(list.body.find((v: { name: string }) => v.name === "secret").title).toBeNull();
+    expect(
+        list.body.find((v: { name: string }) => v.name === "secret").title,
+    ).toBeNull();
 });
 
 // describe("aliases and grants")
 it("refuses a manager reading or changing grants of a variant they are not granted", async () => {
-    expect((await as(manager).get("/admin/variants/secret/grants")).status).toBe(403);
-    expect((await as(manager).put(`/admin/variants/secret/grants/${plain}`)).status).toBe(403);
-    expect((await as(manager).delete(`/admin/variants/secret/grants/${plain}`)).status).toBe(403);
+    expect(
+        (await as(manager).get("/admin/variants/secret/grants")).status,
+    ).toBe(403);
+    expect(
+        (await as(manager).put(`/admin/variants/secret/grants/${plain}`))
+            .status,
+    ).toBe(403);
+    expect(
+        (await as(manager).delete(`/admin/variants/secret/grants/${plain}`))
+            .status,
+    ).toBe(403);
 });
 it("refuses a manager granting or removing a manager, an admin, or themselves", async () => {
-    expect((await as(manager).put(`/admin/variants/flowaim/grants/${otherManager}`)).status).toBe(403);
-    expect((await as(manager).put(`/admin/variants/flowaim/grants/${admin}`)).status).toBe(403);
-    expect((await as(manager).delete(`/admin/variants/flowaim/grants/${manager}`)).status).toBe(403);
+    expect(
+        (
+            await as(manager).put(
+                `/admin/variants/flowaim/grants/${otherManager}`,
+            )
+        ).status,
+    ).toBe(403);
+    expect(
+        (await as(manager).put(`/admin/variants/flowaim/grants/${admin}`))
+            .status,
+    ).toBe(403);
+    expect(
+        (await as(manager).delete(`/admin/variants/flowaim/grants/${manager}`))
+            .status,
+    ).toBe(403);
 });
 it("lets a manager grant and remove a person without a role on their variant", async () => {
-    expect((await as(manager).put(`/admin/variants/flowaim/grants/${plain}`)).status).toBe(204);
-    expect((await as(manager).delete(`/admin/variants/flowaim/grants/${plain}`)).status).toBe(204);
+    expect(
+        (await as(manager).put(`/admin/variants/flowaim/grants/${plain}`))
+            .status,
+    ).toBe(204);
+    expect(
+        (await as(manager).delete(`/admin/variants/flowaim/grants/${plain}`))
+            .status,
+    ).toBe(204);
 });
 it("lets an admin grant a manager", async () => {
-    expect((await as(admin).put(`/admin/variants/secret/grants/${otherManager}`)).status).toBe(204);
+    expect(
+        (await as(admin).put(`/admin/variants/secret/grants/${otherManager}`))
+            .status,
+    ).toBe(204);
 });
 it("refuses a manager pointing an alias at, or away from, a variant they are not granted", async () => {
-    expect((await as(manager).put("/admin/aliases/stolen").send({ variant: "secret" })).status).toBe(403);
+    expect(
+        (
+            await as(manager)
+                .put("/admin/aliases/stolen")
+                .send({ variant: "secret" })
+        ).status,
+    ).toBe(403);
     await as(admin).put("/admin/aliases/theirs").send({ variant: "secret" });
-    expect((await as(manager).put("/admin/aliases/theirs").send({ variant: "flowaim" })).status).toBe(403);
-    expect((await as(manager).delete("/admin/aliases/theirs")).status).toBe(403);
+    expect(
+        (
+            await as(manager)
+                .put("/admin/aliases/theirs")
+                .send({ variant: "flowaim" })
+        ).status,
+    ).toBe(403);
+    expect((await as(manager).delete("/admin/aliases/theirs")).status).toBe(
+        403,
+    );
 });
 it("lets a manager add and remove an alias on their own variant", async () => {
-    expect((await as(manager).put("/admin/aliases/mine").send({ variant: "flowaim" })).status).toBe(204);
+    expect(
+        (
+            await as(manager)
+                .put("/admin/aliases/mine")
+                .send({ variant: "flowaim" })
+        ).status,
+    ).toBe(204);
     expect((await as(manager).delete("/admin/aliases/mine")).status).toBe(204);
 });
 ```
@@ -175,18 +254,20 @@ git commit -m "Limit managers to the variants they are granted"
 ### Task 2: Newest build time and visibility on variant summaries
 
 **Files:**
+
 - Modify: `apps/broker/src/services/IHealthMonitor.ts`, `apps/broker/src/services/HealthMonitor.ts`
 - Modify: `apps/broker/src/controllers/variantSummary.ts`, `apps/broker/src/controllers/adminViews.ts`
 - Modify: `packages/shared/src/types.ts` (`VariantSummary`)
 - Test: `apps/broker/tests/unit/controllers/variantSummary.test.ts`, `apps/broker/tests/unit/services/HealthMonitor.test.ts`
 
 **Interfaces:**
+
 - Consumes: `HealthMonitor.check` (stores `probe.info` on a healthy probe), `InfoResponse.builtAt: string` (ISO datetime).
 - Produces:
-  - `IHealthMonitor.infoOf(instance: Instance): InfoResponse | undefined` — the `/info` from that instance's most recent healthy check.
-  - `VariantSummary.public: boolean` (new field; `AdminVariant` already has it and keeps it).
-  - `VariantSummary.builtAt`: the newest `builtAt` among the variant's **healthy** instances' `infoOf`; if none is healthy, `lastInfo(variant.name)?.builtAt ?? null` (keeps the last known time while a variant is down, which the sidebar uses for "Last updated"; a refinement of the spec's "null when none").
-  - `toVariantSummary(variant, health: Pick<IHealthMonitor, "isHealthy" | "lastInfo" | "infoOf">)`.
+    - `IHealthMonitor.infoOf(instance: Instance): InfoResponse | undefined` — the `/info` from that instance's most recent healthy check.
+    - `VariantSummary.public: boolean` (new field; `AdminVariant` already has it and keeps it).
+    - `VariantSummary.builtAt`: the newest `builtAt` among the variant's **healthy** instances' `infoOf`; if none is healthy, `lastInfo(variant.name)?.builtAt ?? null` (keeps the last known time while a variant is down, which the sidebar uses for "Last updated"; a refinement of the spec's "null when none").
+    - `toVariantSummary(variant, health: Pick<IHealthMonitor, "isHealthy" | "lastInfo" | "infoOf">)`.
 
 - [ ] **Step 1: Write failing tests**
 
@@ -197,18 +278,26 @@ In `variantSummary.test.ts` (extend its fake health object with `infoOf`):
 ```ts
 it("reports the newest build among healthy instances", () => {
     // instance a: healthy, builtAt 2026-10-01T00:00:00.000Z; instance b: healthy, 2026-10-10T00:00:00.000Z
-    expect(toVariantSummary(variant, health).builtAt).toBe("2026-10-10T00:00:00.000Z");
+    expect(toVariantSummary(variant, health).builtAt).toBe(
+        "2026-10-10T00:00:00.000Z",
+    );
 });
 it("ignores builds of instances that are down", () => {
     // b is down
-    expect(toVariantSummary(variant, health).builtAt).toBe("2026-10-01T00:00:00.000Z");
+    expect(toVariantSummary(variant, health).builtAt).toBe(
+        "2026-10-01T00:00:00.000Z",
+    );
 });
 it("keeps the last known build when every instance is down", () => {
     // both down; lastInfo has builtAt 2026-09-01T00:00:00.000Z
-    expect(toVariantSummary(variant, health).builtAt).toBe("2026-09-01T00:00:00.000Z");
+    expect(toVariantSummary(variant, health).builtAt).toBe(
+        "2026-09-01T00:00:00.000Z",
+    );
 });
 it("says whether the variant is public", () => {
-    expect(toVariantSummary({ ...variant, public: false }, health).public).toBe(false);
+    expect(toVariantSummary({ ...variant, public: false }, health).public).toBe(
+        false,
+    );
 });
 ```
 

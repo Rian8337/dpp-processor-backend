@@ -106,6 +106,11 @@ export interface VariantSummary {
     readonly description: string | null;
 
     /**
+     * Whether everyone may use the variant; people who can see a private variant are told it is private.
+     */
+    readonly public: boolean;
+
+    /**
      * Whether at least one of the variant's processor instances is healthy.
      */
     readonly available: boolean;
@@ -118,6 +123,7 @@ export interface VariantSummary {
 
     /**
      * From the latest successful `GET /info` of any instance; `null` if none has succeeded since the broker started.
+     * `builtAt` is the newest build among the healthy instances, or the last known one while none is healthy.
      */
     readonly mode: Modes | null;
     readonly algorithm: CalculatorAlgorithm | null;
@@ -152,7 +158,6 @@ export interface MeResponse {
  * A variant as the management API describes it.
  */
 export interface AdminVariant extends VariantSummary {
-    readonly public: boolean;
     readonly instanceCount: number;
 }
 

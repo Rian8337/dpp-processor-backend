@@ -4,15 +4,14 @@ import type { AdminKey, AdminUser, AdminVariant } from "@dpp/shared";
 import { toVariantSummary } from "./variantSummary";
 
 /**
- * Describes a variant for the management API: the public summary plus visibility and instance count.
+ * Describes a variant for the management API: the public summary plus the instance count.
  */
 export function toAdminVariant(
     variant: Variant,
-    health: Pick<IHealthMonitor, "isHealthy" | "lastInfo">,
+    health: Pick<IHealthMonitor, "isHealthy" | "lastInfo" | "infoOf">,
 ): AdminVariant {
     return {
         ...toVariantSummary(variant, health),
-        public: variant.public,
         instanceCount: variant.instances.length,
     };
 }

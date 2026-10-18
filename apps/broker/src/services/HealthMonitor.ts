@@ -21,6 +21,7 @@ export class HealthMonitor implements IHealthMonitor {
     private current = new Set<string>();
     private readonly states = new Map<string, InstanceState>();
     private readonly lastInfoByVariant = new Map<string, InfoResponse>();
+    private readonly infoByInstance = new Map<string, InfoResponse>();
     private round: Promise<void> | undefined;
     private readonly rechecks = new Map<string, NodeJS.Timeout>();
     private stopped = false;
@@ -43,6 +44,12 @@ export class HealthMonitor implements IHealthMonitor {
         for (const key of this.states.keys()) {
             if (!this.current.has(key)) {
                 this.states.delete(key);
+            }
+        }
+
+        for (const key of this.infoByInstance.keys()) {
+            if (!this.current.has(key)) {
+                this.infoByInstance.delete(key);
             }
         }
 
@@ -121,6 +128,10 @@ export class HealthMonitor implements IHealthMonitor {
         return this.lastInfoByVariant.get(variantName);
     }
 
+    infoOf(instance: Instance): InfoResponse | undefined {
+        return this.infoByInstance.get(instanceKey(instance));
+    }
+
     private scheduleRecheck(instance: Instance): void {
         const key = instanceKey(instance);
 
@@ -152,6 +163,7 @@ export class HealthMonitor implements IHealthMonitor {
                 this.setState(instance, "healthy");
 
                 if (this.current.has(instanceKey(instance))) {
+                    this.infoByInstance.set(instanceKey(instance), probe.info);
                     this.lastInfoByVariant.set(
                         instance.variantName,
                         probe.info,

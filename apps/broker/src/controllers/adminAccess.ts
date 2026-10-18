@@ -1,4 +1,5 @@
 import { getCaller } from "@/http/requestContext";
+import type { UserRecord } from "@/registry/types";
 import type { IRegistryService } from "@/services/IRegistryService";
 import { ForbiddenError } from "@/types/errors";
 import type { UserRole } from "@dpp/shared";
@@ -29,6 +30,64 @@ export function requireRole(
             ? "This needs the admin role"
             : "This needs the manager or admin role",
     );
+}
+
+/**
+ * Whether a person may manage a variant: an admin may manage any variant, a manager only the variants they are granted.
+ * A grant without a role manages nothing, and neither does an unknown person.
+ */
+export function canManageVariant(
+    user: UserRecord | undefined,
+    variantName: string,
+): boolean {
+    if (user?.role === "admin") {
+        return true;
+    }
+
+    return user?.role === "manager" && user.grants.has(variantName);
+}
+
+/**
+ * Requires that the request acts for a person who may manage the variant. See {@link canManageVariant}.
+ *
+ * @returns The acting person.
+ * @throws {ForbiddenError} If there is no acting uid, or the person may not manage the variant.
+ */
+export function requireVariantManager(
+    registry: Pick<IRegistryService, "findUser">,
+    res: Response,
+    variantName: string,
+): { uid: number; role: UserRole } {
+    const uid = requireActingUid(res);
+    const user = registry.findUser(uid);
+
+    if (!user?.role || !canManageVariant(user, variantName)) {
+        throw new ForbiddenError("You cannot manage this variant");
+    }
+
+    return { uid, role: user.role };
+}
+
+/**
+ * Requires that the acting person may change the target's access to a variant. An admin may change anyone's; a manager
+ * only another person's who has no role, so a manager can neither promote themselves nor touch other managers or admins.
+ *
+ * @throws {ForbiddenError} If the actor may not change the target's access.
+ */
+export function requireGrantChangeAllowed(
+    registry: Pick<IRegistryService, "findUser">,
+    actor: { uid: number; role: UserRole },
+    targetUid: number,
+): void {
+    if (actor.role === "admin") {
+        return;
+    }
+
+    if (targetUid === actor.uid || registry.findUser(targetUid)?.role) {
+        throw new ForbiddenError(
+            "Managers can only change access for people without a role",
+        );
+    }
 }
 
 /**

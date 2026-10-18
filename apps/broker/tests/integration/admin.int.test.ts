@@ -12,6 +12,7 @@ vi.setConfig({ testTimeout: 15_000, hookTimeout: 15_000 });
 const admin = 1;
 const manager = 2;
 const plain = 3;
+const otherManager = 4;
 
 describe("admin and me routes (integration)", () => {
     let database: TestDatabase;
@@ -57,8 +58,15 @@ describe("admin and me routes (integration)", () => {
             canActForUsers: false,
             grants: [],
         });
+        await repository.insertVariant({
+            name: "secret",
+            public: false,
+            title: null,
+            description: null,
+        });
         await repository.setUserRole(admin, "admin");
         await repository.setUserRole(manager, "manager");
+        await repository.setUserRole(otherManager, "manager");
         await repository.grantUser(manager, "flowaim");
 
         testContainer = await createTestContainer({ db: database.db });
@@ -252,19 +260,14 @@ describe("admin and me routes (integration)", () => {
     });
 
     describe("variants", () => {
-        it("lists every variant for a manager", async () => {
-            const response = await as(manager)
-                .get("/admin/variants")
-                .expect(200);
+        it("lists only granted variants for a manager", async () => {
+            const res = await as(manager).get("/admin/variants");
 
-            expect(response.body).toEqual([
-                expect.objectContaining({
-                    name: "droid-live",
-                    public: true,
-                    description: "Live",
-                    instanceCount: 0,
-                    available: false,
-                }),
+            expect(res.status).toBe(200);
+            expect(res.body.map((v: { name: string }) => v.name)).toEqual([
+                "flowaim",
+            ]);
+            expect(res.body).toEqual([
                 expect.objectContaining({
                     name: "flowaim",
                     public: false,
@@ -274,24 +277,65 @@ describe("admin and me routes (integration)", () => {
             ]);
         });
 
+        it("lists every variant for an admin", async () => {
+            const res = await as(admin).get("/admin/variants");
+
+            expect(res.body.map((v: { name: string }) => v.name)).toEqual([
+                "droid-live",
+                "flowaim",
+                "secret",
+            ]);
+            expect(res.body[0]).toEqual(
+                expect.objectContaining({
+                    name: "droid-live",
+                    public: true,
+                    description: "Live",
+                    instanceCount: 0,
+                    available: false,
+                }),
+            );
+        });
+
+        it("lists nothing for a manager without grants", async () => {
+            const res = await as(otherManager).get("/admin/variants");
+
+            expect(res.status).toBe(200);
+            expect(res.body).toEqual([]);
+        });
+
+        it("refuses a manager editing a variant they are not granted, writing nothing", async () => {
+            const res = await as(manager)
+                .patch("/admin/variants/secret")
+                .send({ title: "Hijacked" });
+
+            expect(res.status).toBe(403);
+
+            const list = await as(admin).get("/admin/variants");
+
+            expect(
+                list.body.find((v: { name: string }) => v.name === "secret")
+                    .title,
+            ).toBeNull();
+        });
+
         it("lets a manager edit a title and a multi-line description and applies it at once", async () => {
             const response = await as(manager)
-                .patch("/admin/variants/droid-live")
+                .patch("/admin/variants/flowaim")
                 .send({ title: "FC Time", description: "Line one\nLine two" })
                 .expect(200);
 
             expect(response.body).toMatchObject({
-                name: "droid-live",
+                name: "flowaim",
                 title: "FC Time",
                 description: "Line one\nLine two",
-                public: true,
+                public: false,
             });
 
-            const listed = await request(app).get("/variants").expect(200);
+            const listed = await as(manager).get("/admin/variants").expect(200);
 
             expect(listed.body).toContainEqual(
                 expect.objectContaining({
-                    name: "droid-live",
+                    name: "flowaim",
                     title: "FC Time",
                     description: "Line one\nLine two",
                 }),
@@ -300,14 +344,12 @@ describe("admin and me routes (integration)", () => {
 
         it("rejects a manager changing visibility without applying other fields", async () => {
             const response = await as(manager)
-                .patch("/admin/variants/droid-live")
+                .patch("/admin/variants/flowaim")
                 .send({ title: "x", public: true })
                 .expect(403);
 
             expect(response.body.error.code).toBe("FORBIDDEN");
-            expect(
-                (await repository.findVariant("droid-live"))?.title,
-            ).toBeNull();
+            expect((await repository.findVariant("flowaim"))?.title).toBeNull();
         });
 
         it("lets an admin make a variant public", async () => {
@@ -327,23 +369,23 @@ describe("admin and me routes (integration)", () => {
 
         it("rejects over-length descriptions", async () => {
             const response = await as(manager)
-                .patch("/admin/variants/droid-live")
+                .patch("/admin/variants/flowaim")
                 .send({ description: "d".repeat(4001) })
                 .expect(400);
 
             expect(response.body.error.code).toBe("INVALID_REQUEST");
             expect(
-                (await repository.findVariant("droid-live"))?.description,
-            ).toBe("Live");
+                (await repository.findVariant("flowaim"))?.description,
+            ).toBeNull();
         });
 
         it("rejects NUL characters in titles and descriptions", async () => {
             const description = await as(manager)
-                .patch("/admin/variants/droid-live")
+                .patch("/admin/variants/flowaim")
                 .send({ description: "bad\u0000text" })
                 .expect(400);
             const title = await as(manager)
-                .patch("/admin/variants/droid-live")
+                .patch("/admin/variants/flowaim")
                 .send({ title: "bad\u0000title" })
                 .expect(400);
 
@@ -374,7 +416,7 @@ describe("admin and me routes (integration)", () => {
             ).mockRejectedValue(failure);
 
             const response = await as(manager)
-                .patch("/admin/variants/droid-live")
+                .patch("/admin/variants/flowaim")
                 .send({ description: "very secret description text" })
                 .expect(500);
 
@@ -387,16 +429,16 @@ describe("admin and me routes (integration)", () => {
 
             expect(logged).not.toContain("secret");
             expect(logged).toContain("22021");
-            expect(logged).toContain("PATCH /admin/variants/droid-live");
+            expect(logged).toContain("PATCH /admin/variants/flowaim");
         });
 
         it("rejects bodies that are not valid", async () => {
             const empty = await as(manager)
-                .patch("/admin/variants/droid-live")
+                .patch("/admin/variants/flowaim")
                 .send({})
                 .expect(400);
             const notJson = await as(manager)
-                .patch("/admin/variants/droid-live")
+                .patch("/admin/variants/flowaim")
                 .set("Content-Type", "text/plain")
                 .send("title=x")
                 .expect(400);
@@ -408,7 +450,7 @@ describe("admin and me routes (integration)", () => {
         });
 
         it("answers 404 VARIANT_NOT_FOUND for an unknown variant", async () => {
-            const response = await as(manager)
+            const response = await as(admin)
                 .patch("/admin/variants/missing")
                 .send({ title: "x" })
                 .expect(404);
@@ -419,10 +461,6 @@ describe("admin and me routes (integration)", () => {
 
     describe("aliases and grants", () => {
         it("manages aliases and user grants as a manager", async () => {
-            await as(manager)
-                .put("/admin/aliases/fresh")
-                .send({ variant: "droid-live" })
-                .expect(204);
             await as(manager)
                 .put("/admin/aliases/fresh")
                 .send({ variant: "flowaim" })
@@ -445,45 +483,45 @@ describe("admin and me routes (integration)", () => {
             expect(missing.body.error.code).toBe("NOT_FOUND");
 
             await as(manager)
-                .put("/admin/variants/droid-live/grants/7")
+                .put("/admin/variants/flowaim/grants/7")
                 .expect(204);
             await as(manager)
-                .put("/admin/variants/droid-live/grants/4")
+                .put("/admin/variants/flowaim/grants/5")
                 .expect(204);
 
             expect(
                 (
                     await as(manager)
-                        .get("/admin/variants/droid-live/grants")
+                        .get("/admin/variants/flowaim/grants")
                         .expect(200)
                 ).body,
-            ).toEqual([4, 7]);
+            ).toEqual([manager, 5, 7]);
 
             await as(manager)
-                .delete("/admin/variants/droid-live/grants/4")
+                .delete("/admin/variants/flowaim/grants/5")
                 .expect(204);
             await as(manager)
-                .delete("/admin/variants/droid-live/grants/4")
+                .delete("/admin/variants/flowaim/grants/5")
                 .expect(404);
 
             expect(
                 (
                     await as(manager)
-                        .get("/admin/variants/droid-live/grants")
+                        .get("/admin/variants/flowaim/grants")
                         .expect(200)
                 ).body,
-            ).toEqual([7]);
+            ).toEqual([manager, 7]);
         });
 
         it("rejects a bad uid and an unknown variant", async () => {
             await as(manager)
-                .put("/admin/variants/droid-live/grants/abc")
+                .put("/admin/variants/flowaim/grants/abc")
                 .expect(400);
             await as(manager)
-                .put("/admin/variants/droid-live/grants/0")
+                .put("/admin/variants/flowaim/grants/0")
                 .expect(400);
 
-            const response = await as(manager)
+            const response = await as(admin)
                 .put("/admin/variants/missing/grants/7")
                 .expect(404);
 
@@ -497,7 +535,7 @@ describe("admin and me routes (integration)", () => {
                     .send({ role: "manager" })
                     .expect(400);
                 const grant = await as(manager)
-                    .put(`/admin/variants/droid-live/grants/${raw}`)
+                    .put(`/admin/variants/flowaim/grants/${raw}`)
                     .expect(400);
                 const ungrant = await as(manager)
                     .delete(`/admin/variants/flowaim/grants/${raw}`)
@@ -511,17 +549,126 @@ describe("admin and me routes (integration)", () => {
                 }
             }
 
-            expect(await repository.usersGranted("droid-live")).toEqual([]);
             expect(await repository.usersGranted("flowaim")).toEqual([manager]);
             expect(
                 (await repository.listUsers()).map((user) => user.uid),
-            ).toEqual([admin, manager]);
+            ).toEqual([admin, manager, otherManager]);
+        });
+
+        it("refuses a manager reading or changing grants of a variant they are not granted", async () => {
+            expect(
+                (await as(manager).get("/admin/variants/secret/grants")).status,
+            ).toBe(403);
+            expect(
+                (
+                    await as(manager).put(
+                        `/admin/variants/secret/grants/${plain}`,
+                    )
+                ).status,
+            ).toBe(403);
+            expect(
+                (
+                    await as(manager).delete(
+                        `/admin/variants/secret/grants/${plain}`,
+                    )
+                ).status,
+            ).toBe(403);
+        });
+
+        it("refuses a manager granting or removing a manager, an admin, or themselves", async () => {
+            expect(
+                (
+                    await as(manager).put(
+                        `/admin/variants/flowaim/grants/${otherManager}`,
+                    )
+                ).status,
+            ).toBe(403);
+            expect(
+                (
+                    await as(manager).put(
+                        `/admin/variants/flowaim/grants/${admin}`,
+                    )
+                ).status,
+            ).toBe(403);
+            expect(
+                (
+                    await as(manager).delete(
+                        `/admin/variants/flowaim/grants/${manager}`,
+                    )
+                ).status,
+            ).toBe(403);
+            expect(await repository.usersGranted("flowaim")).toEqual([manager]);
+        });
+
+        it("lets a manager grant and remove a person without a role on their variant", async () => {
+            expect(
+                (
+                    await as(manager).put(
+                        `/admin/variants/flowaim/grants/${plain}`,
+                    )
+                ).status,
+            ).toBe(204);
+            expect(
+                (
+                    await as(manager).delete(
+                        `/admin/variants/flowaim/grants/${plain}`,
+                    )
+                ).status,
+            ).toBe(204);
+        });
+
+        it("lets an admin grant a manager", async () => {
+            expect(
+                (
+                    await as(admin).put(
+                        `/admin/variants/secret/grants/${otherManager}`,
+                    )
+                ).status,
+            ).toBe(204);
+        });
+
+        it("refuses a manager pointing an alias at, or away from, a variant they are not granted", async () => {
+            expect(
+                (
+                    await as(manager)
+                        .put("/admin/aliases/stolen")
+                        .send({ variant: "secret" })
+                ).status,
+            ).toBe(403);
+
+            await as(admin)
+                .put("/admin/aliases/theirs")
+                .send({ variant: "secret" });
+
+            expect(
+                (
+                    await as(manager)
+                        .put("/admin/aliases/theirs")
+                        .send({ variant: "flowaim" })
+                ).status,
+            ).toBe(403);
+            expect(
+                (await as(manager).delete("/admin/aliases/theirs")).status,
+            ).toBe(403);
+        });
+
+        it("lets a manager add and remove an alias on their own variant", async () => {
+            expect(
+                (
+                    await as(manager)
+                        .put("/admin/aliases/mine")
+                        .send({ variant: "flowaim" })
+                ).status,
+            ).toBe(204);
+            expect(
+                (await as(manager).delete("/admin/aliases/mine")).status,
+            ).toBe(204);
         });
 
         it("rejects an alias that is a variant name", async () => {
             const response = await as(manager)
-                .put("/admin/aliases/flowaim")
-                .send({ variant: "droid-live" })
+                .put("/admin/aliases/droid-live")
+                .send({ variant: "flowaim" })
                 .expect(409);
 
             expect(response.body.error.code).toBe("CONFLICT");
@@ -535,6 +682,7 @@ describe("admin and me routes (integration)", () => {
             ).toEqual([
                 { uid: admin, role: "admin", grants: [] },
                 { uid: manager, role: "manager", grants: ["flowaim"] },
+                { uid: otherManager, role: "manager", grants: [] },
             ]);
 
             const response = await as(admin)
@@ -723,7 +871,7 @@ describe("admin and me routes (integration)", () => {
     describe("logging", () => {
         it("logs admin changes without bodies", async () => {
             await as(manager)
-                .patch("/admin/variants/droid-live")
+                .patch("/admin/variants/flowaim")
                 .send({ description: "very secret description text" })
                 .expect(200);
 
@@ -733,7 +881,7 @@ describe("admin and me routes (integration)", () => {
                 .mock.calls.map((call) => call.join(" "));
 
             expect(lines).toContain(
-                "Admin change by uid 2: PATCH /admin/variants/droid-live",
+                "Admin change by uid 2: PATCH /admin/variants/flowaim",
             );
             expect(lines.join("\n")).not.toContain("secret");
         });
@@ -783,7 +931,7 @@ describe("admin and me routes (integration)", () => {
 
             // The write is committed, so the request still succeeds.
             await as(manager)
-                .patch("/admin/variants/droid-live")
+                .patch("/admin/variants/flowaim")
                 .send({ title: "Kept" })
                 .expect(200);
             await as(admin)
@@ -798,14 +946,14 @@ describe("admin and me routes (integration)", () => {
                 .filter((line) => line.startsWith("Admin change"));
 
             expect(warnings).toEqual([
-                "Admin change by uid 2: PATCH /admin/variants/droid-live written but not yet applied; the registry reload failed",
+                "Admin change by uid 2: PATCH /admin/variants/flowaim written but not yet applied; the registry reload failed",
                 "Admin change by uid 1: PUT /admin/users/5/role (role manager) written but not yet applied; the registry reload failed",
             ]);
             // eslint-disable-next-line @typescript-eslint/unbound-method
             expect(vi.mocked(console.log).mock.calls.join("\n")).not.toContain(
                 "Admin change",
             );
-            expect((await repository.findVariant("droid-live"))?.title).toBe(
+            expect((await repository.findVariant("flowaim"))?.title).toBe(
                 "Kept",
             );
         });

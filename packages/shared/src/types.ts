@@ -123,17 +123,21 @@ export interface VariantSummary {
 
     /**
      * From the latest successful `GET /info` of any instance; `null` if none has succeeded since the broker started.
-     * `builtAt` is the newest build among the healthy instances, or the last known one while none is healthy.
      */
     readonly mode: Modes | null;
     readonly algorithm: CalculatorAlgorithm | null;
     readonly calculatorVersion: string | null;
+
+    /**
+     * The newest build time among healthy instances, or the last known one while every instance is down; `null` if never seen.
+     */
     readonly builtAt: string | null;
 }
 
 /**
- * What a user may do in the variant management API. Managers see and manage every variant (titles, descriptions,
- * aliases, and user grants); admins additionally manage visibility, roles, and API keys.
+ * What a user may do in the variant management API. Managers manage the variants they are granted (titles, descriptions,
+ * aliases, and grants for people without a role). Admins manage every variant and additionally manage visibility,
+ * roles, and API keys.
  */
 export type UserRole = "admin" | "manager";
 

@@ -13,6 +13,9 @@ access and rate limits. See `docs/superpowers/specs/2026-10-07-broker-design.md`
 | `POST /variants/:name/performance`        | forwarded to `POST /performance`                   |
 | `POST /variants/:name/performance/replay` | forwarded to `POST /performance/replay`            |
 
+A variant's status includes `available` and `healthyInstanceCount`, the number of its instances that are currently
+healthy, which is how many requests it can work on at once.
+
 ### Acting for a person and management routes
 
 A key created with `can_act_for_users` (`--act-for-users` in the CLI) may send `X-Acting-Uid: <uid>` (a positive

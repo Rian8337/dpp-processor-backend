@@ -10,15 +10,17 @@ export function toVariantSummary(
     health: Pick<IHealthMonitor, "isHealthy" | "lastInfo">,
 ): VariantSummary {
     const info = health.lastInfo(variant.name);
+    const healthyInstanceCount = variant.instances.filter((instance) =>
+        health.isHealthy(instance),
+    ).length;
 
     return {
         name: variant.name,
         title: variant.title,
         aliases: variant.aliases,
         description: variant.description,
-        available: variant.instances.some((instance) =>
-            health.isHealthy(instance),
-        ),
+        available: healthyInstanceCount > 0,
+        healthyInstanceCount,
         mode: info?.mode ?? null,
         algorithm: info?.algorithm ?? null,
         calculatorVersion: info?.calculatorVersion ?? null,

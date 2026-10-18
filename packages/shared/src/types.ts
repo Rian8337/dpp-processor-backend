@@ -111,6 +111,12 @@ export interface VariantSummary {
     readonly available: boolean;
 
     /**
+     * How many of the variant's processor instances are healthy, which is how many requests the variant can work on
+     * at once.
+     */
+    readonly healthyInstanceCount: number;
+
+    /**
      * From the latest successful `GET /info` of any instance; `null` if none has succeeded since the broker started.
      */
     readonly mode: Modes | null;

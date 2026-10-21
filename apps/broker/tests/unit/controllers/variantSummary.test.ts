@@ -6,7 +6,15 @@ import { testInfo, testSnapshot } from "@test/utils/registry";
 import { describe, expect, it } from "vitest";
 
 const snapshot = testSnapshot({
-    variants: [{ name: "a", public: true, title: null, description: null }],
+    variants: [
+        {
+            name: "a",
+            public: true,
+            pinned: false,
+            title: null,
+            description: null,
+        },
+    ],
     instances: [1, 2, 3].map((port) => ({
         variantName: "a",
         url: `http://127.0.0.1:${port}`,
@@ -104,5 +112,13 @@ describe("toVariantSummary", () => {
                 .public,
         ).toBe(false);
         expect(toVariantSummary(variant, healthWith([])).public).toBe(true);
+    });
+
+    it("says whether the variant is pinned", () => {
+        expect(
+            toVariantSummary({ ...variant, pinned: true }, healthWith([]))
+                .pinned,
+        ).toBe(true);
+        expect(toVariantSummary(variant, healthWith([])).pinned).toBe(false);
     });
 });

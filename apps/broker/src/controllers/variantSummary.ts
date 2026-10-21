@@ -34,6 +34,7 @@ export function toVariantSummary(
         aliases: variant.aliases,
         description: variant.description,
         public: variant.public,
+        pinned: variant.pinned,
         available: healthyInstanceCount > 0,
         healthyInstanceCount,
         mode: info?.mode ?? null,

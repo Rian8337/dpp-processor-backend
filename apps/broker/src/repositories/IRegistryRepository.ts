@@ -21,6 +21,7 @@ export interface IRegistryRepository {
         name: string,
         changes: {
             readonly public?: boolean;
+            readonly pinned?: boolean;
             readonly title?: string | null;
             readonly description?: string | null;
         },

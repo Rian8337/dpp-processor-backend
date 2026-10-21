@@ -24,6 +24,7 @@ function variantWith(count: number): Variant {
             {
                 name: "droid-live",
                 public: true,
+                pinned: false,
                 title: null,
                 description: null,
             },

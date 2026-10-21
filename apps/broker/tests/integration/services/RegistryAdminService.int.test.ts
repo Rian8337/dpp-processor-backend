@@ -20,6 +20,7 @@ describe("RegistryAdminService (integration)", () => {
         await repository.insertVariant({
             name: "x",
             public: false,
+            pinned: false,
             title: null,
             description: null,
         });
@@ -103,11 +104,13 @@ describe("RegistryAdminService (integration)", () => {
         it("changes only what is given, and accepts no changes", async () => {
             await service.updateVariant("x", { title: "T" });
             await service.updateVariant("x", { public: true });
+            await service.updateVariant("x", { pinned: true });
             await service.updateVariant("x", {});
 
             expect(await repository.findVariant("x")).toEqual({
                 name: "x",
                 public: true,
+                pinned: true,
                 title: "T",
                 description: null,
             });
@@ -129,6 +132,7 @@ describe("RegistryAdminService (integration)", () => {
             await repository.insertVariant({
                 name: "y",
                 public: false,
+                pinned: false,
                 title: null,
                 description: null,
             });
@@ -156,6 +160,7 @@ describe("RegistryAdminService (integration)", () => {
             await repository.insertVariant({
                 name: "y",
                 public: false,
+                pinned: false,
                 title: null,
                 description: null,
             });

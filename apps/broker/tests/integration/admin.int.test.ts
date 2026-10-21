@@ -31,12 +31,14 @@ describe("admin and me routes (integration)", () => {
         await repository.insertVariant({
             name: "droid-live",
             public: true,
+            pinned: false,
             title: null,
             description: "Live",
         });
         await repository.insertVariant({
             name: "flowaim",
             public: false,
+            pinned: false,
             title: null,
             description: null,
         });
@@ -61,6 +63,7 @@ describe("admin and me routes (integration)", () => {
         await repository.insertVariant({
             name: "secret",
             public: false,
+            pinned: false,
             title: null,
             description: null,
         });
@@ -159,6 +162,12 @@ describe("admin and me routes (integration)", () => {
                 method: "patch",
                 path: "/admin/variants/flowaim",
                 body: { public: true },
+                adminOnly: true,
+            },
+            {
+                method: "patch",
+                path: "/admin/variants/flowaim",
+                body: { pinned: true },
                 adminOnly: true,
             },
             {
@@ -365,6 +374,42 @@ describe("admin and me routes (integration)", () => {
             expect(
                 (await request(app).get("/variants").expect(200)).body,
             ).toContainEqual(expect.objectContaining({ name: "flowaim" }));
+        });
+
+        it("rejects a manager pinning a variant without applying other fields", async () => {
+            const response = await as(manager)
+                .patch("/admin/variants/flowaim")
+                .send({ title: "x", pinned: true })
+                .expect(403);
+
+            expect(response.body.error.code).toBe("FORBIDDEN");
+
+            const variant = await repository.findVariant("flowaim");
+
+            expect(variant?.title).toBeNull();
+            expect(variant?.pinned).toBe(false);
+        });
+
+        it("lets an admin pin and unpin a variant", async () => {
+            const pinned = await as(admin)
+                .patch("/admin/variants/flowaim")
+                .send({ pinned: true })
+                .expect(200);
+
+            expect(pinned.body).toMatchObject({
+                name: "flowaim",
+                pinned: true,
+            });
+
+            const unpinned = await as(admin)
+                .patch("/admin/variants/flowaim")
+                .send({ pinned: false })
+                .expect(200);
+
+            expect(unpinned.body).toMatchObject({
+                name: "flowaim",
+                pinned: false,
+            });
         });
 
         it("rejects over-length descriptions", async () => {

@@ -15,6 +15,13 @@
       "when": 1792231593049,
       "tag": "0001_mean_ultimates",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792540376642,
+      "tag": "0002_soft_kingpin",
+      "breakpoints": true
     }
   ]
 }

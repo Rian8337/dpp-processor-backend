@@ -106,6 +106,7 @@ describe("broker CLI (integration)", () => {
             expect(await repository.findVariant("droid-live")).toEqual({
                 name: "droid-live",
                 public: false,
+                pinned: false,
                 title: null,
                 description: null,
             });
@@ -199,6 +200,7 @@ describe("broker CLI (integration)", () => {
                 expect(await repository.findVariant("droid-live")).toEqual({
                     name: "droid-live",
                     public: false,
+                    pinned: false,
                     title: "Live droid",
                     description: "First line\nSecond line",
                 });

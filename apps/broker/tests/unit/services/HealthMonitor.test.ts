@@ -11,8 +11,20 @@ const b1: Instance = { variantName: "b", url: "http://127.0.0.1:2001" };
 
 const snapshot = testSnapshot({
     variants: [
-        { name: "a", public: true, title: null, description: null },
-        { name: "b", public: true, title: null, description: null },
+        {
+            name: "a",
+            public: true,
+            pinned: false,
+            title: null,
+            description: null,
+        },
+        {
+            name: "b",
+            public: true,
+            pinned: false,
+            title: null,
+            description: null,
+        },
     ],
     instances: [a1, a2, b1],
 });
@@ -104,7 +116,13 @@ describe("HealthMonitor", () => {
         monitor.sync(
             testSnapshot({
                 variants: [
-                    { name: "a", public: true, title: null, description: null },
+                    {
+                        name: "a",
+                        public: true,
+                        pinned: false,
+                        title: null,
+                        description: null,
+                    },
                 ],
                 instances: [a1],
             }),
@@ -145,7 +163,13 @@ describe("HealthMonitor", () => {
         monitor.sync(
             testSnapshot({
                 variants: [
-                    { name: "b", public: true, title: null, description: null },
+                    {
+                        name: "b",
+                        public: true,
+                        pinned: false,
+                        title: null,
+                        description: null,
+                    },
                 ],
                 instances: [moved],
             }),
@@ -235,8 +259,20 @@ describe("HealthMonitor", () => {
         monitor.sync(
             testSnapshot({
                 variants: [
-                    { name: "a", public: true, title: null, description: null },
-                    { name: "b", public: true, title: null, description: null },
+                    {
+                        name: "a",
+                        public: true,
+                        pinned: false,
+                        title: null,
+                        description: null,
+                    },
+                    {
+                        name: "b",
+                        public: true,
+                        pinned: false,
+                        title: null,
+                        description: null,
+                    },
                 ],
                 instances: [a1, a2, b1, added],
             }),

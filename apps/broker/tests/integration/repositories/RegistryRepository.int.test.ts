@@ -21,12 +21,14 @@ describe("RegistryRepository (integration)", () => {
         await repository.insertVariant({
             name: "droid-live",
             public: true,
+            pinned: false,
             title: null,
             description: "Live droid",
         });
         await repository.insertVariant({
             name: "flowaim",
             public: false,
+            pinned: false,
             title: null,
             description: null,
         });
@@ -71,6 +73,7 @@ describe("RegistryRepository (integration)", () => {
         expect(snapshot.variants.get("droid-live")).toEqual({
             name: "droid-live",
             public: true,
+            pinned: false,
             title: null,
             description: "Live droid",
             instances: [
@@ -97,6 +100,7 @@ describe("RegistryRepository (integration)", () => {
         expect(await repository.findVariant("flowaim")).toEqual({
             name: "flowaim",
             public: true,
+            pinned: false,
             title: null,
             description: "Flow aim experiment",
         });
@@ -214,6 +218,7 @@ describe("RegistryRepository (integration)", () => {
         await repository.insertVariant({
             name: "titled",
             public: true,
+            pinned: false,
             title: "Titled variant",
             description: null,
         });

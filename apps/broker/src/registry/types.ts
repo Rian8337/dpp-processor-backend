@@ -9,6 +9,8 @@ export interface Instance {
 export interface Variant {
     readonly name: string;
     readonly public: boolean;
+    /** Whether clients should list the variant ahead of the others. */
+    readonly pinned: boolean;
     readonly title: string | null;
     readonly description: string | null;
     /** Sorted by URL. */
@@ -59,6 +61,8 @@ export type Caller =
 export interface VariantRow {
     readonly name: string;
     readonly public: boolean;
+    /** Whether clients should list the variant ahead of the others. */
+    readonly pinned: boolean;
     readonly title: string | null;
     readonly description: string | null;
 }

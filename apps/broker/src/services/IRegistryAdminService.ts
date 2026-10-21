@@ -30,6 +30,7 @@ export interface IRegistryAdminService {
             readonly title?: string | null;
             readonly description?: string | null;
             readonly public?: boolean;
+            readonly pinned?: boolean;
         },
     ): Promise<void>;
 

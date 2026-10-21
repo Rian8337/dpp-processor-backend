@@ -20,6 +20,7 @@ import {
 export const variantsTable = pgTable("variants", {
     name: text().primaryKey(),
     public: boolean().notNull().default(false),
+    pinned: boolean().notNull().default(false),
     title: text(),
     description: text(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),

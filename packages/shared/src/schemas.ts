@@ -121,13 +121,18 @@ export const variantUpdateSchema = z
         title: z.string().nullable().optional(),
         description: z.string().nullable().optional(),
         public: z.boolean().optional(),
+        pinned: z.boolean().optional(),
     })
     .refine(
         (update) =>
             update.title !== undefined ||
             update.description !== undefined ||
-            update.public !== undefined,
-        { message: "Pass at least one of title, description, or public" },
+            update.public !== undefined ||
+            update.pinned !== undefined,
+        {
+            message:
+                "Pass at least one of title, description, public, or pinned",
+        },
     );
 
 /**

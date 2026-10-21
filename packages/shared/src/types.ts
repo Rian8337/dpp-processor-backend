@@ -111,6 +111,11 @@ export interface VariantSummary {
     readonly public: boolean;
 
     /**
+     * Whether clients should list the variant ahead of the others. Only admins may pin a variant.
+     */
+    readonly pinned: boolean;
+
+    /**
      * Whether at least one of the variant's processor instances is healthy.
      */
     readonly available: boolean;
@@ -137,7 +142,7 @@ export interface VariantSummary {
 /**
  * What a user may do in the variant management API. Managers manage the variants they are granted (titles, descriptions,
  * aliases, and grants for people without a role). Admins manage every variant and additionally manage visibility,
- * roles, and API keys.
+ * pins, roles, and API keys.
  */
 export type UserRole = "admin" | "manager";
 

@@ -15,6 +15,7 @@ export interface SnapshotRows {
     readonly variants: readonly {
         readonly name: string;
         readonly public: boolean;
+        readonly pinned: boolean;
         readonly title: string | null;
         readonly description: string | null;
     }[];
@@ -59,6 +60,7 @@ export function buildSnapshot(rows: SnapshotRows): RegistrySnapshot {
         variants.set(row.name, {
             name: row.name,
             public: row.public,
+            pinned: row.pinned,
             title: row.title,
             description: row.description,
             instances: rows.instances

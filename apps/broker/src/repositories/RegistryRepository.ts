@@ -38,6 +38,7 @@ export class RegistryRepository implements IRegistryRepository {
                     .select({
                         name: variantsTable.name,
                         public: variantsTable.public,
+                        pinned: variantsTable.pinned,
                         title: variantsTable.title,
                         description: variantsTable.description,
                     })
@@ -85,6 +86,7 @@ export class RegistryRepository implements IRegistryRepository {
             .select({
                 name: variantsTable.name,
                 public: variantsTable.public,
+                pinned: variantsTable.pinned,
                 title: variantsTable.title,
                 description: variantsTable.description,
             })
@@ -121,6 +123,7 @@ export class RegistryRepository implements IRegistryRepository {
         name: string,
         changes: {
             readonly public?: boolean;
+            readonly pinned?: boolean;
             readonly title?: string | null;
             readonly description?: string | null;
         },

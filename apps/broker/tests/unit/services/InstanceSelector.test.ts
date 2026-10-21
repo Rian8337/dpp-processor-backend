@@ -7,8 +7,20 @@ import { describe, expect, it } from "vitest";
 const urls = ["http://127.0.0.1:1", "http://127.0.0.1:2", "http://127.0.0.1:3"];
 const snapshot = testSnapshot({
     variants: [
-        { name: "a", public: true, title: null, description: null },
-        { name: "b", public: true, title: null, description: null },
+        {
+            name: "a",
+            public: true,
+            pinned: false,
+            title: null,
+            description: null,
+        },
+        {
+            name: "b",
+            public: true,
+            pinned: false,
+            title: null,
+            description: null,
+        },
     ],
     instances: [
         ...urls.map((url) => ({ variantName: "a", url })),

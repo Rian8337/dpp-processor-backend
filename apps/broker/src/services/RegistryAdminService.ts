@@ -56,6 +56,7 @@ export class RegistryAdminService implements IRegistryAdminService {
         await this.repository.insertVariant({
             name: row.name,
             public: row.public,
+            pinned: false,
             title: this.checkedTitle(row.title),
             description: this.checkedDescription(row.description),
         });
@@ -67,18 +68,24 @@ export class RegistryAdminService implements IRegistryAdminService {
             readonly title?: string | null;
             readonly description?: string | null;
             readonly public?: boolean;
+            readonly pinned?: boolean;
         },
     ): Promise<void> {
         await this.requireVariant(name);
 
         const update: {
             public?: boolean;
+            pinned?: boolean;
             title?: string | null;
             description?: string | null;
         } = {};
 
         if (changes.public !== undefined) {
             update.public = changes.public;
+        }
+
+        if (changes.pinned !== undefined) {
+            update.pinned = changes.pinned;
         }
 
         if (changes.title !== undefined) {

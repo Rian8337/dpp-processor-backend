@@ -14,7 +14,7 @@ access and rate limits. See `docs/superpowers/specs/2026-10-07-broker-design.md`
 | `POST /variants/:name/performance/replay` | forwarded to `POST /performance/replay`            |
 
 A variant's status includes `available` and `healthyInstanceCount`, the number of its instances that are currently
-healthy, which is how many requests it can work on at once. Variant summaries also include `public`, and `builtAt`,
+healthy, which is how many requests it can work on at once. Variant summaries also include `public`, `pinned` (list it ahead of the others), and `builtAt`,
 the newest build time among healthy instances (the last known one while all are down).
 
 ### Acting for a person and management routes
@@ -35,7 +35,7 @@ for a variant they are not granted, including an unknown name.
 | -------------------------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------- |
 | `GET /me`                                          | any                                           | `{ uid, role, grants }` for the acting person                                          |
 | `GET /admin/variants`                              | admin, or manager                             | every variant, with `public` and `instanceCount`; a manager sees only granted variants |
-| `PATCH /admin/variants/:name`                      | admin, or manager with a grant on the variant | `{ title?, description? }`; `public` also needs admin                                  |
+| `PATCH /admin/variants/:name`                      | admin, or manager with a grant on the variant | `{ title?, description? }`; `public` and `pinned` also need admin                      |
 | `PUT /admin/aliases/:alias` `{ variant }`          | admin, or manager with a grant on the variant | create or repoint an alias                                                             |
 | `DELETE /admin/aliases/:alias`                     | admin, or manager with a grant on the variant |                                                                                        |
 | `GET /admin/variants/:name/grants`                 | admin, or manager with a grant on the variant | uids granted the variant                                                               |

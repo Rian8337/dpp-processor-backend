@@ -1,0 +1,1 @@
+ALTER TABLE "variants" ADD COLUMN "pinned" boolean DEFAULT false NOT NULL;

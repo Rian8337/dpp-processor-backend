@@ -52,30 +52,35 @@ describe("broker API (integration)", () => {
         await repository.insertVariant({
             name: "droid-live",
             public: true,
+            pinned: false,
             title: null,
             description: "Live",
         });
         await repository.insertVariant({
             name: "flowaim",
             public: false,
+            pinned: false,
             title: null,
             description: null,
         });
         await repository.insertVariant({
             name: "pair",
             public: true,
+            pinned: false,
             title: null,
             description: null,
         });
         await repository.insertVariant({
             name: "wrong",
             public: true,
+            pinned: false,
             title: null,
             description: null,
         });
         await repository.insertVariant({
             name: "offline",
             public: true,
+            pinned: false,
             title: null,
             description: null,
         });
@@ -148,6 +153,7 @@ describe("broker API (integration)", () => {
                     aliases: ["live-droid"],
                     description: "Live",
                     public: true,
+                    pinned: false,
                     available: true,
                     healthyInstanceCount: 1,
                     mode: Modes.Droid,

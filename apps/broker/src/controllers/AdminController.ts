@@ -104,7 +104,7 @@ export class AdminController extends AdminControllerBase {
             const changes = parseBody(variantUpdateSchema, readJsonBody(req));
 
             // Checked before anything is written, so a refused change applies none of its fields.
-            if (changes.public !== undefined) {
+            if (changes.public !== undefined || changes.pinned !== undefined) {
                 requireRole(this.registry, res, "admin");
             }
 

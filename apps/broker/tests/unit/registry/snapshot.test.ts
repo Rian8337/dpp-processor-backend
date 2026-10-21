@@ -10,14 +10,27 @@ import { describe, expect, it } from "vitest";
 describe("buildSnapshot", () => {
     const snapshot = testSnapshot({
         variants: [
-            { name: "osu-live", public: true, title: null, description: null },
+            {
+                name: "osu-live",
+                public: true,
+                pinned: false,
+                title: null,
+                description: null,
+            },
             {
                 name: "droid-live",
                 public: true,
+                pinned: false,
                 title: "Droid Live",
                 description: "Live droid",
             },
-            { name: "flowaim", public: false, title: null, description: null },
+            {
+                name: "flowaim",
+                public: false,
+                pinned: false,
+                title: null,
+                description: null,
+            },
         ],
         instances: [
             { variantName: "droid-live", url: "http://127.0.0.1:3102" },
@@ -63,6 +76,7 @@ describe("buildSnapshot", () => {
         expect(snapshot.variants.get("droid-live")).toEqual({
             name: "droid-live",
             public: true,
+            pinned: false,
             title: "Droid Live",
             description: "Live droid",
             instances: [

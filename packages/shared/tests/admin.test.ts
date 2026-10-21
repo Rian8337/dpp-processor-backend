@@ -33,8 +33,14 @@ describe("variantUpdateSchema", () => {
 
         expect(result.success).toBe(false);
         expect(result.error?.issues[0]?.message).toBe(
-            "Pass at least one of title, description, or public",
+            "Pass at least one of title, description, public, or pinned",
         );
+    });
+
+    it("accepts pinned on its own", () => {
+        expect(variantUpdateSchema.parse({ pinned: true })).toEqual({
+            pinned: true,
+        });
     });
 
     it("rejects unknown fields", () => {

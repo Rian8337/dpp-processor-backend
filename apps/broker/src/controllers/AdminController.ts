@@ -18,7 +18,9 @@ import type { Request, Response } from "express";
 import { inject } from "tsyringe";
 import {
     canManageVariant,
+    hasRole,
     requireGrantChangeAllowed,
+    requireRoleChangeAllowed,
     requireRole,
     requireVariantManager,
 } from "./adminAccess";
@@ -83,7 +85,7 @@ export class AdminController extends AdminControllerBase {
                     .allVariants()
                     .filter(
                         (variant) =>
-                            role === "admin" ||
+                            hasRole(role, "admin") ||
                             canManageVariant(user, variant.name),
                     )
                     .map((variant) => toAdminVariant(variant, this.health)),
@@ -246,11 +248,14 @@ export class AdminController extends AdminControllerBase {
         res: Response<AdminUser>,
     ): Promise<void> {
         try {
-            const { uid } = requireRole(this.registry, res, "admin");
+            const actor = requireRole(this.registry, res, "admin");
+            const { uid } = actor;
             const { role } = parseBody(roleSetSchema, readJsonBody(req));
             const target = pathUid(req.params.uid);
 
-            await this.admin.setRole(target, role, uid);
+            requireRoleChangeAllowed(this.registry, actor, target, role);
+
+            await this.admin.setRole(target, role);
             await this.applied(req, uid, `role ${role ?? "none"}`);
 
             const user = this.registry.findUser(target);

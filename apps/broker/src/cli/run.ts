@@ -75,7 +75,7 @@ export const usage = `Usage: pnpm --filter @dpp/broker cli <command>
   key list
   key show <name>
 
-  user role <uid> (admin | manager | none)
+  user role <uid> (owner | admin | manager | none)
   user grant <uid> <variant>
   user ungrant <uid> <variant>
   user list

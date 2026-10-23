@@ -75,10 +75,10 @@ export function parseUid(value: string): number {
 }
 
 /**
- * Reads a role argument: `admin`, `manager`, or `none` (no role, as `null`).
+ * Reads a role argument: `owner`, `admin`, `manager`, or `none` (no role, as `null`).
  */
 export function parseRole(value: string): UserRole | null {
-    if (value === "admin" || value === "manager") {
+    if (value === "owner" || value === "admin" || value === "manager") {
         return value;
     }
 
@@ -87,7 +87,7 @@ export function parseRole(value: string): UserRole | null {
     }
 
     throw new CliError(
-        `Invalid role "${value}": expected admin, manager, or none`,
+        `Invalid role "${value}": expected owner, admin, manager, or none`,
     );
 }
 

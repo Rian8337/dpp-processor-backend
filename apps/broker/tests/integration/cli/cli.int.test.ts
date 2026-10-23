@@ -568,6 +568,10 @@ describe("broker CLI (integration)", () => {
 
         it("manages user roles and grants", async () => {
             expect((await run("user", "list")).info).toEqual(["No users."]);
+            expect((await run("user", "role", "5", "owner")).info).toEqual([
+                "Set user 5's role to owner.",
+                reloadReminder,
+            ]);
             expect((await run("user", "role", "5", "admin")).info).toEqual([
                 "Set user 5's role to admin.",
                 reloadReminder,
@@ -606,7 +610,7 @@ describe("broker CLI (integration)", () => {
             expect.hasAssertions();
             await expectFailure(
                 ["user", "role", "5", "root"],
-                /Invalid role "root": expected admin, manager, or none/,
+                /Invalid role "root": expected owner, admin, manager, or none/,
             );
 
             for (const uid of ["abc", "0", "1.5", "2147483648"]) {

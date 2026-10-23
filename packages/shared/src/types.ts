@@ -142,9 +142,10 @@ export interface VariantSummary {
 /**
  * What a user may do in the variant management API. Managers manage the variants they are granted (titles, descriptions,
  * aliases, and grants for people without a role). Admins manage every variant and additionally manage visibility,
- * pins, roles, and API keys.
+ * pins, and the manager role. Owners can do everything admins can, plus grant or change the admin role and manage
+ * API keys. Owners are set and removed only with the broker CLI.
  */
-export type UserRole = "admin" | "manager";
+export type UserRole = "owner" | "admin" | "manager";
 
 /**
  * The caller's identity and permissions, from `GET /me`.

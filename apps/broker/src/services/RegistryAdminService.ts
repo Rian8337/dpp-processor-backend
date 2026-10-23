@@ -150,19 +150,8 @@ export class RegistryAdminService implements IRegistryAdminService {
         }
     }
 
-    async setRole(
-        uid: number,
-        role: UserRole | null,
-        actingUid?: number,
-    ): Promise<void> {
+    async setRole(uid: number, role: UserRole | null): Promise<void> {
         this.requireValidUid(uid);
-
-        if (actingUid === uid && role !== "admin") {
-            throw new RegistryChangeError(
-                "conflict",
-                "You cannot remove your own admin role",
-            );
-        }
 
         await this.repository.setUserRole(uid, role);
     }

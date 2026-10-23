@@ -5,8 +5,33 @@ import { ForbiddenError } from "@/types/errors";
 import type { UserRole } from "@dpp/shared";
 import type { Response } from "express";
 
+/** Roles from lowest to highest. */
+const roleRanks: Record<UserRole, number> = {
+    manager: 1,
+    admin: 2,
+    owner: 3,
+};
+
+const requiredRoleMessages: Record<UserRole, string> = {
+    owner: "This needs the owner role",
+    admin: "This needs the admin or owner role",
+    manager: "This needs the manager, admin, or owner role",
+};
+
 /**
- * Requires that the request acts for a person with at least the role. An admin satisfies `"manager"`.
+ * Whether a role is at least the needed one, ranking owner above admin above manager. A person without a role (or an
+ * unknown person) never qualifies.
+ */
+export function hasRole(
+    actual: UserRole | null | undefined,
+    needed: UserRole,
+): boolean {
+    return actual != null && roleRanks[actual] >= roleRanks[needed];
+}
+
+/**
+ * Requires that the request acts for a person with at least the role. An owner satisfies every role and an admin
+ * satisfies `"manager"`.
  *
  * The auth middleware has already rejected an acting uid from a key that may not act for users.
  *
@@ -16,31 +41,27 @@ import type { Response } from "express";
 export function requireRole(
     registry: Pick<IRegistryService, "findUser">,
     res: Response,
-    role: "manager" | "admin",
+    role: UserRole,
 ): { uid: number; role: UserRole } {
     const uid = requireActingUid(res);
     const actual = registry.findUser(uid)?.role ?? null;
 
-    if (actual === "admin" || (actual === "manager" && role === "manager")) {
+    if (actual !== null && hasRole(actual, role)) {
         return { uid, role: actual };
     }
 
-    throw new ForbiddenError(
-        role === "admin"
-            ? "This needs the admin role"
-            : "This needs the manager or admin role",
-    );
+    throw new ForbiddenError(requiredRoleMessages[role]);
 }
 
 /**
- * Whether a person may manage a variant: an admin may manage any variant, a manager only the variants they are granted.
- * A grant without a role manages nothing, and neither does an unknown person.
+ * Whether a person may manage a variant: an admin or owner may manage any variant, a manager only the variants they
+ * are granted. A grant without a role manages nothing, and neither does an unknown person.
  */
 export function canManageVariant(
     user: UserRecord | undefined,
     variantName: string,
 ): boolean {
-    if (user?.role === "admin") {
+    if (hasRole(user?.role, "admin")) {
         return true;
     }
 
@@ -69,8 +90,9 @@ export function requireVariantManager(
 }
 
 /**
- * Requires that the acting person may change the target's access to a variant. An admin may change anyone's; a manager
- * only another person's who has no role, so a manager can neither promote themselves nor touch other managers or admins.
+ * Requires that the acting person may change the target's access to a variant. An admin or owner may change anyone's;
+ * a manager only another person's who has no role, so a manager can neither promote themselves nor touch other managers
+ * or admins.
  *
  * @throws {ForbiddenError} If the actor may not change the target's access.
  */
@@ -79,13 +101,43 @@ export function requireGrantChangeAllowed(
     actor: { uid: number; role: UserRole },
     targetUid: number,
 ): void {
-    if (actor.role === "admin") {
+    if (hasRole(actor.role, "admin")) {
         return;
     }
 
     if (targetUid === actor.uid || registry.findUser(targetUid)?.role) {
         throw new ForbiddenError(
             "Managers can only change access for people without a role",
+        );
+    }
+}
+
+/**
+ * Requires that the acting person may set the target's role as requested, following owner > admin > manager. Nobody
+ * may change an owner over HTTP, owners are set only with the CLI. Only an owner may grant the admin role or change an
+ * admin's role (an admin included, themselves too). An admin may otherwise set the manager role and remove it from a
+ * manager. The route has already required at least the admin role.
+ *
+ * @throws {ForbiddenError} If the actor may not make the change.
+ */
+export function requireRoleChangeAllowed(
+    registry: Pick<IRegistryService, "findUser">,
+    actor: { uid: number; role: UserRole },
+    targetUid: number,
+    requested: "admin" | "manager" | null,
+): void {
+    const current = registry.findUser(targetUid)?.role ?? null;
+
+    if (current === "owner") {
+        throw new ForbiddenError("Owners can only be changed with the CLI");
+    }
+
+    if (
+        !hasRole(actor.role, "owner") &&
+        (current === "admin" || requested === "admin")
+    ) {
+        throw new ForbiddenError(
+            "Only an owner can grant or change the admin role",
         );
     }
 }

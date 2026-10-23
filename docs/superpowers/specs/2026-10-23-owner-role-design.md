@@ -62,10 +62,10 @@ admins can no longer touch another admin's role.
 The route still requires at least admin (an owner satisfies that). Then, with the actor's role, the target's
 **current** role, and the **requested** role:
 
-| Actor | May change a target whose current role is | May set the role to |
-|-------|-------------------------------------------|---------------------|
-| owner | admin, manager, or none                    | `admin`, `manager`, `null` |
-| admin | manager or none                            | `manager`, `null`   |
+| Actor | May change a target whose current role is | May set the role to        |
+| ----- | ----------------------------------------- | -------------------------- |
+| owner | admin, manager, or none                   | `admin`, `manager`, `null` |
+| admin | manager or none                           | `manager`, `null`          |
 
 Anything else is `403 FORBIDDEN` (`ForbiddenError`), which covers:
 
@@ -79,7 +79,7 @@ admin role", "Owners can only be changed with the CLI").
 The current self-demotion guard in `RegistryAdminService.setRole` (`409 CONFLICT`, "You cannot remove your own admin
 role") becomes unreachable over HTTP: admins cannot change their own role at all, and owners cannot be changed over
 HTTP. Its purpose (there is always someone who can manage roles) is now met by owners being CLI-only. Remove it and
-its `actingUid` parameter, along with its tests (*my call*; keeping it as a redundant check is acceptable if removal
+its `actingUid` parameter, along with its tests (_my call_; keeping it as a redundant check is acceptable if removal
 proves awkward).
 
 ### API keys are owner-only

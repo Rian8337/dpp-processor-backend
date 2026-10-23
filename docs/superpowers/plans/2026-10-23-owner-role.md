@@ -44,6 +44,7 @@ keys, and admins can manage only managers.
 ### Task 1: Store and set the owner role
 
 **Files:**
+
 - Modify: `packages/shared/src/types.ts:143-147` (`UserRole` and its doc comment)
 - Modify: `apps/broker/src/database/schema.ts:100` (check constraint)
 - Create: `apps/broker/drizzle/0003_*.sql` and `meta` (generated)
@@ -54,8 +55,9 @@ keys, and admins can manage only managers.
   `apps/broker/tests/integration/cli/cli.int.test.ts`
 
 **Interfaces:**
+
 - Produces: `type UserRole = "owner" | "admin" | "manager"` (from `@dpp/shared`). `parseRole(value: string):
-  UserRole | null` accepts `"owner"`.
+UserRole | null` accepts `"owner"`.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -108,21 +110,24 @@ git commit -m "Add the owner role, set only with the CLI"
 ### Task 2: Treat owners as admins in the access helpers
 
 **Files:**
+
 - Modify: `apps/broker/src/controllers/adminAccess.ts` (`requireRole`, `canManageVariant`,
   `requireGrantChangeAllowed`, new `hasRole`)
 - Modify: `apps/broker/src/controllers/AdminController.ts:86` (`listVariants`)
 - Test: `apps/broker/tests/unit/controllers/adminAccess.test.ts`, `apps/broker/tests/integration/admin.int.test.ts`
 
 **Interfaces:**
+
 - Consumes: `UserRole` from Task 1.
 - Produces:
-  - `hasRole(actual: UserRole | null | undefined, needed: UserRole): boolean`. Ranking is owner > admin > manager,
-    and `null`/`undefined` never qualifies.
-  - `requireRole(registry, res, role: "manager" | "admin" | "owner"): { uid: number; role: UserRole }`.
+    - `hasRole(actual: UserRole | null | undefined, needed: UserRole): boolean`. Ranking is owner > admin > manager,
+      and `null`/`undefined` never qualifies.
+    - `requireRole(registry, res, role: "manager" | "admin" | "owner"): { uid: number; role: UserRole }`.
 
 - [ ] **Step 1: Write the failing tests**
 
 Unit (`adminAccess.test.ts`):
+
 - `describe("hasRole")` with `it.each` over every (actual, needed) pair. Only these are true: `owner`≥all,
   `admin`≥`admin`/`manager`, `manager`≥`manager`. `null` and `undefined` are false for every needed role.
 - `canManageVariant`: `"allows an owner on any variant"`, with `{ uid: 6, role: "owner", grants: new Set() }` →
@@ -130,6 +135,7 @@ Unit (`adminAccess.test.ts`):
 
 Integration (`admin.int.test.ts`): add `const owner = 6;` and `await repository.setUserRole(owner, "owner")` in
 `beforeEach`. Add to `describe("access")`:
+
 - `"lets an owner use admin routes"`: as `owner`, `GET /admin/variants` returns 200 and lists all three variants.
   `PATCH /admin/variants/flowaim` with `{ pinned: true }` returns 200.
 - `"lets an admin change an owner's grants"` (Review Focus 4): as `admin`,
@@ -146,9 +152,9 @@ Expected: FAIL. `hasRole` is not exported, and the owner gets 403.
 
 - Add and export `hasRole` in `adminAccess.ts`, using a rank map.
 - `requireRole` uses `hasRole(actual, role)`. When it fails, it throws with these messages:
-  - `"owner"`: `"This needs the owner role"`
-  - `"admin"`: `"This needs the admin or owner role"`
-  - `"manager"`: `"This needs the manager, admin, or owner role"`
+    - `"owner"`: `"This needs the owner role"`
+    - `"admin"`: `"This needs the admin or owner role"`
+    - `"manager"`: `"This needs the manager, admin, or owner role"`
 - `canManageVariant` and `requireGrantChangeAllowed` use `hasRole(..., "admin")` instead of `=== "admin"`. Update both
   doc comments to say "an admin or owner".
 - In `AdminController.listVariants`, replace `role === "admin"` with `hasRole(role, "admin")`.
@@ -170,6 +176,7 @@ git commit -m "Treat owners as admins in broker access checks"
 ### Task 3: Enforce the role hierarchy on role changes
 
 **Files:**
+
 - Modify: `apps/broker/src/controllers/adminAccess.ts` (new `requireRoleChangeAllowed`)
 - Modify: `apps/broker/src/controllers/AdminController.ts:243-265` (`setRole`)
 - Modify: `apps/broker/src/services/IRegistryAdminService.ts:64`, `apps/broker/src/services/RegistryAdminService.ts:153-168`
@@ -180,13 +187,15 @@ git commit -m "Treat owners as admins in broker access checks"
   `apps/broker/tests/integration/services/RegistryAdminService.int.test.ts`
 
 **Interfaces:**
+
 - Consumes: `hasRole` and `requireRole` from Task 2. `owner = 6` fixture from Task 2.
 - Produces:
-  - `requireRoleChangeAllowed(registry: Pick<IRegistryService, "findUser">, actor: { uid: number; role: UserRole },
-    targetUid: number, requested: "admin" | "manager" | null): void`
-  - `IRegistryAdminService.setRole(uid: number, role: UserRole | null): Promise<void>`, with no `actingUid`.
+    - `requireRoleChangeAllowed(registry: Pick<IRegistryService, "findUser">, actor: { uid: number; role: UserRole },
+targetUid: number, requested: "admin" | "manager" | null): void`
+    - `IRegistryAdminService.setRole(uid: number, role: UserRole | null): Promise<void>`, with no `actingUid`.
 
 The rule, in order (target role is `findUser(targetUid)?.role ?? null`):
+
 1. If the target's role is `owner`, throw `ForbiddenError("Owners can only be changed with the CLI")`.
 2. If the actor is not an owner and the target is `admin` or `requested === "admin"`, throw
    `ForbiddenError("Only an owner can grant or change the admin role")`.
@@ -197,6 +206,7 @@ The rule, in order (target role is `findUser(targetUid)?.role ?? null`):
 Unit (`adminAccess.test.ts`): `describe("requireRoleChangeAllowed")` with a stub registry holding uid 1 = admin,
 2 = manager, 6 = owner, 9 = admin. Use `it.each` rows of `[actor, target, requested, expected]`, where `expected` is
 `"ok"` or the exact message:
+
 - owner → 9 (admin) → `null`, `"manager"`, `"admin"`: ok
 - owner → 2 (manager) → `"admin"`: ok
 - owner → 5 (unknown) → `"admin"`: ok
@@ -209,6 +219,7 @@ Unit (`adminAccess.test.ts`): `describe("requireRoleChangeAllowed")` with a stub
 - admin → 2 (manager) → `null`: ok
 
 Integration (`admin.int.test.ts`, `describe("users")`):
+
 - Replace `"refuses an admin demoting themselves"`. It now expects 403 `FORBIDDEN` with
   `"Only an owner can grant or change the admin role"`, and `/me` still returns `role: "admin"`.
 - `"lets an owner grant and remove the admin role"`: as `owner`, `PUT /admin/users/5/role` with `{ role: "admin" }`
@@ -262,12 +273,14 @@ git commit -m "Only let owners grant or change the admin role"
 ### Task 4: Make API key management owner-only
 
 **Files:**
+
 - Modify: `apps/broker/src/controllers/AdminKeysController.ts:42,56,77,99,116,130`
 - Modify: `apps/broker/README.md:45-49` (key route rows)
 - Test: `apps/broker/tests/integration/admin.int.test.ts` (`describe("access")` route table, `describe("keys")`,
   `"refuses an admin locking out the key the request uses"`, `describe("logging")`)
 
 **Interfaces:**
+
 - Consumes: `requireRole(..., "owner")` from Task 2. `owner = 6` fixture from Task 2.
 
 - [ ] **Step 1: Write the failing tests**

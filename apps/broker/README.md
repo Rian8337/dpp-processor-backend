@@ -44,11 +44,13 @@ for a variant they are not granted, including an unknown name.
 | `PUT` / `DELETE /admin/variants/:name/grants/:uid` | admin, or manager with a grant on the variant | grant or remove; a manager only for people with no role, never themselves                                                   |
 | `GET /admin/users`                                 | admin or owner                                | users with a role or a grant                                                                                                |
 | `PUT /admin/users/:uid/role` `{ role }`            | admin or owner                                | owner: `admin`, `manager`, or `null` on anyone but owners; admin: `manager` or `null` on managers and people without a role |
-| `GET /admin/keys`                                  | admin                                         | all keys, revoked ones included                                                                                             |
-| `POST /admin/keys`                                 | admin                                         | creates a key; responds `201` with the raw key, shown once                                                                  |
-| `PATCH /admin/keys/:name`                          | admin                                         | `rateLimitPerMinute`, `allVariants`, `canActForUsers`                                                                       |
-| `PUT` / `DELETE /admin/keys/:name/grants/:variant` | admin                                         | key grants                                                                                                                  |
-| `POST /admin/keys/:name/revoke`                    | admin                                         |                                                                                                                             |
+| `GET /admin/keys`                                  | owner                                         | all keys, revoked ones included                                                                                             |
+| `POST /admin/keys`                                 | owner                                         | creates a key; responds `201` with the raw key, shown once                                                                  |
+| `PATCH /admin/keys/:name`                          | owner                                         | `rateLimitPerMinute`, `allVariants`, `canActForUsers`                                                                       |
+| `PUT` / `DELETE /admin/keys/:name/grants/:variant` | owner                                         | key grants                                                                                                                  |
+| `POST /admin/keys/:name/revoke`                    | owner                                         |                                                                                                                             |
+
+API keys are owner-only because a key that can act for users can act for anyone, owners included.
 
 Without an `X-Api-Key` header, callers are anonymous: they see public variants only and are limited per IP. To turn
 anonymous access off (for example while the beatmap service is near osu!'s rate limit), set `ANON_RATE_LIMIT=0` (change it

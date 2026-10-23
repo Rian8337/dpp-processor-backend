@@ -174,90 +174,90 @@ describe("admin and me routes (integration)", () => {
             readonly method: "get" | "put" | "patch" | "post" | "delete";
             readonly path: string;
             readonly body?: object;
-            /** Whether a manager is refused too. */
-            readonly adminOnly: boolean;
+            /** The lowest role the route admits. */
+            readonly minimum: "manager" | "admin" | "owner";
         }
 
         const routes: Route[] = [
-            { method: "get", path: "/admin/variants", adminOnly: false },
+            { method: "get", path: "/admin/variants", minimum: "manager" },
             {
                 method: "patch",
                 path: "/admin/variants/droid-live",
                 body: { title: "Changed" },
-                adminOnly: false,
+                minimum: "manager",
             },
             {
                 method: "patch",
                 path: "/admin/variants/flowaim",
                 body: { public: true },
-                adminOnly: true,
+                minimum: "admin",
             },
             {
                 method: "patch",
                 path: "/admin/variants/flowaim",
                 body: { pinned: true },
-                adminOnly: true,
+                minimum: "admin",
             },
             {
                 method: "put",
                 path: "/admin/aliases/fresh",
                 body: { variant: "droid-live" },
-                adminOnly: false,
+                minimum: "manager",
             },
             {
                 method: "delete",
                 path: "/admin/aliases/experiment",
-                adminOnly: false,
+                minimum: "manager",
             },
             {
                 method: "get",
                 path: "/admin/variants/flowaim/grants",
-                adminOnly: false,
+                minimum: "manager",
             },
             {
                 method: "put",
                 path: "/admin/variants/flowaim/grants/7",
-                adminOnly: false,
+                minimum: "manager",
             },
             {
                 method: "delete",
                 path: "/admin/variants/flowaim/grants/2",
-                adminOnly: false,
+                minimum: "manager",
             },
-            { method: "get", path: "/admin/users", adminOnly: true },
+            { method: "get", path: "/admin/users", minimum: "admin" },
             {
                 method: "put",
                 path: "/admin/users/5/role",
                 body: { role: "manager" },
-                adminOnly: true,
+                minimum: "admin",
             },
-            { method: "get", path: "/admin/keys", adminOnly: true },
+            { method: "get", path: "/admin/keys", minimum: "owner" },
             {
                 method: "post",
                 path: "/admin/keys",
                 body: { name: "fresh-key", rateLimitPerMinute: null },
-                adminOnly: true,
+                minimum: "owner",
             },
             {
                 method: "patch",
                 path: "/admin/keys/board",
                 body: { allVariants: true },
-                adminOnly: true,
+                minimum: "owner",
             },
             {
                 method: "put",
                 path: "/admin/keys/board/grants/flowaim",
-                adminOnly: true,
+                minimum: "owner",
             },
             {
                 method: "delete",
                 path: "/admin/keys/board/grants/flowaim",
-                adminOnly: true,
+                minimum: "owner",
             },
             {
                 method: "post",
                 path: "/admin/keys/board/revoke",
-                adminOnly: true,
+                minimum: "owner",
             },
         ];
 
@@ -274,13 +274,14 @@ describe("admin and me routes (integration)", () => {
         }
 
         it.each(routes)(
-            "refuses $method $path without a role and changes nothing",
-            async ({ method, path, body, adminOnly }) => {
+            "refuses $method $path below its role and changes nothing",
+            async ({ method, path, body, minimum }) => {
                 const before = await registryState();
                 const callers = [
                     undefined,
                     plain,
-                    ...(adminOnly ? [manager] : []),
+                    ...(minimum !== "manager" ? [manager] : []),
+                    ...(minimum === "owner" ? [admin] : []),
                 ];
 
                 for (const caller of callers) {
@@ -853,8 +854,8 @@ describe("admin and me routes (integration)", () => {
             expect((await repository.findUser(owner))?.role).toBe("owner");
         });
 
-        it("refuses an admin locking out the key the request uses", async () => {
-            const revoke = await as(admin)
+        it("refuses an owner locking out the key the request uses", async () => {
+            const revoke = await as(owner)
                 .post("/admin/keys/board/revoke")
                 .expect(409);
 
@@ -863,7 +864,7 @@ describe("admin and me routes (integration)", () => {
                 message: "You cannot revoke the key this request uses",
             });
 
-            const disable = await as(admin)
+            const disable = await as(owner)
                 .patch("/admin/keys/board")
                 .send({ canActForUsers: false })
                 .expect(409);
@@ -875,7 +876,7 @@ describe("admin and me routes (integration)", () => {
             });
 
             // The board key still works for the admin afterwards.
-            await as(admin).get("/admin/keys").expect(200);
+            await as(owner).get("/admin/keys").expect(200);
         });
 
         it("rejects an unknown role", async () => {
@@ -890,7 +891,7 @@ describe("admin and me routes (integration)", () => {
 
     describe("keys", () => {
         it("lists keys without hashes", async () => {
-            const response = await as(admin).get("/admin/keys").expect(200);
+            const response = await as(owner).get("/admin/keys").expect(200);
 
             expect(response.body).toEqual([
                 {
@@ -908,7 +909,7 @@ describe("admin and me routes (integration)", () => {
         });
 
         it("creates a key and returns the raw key once", async () => {
-            const response = await as(admin)
+            const response = await as(owner)
                 .post("/admin/keys")
                 .send({
                     name: "site",
@@ -939,30 +940,30 @@ describe("admin and me routes (integration)", () => {
                 expect.objectContaining({ name: "flowaim" }),
             );
             expect(
-                JSON.stringify((await as(admin).get("/admin/keys")).body),
+                JSON.stringify((await as(owner).get("/admin/keys")).body),
             ).not.toContain(rawKey);
         });
 
         it("refuses a taken or invalid key name", async () => {
-            const taken = await as(admin)
+            const taken = await as(owner)
                 .post("/admin/keys")
                 .send({ name: "board", rateLimitPerMinute: null })
                 .expect(409);
 
             expect(taken.body.error.code).toBe("CONFLICT");
 
-            await as(admin)
+            await as(owner)
                 .post("/admin/keys")
                 .send({ name: "Bad Name", rateLimitPerMinute: null })
                 .expect(400);
-            await as(admin)
+            await as(owner)
                 .post("/admin/keys")
                 .send({ name: "ok", rateLimitPerMinute: null, extra: 1 })
                 .expect(400);
         });
 
         it("updates a key, grants and ungrants variants, and revokes it", async () => {
-            const updated = await as(admin)
+            const updated = await as(owner)
                 .patch("/admin/keys/plain")
                 .send({ rateLimitPerMinute: 5, canActForUsers: true })
                 .expect(200);
@@ -974,32 +975,32 @@ describe("admin and me routes (integration)", () => {
                 allVariants: true,
             });
 
-            await as(admin).put("/admin/keys/plain/grants/flowaim").expect(204);
+            await as(owner).put("/admin/keys/plain/grants/flowaim").expect(204);
             expect(
-                (await as(admin).get("/admin/keys")).body.find(
+                (await as(owner).get("/admin/keys")).body.find(
                     (key: { name: string }) => key.name === "plain",
                 ).grants,
             ).toEqual(["flowaim"]);
 
-            await as(admin)
+            await as(owner)
                 .delete("/admin/keys/plain/grants/flowaim")
                 .expect(204);
-            await as(admin)
+            await as(owner)
                 .delete("/admin/keys/plain/grants/flowaim")
                 .expect(404);
 
-            await as(admin).post("/admin/keys/plain/revoke").expect(204);
+            await as(owner).post("/admin/keys/plain/revoke").expect(204);
             await request(app)
                 .get("/variants")
                 .set("X-Api-Key", "plain-key")
                 .expect(401);
 
-            const again = await as(admin)
+            const again = await as(owner)
                 .post("/admin/keys/plain/revoke")
                 .expect(409);
 
             expect(again.body.error.code).toBe("CONFLICT");
-            await as(admin).post("/admin/keys/missing/revoke").expect(404);
+            await as(owner).post("/admin/keys/missing/revoke").expect(404);
         });
     });
 
@@ -1022,16 +1023,16 @@ describe("admin and me routes (integration)", () => {
         });
 
         it("logs what a key or role change targets, never key material", async () => {
-            const created = await as(admin)
+            const created = await as(owner)
                 .post("/admin/keys")
                 .send({ name: "site", rateLimitPerMinute: 30 })
                 .expect(201);
 
-            await as(admin)
+            await as(owner)
                 .put("/admin/users/5/role")
                 .send({ role: "manager" })
                 .expect(200);
-            await as(admin)
+            await as(owner)
                 .put("/admin/users/5/role")
                 .send({ role: null })
                 .expect(200);
@@ -1042,13 +1043,13 @@ describe("admin and me routes (integration)", () => {
                 .mock.calls.map((call) => call.join(" "));
 
             expect(lines).toContain(
-                "Admin change by uid 1: POST /admin/keys (key site)",
+                "Admin change by uid 6: POST /admin/keys (key site)",
             );
             expect(lines).toContain(
-                "Admin change by uid 1: PUT /admin/users/5/role (role manager)",
+                "Admin change by uid 6: PUT /admin/users/5/role (role manager)",
             );
             expect(lines).toContain(
-                "Admin change by uid 1: PUT /admin/users/5/role (role none)",
+                "Admin change by uid 6: PUT /admin/users/5/role (role none)",
             );
             expect(lines.join("\n")).not.toContain(
                 (created.body as { rawKey: string }).rawKey,

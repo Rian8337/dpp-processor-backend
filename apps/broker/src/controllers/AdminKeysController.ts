@@ -24,7 +24,7 @@ import { AdminControllerBase } from "./AdminControllerBase";
 import { toAdminKey } from "./adminViews";
 
 /**
- * API keys; all of it needs the admin role.
+ * API keys; all of it needs the owner role, because a key that can act for users can act for anyone, owners included.
  */
 @Controller("/admin/keys")
 export class AdminKeysController extends AdminControllerBase {
@@ -39,7 +39,7 @@ export class AdminKeysController extends AdminControllerBase {
     @Get("")
     async list(req: Request, res: Response<AdminKey[]>): Promise<void> {
         try {
-            requireRole(this.registry, res, "admin");
+            requireRole(this.registry, res, "owner");
 
             res.json((await this.admin.listKeys()).map(toAdminKey));
         } catch (e) {
@@ -53,7 +53,7 @@ export class AdminKeysController extends AdminControllerBase {
         res: Response<CreatedKeyResponse>,
     ): Promise<void> {
         try {
-            const { uid } = requireRole(this.registry, res, "admin");
+            const { uid } = requireRole(this.registry, res, "owner");
             const input = parseBody(keyCreateSchema, readJsonBody(req));
             const { key, rawKey } = await this.admin.createKey(input);
 
@@ -74,7 +74,7 @@ export class AdminKeysController extends AdminControllerBase {
         res: Response<AdminKey>,
     ): Promise<void> {
         try {
-            const { uid } = requireRole(this.registry, res, "admin");
+            const { uid } = requireRole(this.registry, res, "owner");
             const changes = parseBody(keyUpdateSchema, readJsonBody(req));
             const key = await this.admin.updateKey(
                 req.params.name,
@@ -96,7 +96,7 @@ export class AdminKeysController extends AdminControllerBase {
         res: Response,
     ): Promise<void> {
         try {
-            const { uid } = requireRole(this.registry, res, "admin");
+            const { uid } = requireRole(this.registry, res, "owner");
 
             await this.admin.grantKey(req.params.name, req.params.variant);
             await this.applied(req, uid);
@@ -113,7 +113,7 @@ export class AdminKeysController extends AdminControllerBase {
         res: Response,
     ): Promise<void> {
         try {
-            const { uid } = requireRole(this.registry, res, "admin");
+            const { uid } = requireRole(this.registry, res, "owner");
 
             await this.admin.ungrantKey(req.params.name, req.params.variant);
             await this.applied(req, uid);
@@ -127,7 +127,7 @@ export class AdminKeysController extends AdminControllerBase {
     @Post("/:name/revoke")
     async revoke(req: Request<{ name: string }>, res: Response): Promise<void> {
         try {
-            const { uid } = requireRole(this.registry, res, "admin");
+            const { uid } = requireRole(this.registry, res, "owner");
 
             await this.admin.revokeKey(req.params.name, callerKeyName(res));
             await this.applied(req, uid);

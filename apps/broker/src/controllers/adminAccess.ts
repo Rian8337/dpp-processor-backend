@@ -54,8 +54,8 @@ export function requireRole(
 }
 
 /**
- * Whether a person may manage a variant: an admin or owner may manage any variant, a manager only the variants they are granted.
- * A grant without a role manages nothing, and neither does an unknown person.
+ * Whether a person may manage a variant: an admin or owner may manage any variant, a manager only the variants they
+ * are granted. A grant without a role manages nothing, and neither does an unknown person.
  */
 export function canManageVariant(
     user: UserRecord | undefined,
@@ -90,8 +90,9 @@ export function requireVariantManager(
 }
 
 /**
- * Requires that the acting person may change the target's access to a variant. An admin or owner may change anyone's; a manager
- * only another person's who has no role, so a manager can neither promote themselves nor touch other managers or admins.
+ * Requires that the acting person may change the target's access to a variant. An admin or owner may change anyone's;
+ * a manager only another person's who has no role, so a manager can neither promote themselves nor touch other managers
+ * or admins.
  *
  * @throws {ForbiddenError} If the actor may not change the target's access.
  */

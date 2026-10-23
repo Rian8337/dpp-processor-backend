@@ -13,6 +13,7 @@ const admin = 1;
 const manager = 2;
 const plain = 3;
 const otherManager = 4;
+const owner = 6;
 
 describe("admin and me routes (integration)", () => {
     let database: TestDatabase;
@@ -70,6 +71,7 @@ describe("admin and me routes (integration)", () => {
         await repository.setUserRole(admin, "admin");
         await repository.setUserRole(manager, "manager");
         await repository.setUserRole(otherManager, "manager");
+        await repository.setUserRole(owner, "owner");
         await repository.grantUser(manager, "flowaim");
 
         testContainer = await createTestContainer({ db: database.db });
@@ -140,6 +142,32 @@ describe("admin and me routes (integration)", () => {
 
             expect(keyOnly.body.error.code).toBe("FORBIDDEN");
             expect(anonymous.body.error.code).toBe("FORBIDDEN");
+        });
+
+        it("lets an owner use admin routes", async () => {
+            const list = await as(owner).get("/admin/variants").expect(200);
+
+            expect(list.body.map((v: { name: string }) => v.name)).toEqual([
+                "droid-live",
+                "flowaim",
+                "secret",
+            ]);
+
+            const pinned = await as(owner)
+                .patch("/admin/variants/flowaim")
+                .send({ pinned: true })
+                .expect(200);
+
+            expect(pinned.body.pinned).toBe(true);
+        });
+
+        it("lets an admin change an owner's grants", async () => {
+            await as(admin)
+                .put(`/admin/variants/flowaim/grants/${owner.toString()}`)
+                .expect((res) => {
+                    expect(res.status).toBeGreaterThanOrEqual(200);
+                    expect(res.status).toBeLessThan(300);
+                });
         });
 
         interface Route {
@@ -597,7 +625,7 @@ describe("admin and me routes (integration)", () => {
             expect(await repository.usersGranted("flowaim")).toEqual([manager]);
             expect(
                 (await repository.listUsers()).map((user) => user.uid),
-            ).toEqual([admin, manager, otherManager]);
+            ).toEqual([admin, manager, otherManager, owner]);
         });
 
         it("refuses a manager reading or changing grants of a variant they are not granted", async () => {
@@ -728,6 +756,7 @@ describe("admin and me routes (integration)", () => {
                 { uid: admin, role: "admin", grants: [] },
                 { uid: manager, role: "manager", grants: ["flowaim"] },
                 { uid: otherManager, role: "manager", grants: [] },
+                { uid: owner, role: "owner", grants: [] },
             ]);
 
             const response = await as(admin)

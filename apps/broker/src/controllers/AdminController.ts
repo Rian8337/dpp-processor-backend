@@ -18,6 +18,7 @@ import type { Request, Response } from "express";
 import { inject } from "tsyringe";
 import {
     canManageVariant,
+    hasRole,
     requireGrantChangeAllowed,
     requireRole,
     requireVariantManager,
@@ -83,7 +84,7 @@ export class AdminController extends AdminControllerBase {
                     .allVariants()
                     .filter(
                         (variant) =>
-                            role === "admin" ||
+                            hasRole(role, "admin") ||
                             canManageVariant(user, variant.name),
                     )
                     .map((variant) => toAdminVariant(variant, this.health)),

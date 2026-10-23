@@ -301,6 +301,10 @@ describe("RegistryRepository (integration)", () => {
 
         expect((await repository.findUser(1001))?.role).toBe("admin");
 
+        await repository.setUserRole(1001, "owner");
+
+        expect((await repository.findUser(1001))?.role).toBe("owner");
+
         await repository.setUserRole(1001, null);
 
         expect((await repository.findUser(1001))?.role).toBeNull();

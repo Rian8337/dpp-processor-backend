@@ -97,7 +97,9 @@ export const usersTable = pgTable(
         role: text().$type<UserRole>(),
         createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     },
-    () => [check("users_role_check", sql`role in ('admin', 'manager')`)],
+    () => [
+        check("users_role_check", sql`role in ('owner', 'admin', 'manager')`),
+    ],
 );
 
 /**

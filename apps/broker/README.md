@@ -122,7 +122,8 @@ pnpm cli key create web-backend --unlimited --act-for-users   # may send X-Actin
 pnpm cli key update web-backend --no-act-for-users
 pnpm cli key revoke some-site
 
-# Users, by uid. This is how the first admin is created
+# Users, by uid. This is how the first owner is created. Owners can be set or removed only here
+pnpm cli user role 51076 owner
 pnpm cli user role 51076 admin
 pnpm cli user grant 51076 flowaim-experiment
 pnpm cli user ungrant 51076 flowaim-experiment

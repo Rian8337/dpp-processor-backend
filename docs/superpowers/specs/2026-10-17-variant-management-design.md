@@ -137,7 +137,8 @@ admin role, or a change that would lock out the key the request uses). Unknown v
 | `POST /admin/keys/:name/revoke`                    | admin   |                                                                                            |
 
 Validation and name rules are the CLI's (shared, not copied). An admin cannot remove their own admin role, so there is
-always at least one admin (my call). Likewise, a request cannot revoke the key it is made with or stop that key acting
+always at least one admin (my call). (Superseded by `2026-10-23-owner-role-design.md`: roles follow an owner > admin >
+manager hierarchy.) Likewise, a request cannot revoke the key it is made with or stop that key acting
 for users, so the board cannot lock itself out; the CLI can still do both. Every successful admin write:
 
 - reloads the registry snapshot in-process before responding, so the change applies at once;

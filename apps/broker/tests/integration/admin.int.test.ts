@@ -784,12 +784,73 @@ describe("admin and me routes (integration)", () => {
             const response = await as(admin)
                 .put(`/admin/users/${admin.toString()}/role`)
                 .send({ role: null })
-                .expect(409);
+                .expect(403);
 
-            expect(response.body.error.code).toBe("CONFLICT");
+            expect(response.body.error).toEqual({
+                code: "FORBIDDEN",
+                message: "Only an owner can grant or change the admin role",
+            });
             expect((await as(admin).get("/me").expect(200)).body.role).toBe(
                 "admin",
             );
+        });
+
+        it("lets an owner grant and remove the admin role", async () => {
+            expect(
+                (
+                    await as(owner)
+                        .put("/admin/users/5/role")
+                        .send({ role: "admin" })
+                        .expect(200)
+                ).body,
+            ).toEqual({ uid: 5, role: "admin", grants: [] });
+            expect(
+                (
+                    await as(owner)
+                        .put(`/admin/users/${admin.toString()}/role`)
+                        .send({ role: null })
+                        .expect(200)
+                ).body,
+            ).toEqual({ uid: admin, role: null, grants: [] });
+        });
+
+        it("refuses an admin granting or changing the admin role", async () => {
+            await repository.setUserRole(9, "admin");
+            await testContainer.container
+                .resolve(dependencyTokens.registryService)
+                .load();
+
+            for (const [target, role] of [
+                [5, "admin"],
+                [9, "manager"],
+                [9, null],
+            ] as const) {
+                const response = await as(admin)
+                    .put(`/admin/users/${target.toString()}/role`)
+                    .send({ role })
+                    .expect(403);
+
+                expect(response.body.error.code).toBe("FORBIDDEN");
+            }
+
+            expect((await repository.findUser(9))?.role).toBe("admin");
+            expect((await repository.findUser(5))?.role ?? null).toBeNull();
+        });
+
+        it("refuses anyone changing an owner over HTTP", async () => {
+            for (const caller of [admin, owner]) {
+                const response = await as(caller)
+                    .put(`/admin/users/${owner.toString()}/role`)
+                    .send({ role: "admin" })
+                    .expect(403);
+
+                expect(response.body.error).toEqual({
+                    code: "FORBIDDEN",
+                    message: "Owners can only be changed with the CLI",
+                });
+            }
+
+            expect((await repository.findUser(owner))?.role).toBe("owner");
         });
 
         it("refuses an admin locking out the key the request uses", async () => {
@@ -818,7 +879,7 @@ describe("admin and me routes (integration)", () => {
         });
 
         it("rejects an unknown role", async () => {
-            const response = await as(admin)
+            const response = await as(owner)
                 .put("/admin/users/5/role")
                 .send({ role: "owner" })
                 .expect(400);

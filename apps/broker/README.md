@@ -25,28 +25,30 @@ instead of the key: admins and managers see every variant, everyone else sees pu
 key without `can_act_for_users` that sends the header gets `400 INVALID_REQUEST`.
 
 The management routes below need such a key and an `X-Acting-Uid`; without one, or with too low a role, they answer
-`403 FORBIDDEN`. Unknown aliases, keys, or grants answer `404 NOT_FOUND`, and a change that clashes with the registry
-(a taken key name, an admin removing their own role, or revoking the key the request uses or stopping it acting for
-users) answers `409 CONFLICT`. A successful write is applied at once and
+`403 FORBIDDEN`. Roles rank owner above admin above manager, and an owner can do everything an admin can. Only an
+owner can grant or change the admin role, nobody can change an owner over HTTP (owners are set with the CLI only),
+and an admin cannot change their own role; these also answer `403 FORBIDDEN`. Unknown aliases, keys, or grants answer
+`404 NOT_FOUND`, and a change that clashes with the registry (a taken key name, or revoking the key the request uses
+or stopping it acting for users) answers `409 CONFLICT`. A successful write is applied at once and
 logged as `Admin change by uid <uid>: <method> <path>`, without the body. A manager gets `403 FORBIDDEN`, not `404`,
 for a variant they are not granted, including an unknown name.
 
-| Route                                              | Role                                          | Purpose                                                                                |
-| -------------------------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `GET /me`                                          | any                                           | `{ uid, role, grants }` for the acting person                                          |
-| `GET /admin/variants`                              | admin, or manager                             | every variant, with `public` and `instanceCount`; a manager sees only granted variants |
-| `PATCH /admin/variants/:name`                      | admin, or manager with a grant on the variant | `{ title?, description? }`; `public` and `pinned` also need admin                      |
-| `PUT /admin/aliases/:alias` `{ variant }`          | admin, or manager with a grant on the variant | create or repoint an alias                                                             |
-| `DELETE /admin/aliases/:alias`                     | admin, or manager with a grant on the variant |                                                                                        |
-| `GET /admin/variants/:name/grants`                 | admin, or manager with a grant on the variant | uids granted the variant                                                               |
-| `PUT` / `DELETE /admin/variants/:name/grants/:uid` | admin, or manager with a grant on the variant | grant or remove; a manager only for people with no role, never themselves              |
-| `GET /admin/users`                                 | admin                                         | users with a role or a grant                                                           |
-| `PUT /admin/users/:uid/role` `{ role }`            | admin                                         | `admin`, `manager`, or `null`                                                          |
-| `GET /admin/keys`                                  | admin                                         | all keys, revoked ones included                                                        |
-| `POST /admin/keys`                                 | admin                                         | creates a key; responds `201` with the raw key, shown once                             |
-| `PATCH /admin/keys/:name`                          | admin                                         | `rateLimitPerMinute`, `allVariants`, `canActForUsers`                                  |
-| `PUT` / `DELETE /admin/keys/:name/grants/:variant` | admin                                         | key grants                                                                             |
-| `POST /admin/keys/:name/revoke`                    | admin                                         |                                                                                        |
+| Route                                              | Role                                          | Purpose                                                                                                                     |
+| -------------------------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `GET /me`                                          | any                                           | `{ uid, role, grants }` for the acting person                                                                               |
+| `GET /admin/variants`                              | admin, or manager                             | every variant, with `public` and `instanceCount`; a manager sees only granted variants                                      |
+| `PATCH /admin/variants/:name`                      | admin, or manager with a grant on the variant | `{ title?, description? }`; `public` and `pinned` also need admin                                                           |
+| `PUT /admin/aliases/:alias` `{ variant }`          | admin, or manager with a grant on the variant | create or repoint an alias                                                                                                  |
+| `DELETE /admin/aliases/:alias`                     | admin, or manager with a grant on the variant |                                                                                                                             |
+| `GET /admin/variants/:name/grants`                 | admin, or manager with a grant on the variant | uids granted the variant                                                                                                    |
+| `PUT` / `DELETE /admin/variants/:name/grants/:uid` | admin, or manager with a grant on the variant | grant or remove; a manager only for people with no role, never themselves                                                   |
+| `GET /admin/users`                                 | admin or owner                                | users with a role or a grant                                                                                                |
+| `PUT /admin/users/:uid/role` `{ role }`            | admin or owner                                | owner: `admin`, `manager`, or `null` on anyone but owners; admin: `manager` or `null` on managers and people without a role |
+| `GET /admin/keys`                                  | admin                                         | all keys, revoked ones included                                                                                             |
+| `POST /admin/keys`                                 | admin                                         | creates a key; responds `201` with the raw key, shown once                                                                  |
+| `PATCH /admin/keys/:name`                          | admin                                         | `rateLimitPerMinute`, `allVariants`, `canActForUsers`                                                                       |
+| `PUT` / `DELETE /admin/keys/:name/grants/:variant` | admin                                         | key grants                                                                                                                  |
+| `POST /admin/keys/:name/revoke`                    | admin                                         |                                                                                                                             |
 
 Without an `X-Api-Key` header, callers are anonymous: they see public variants only and are limited per IP. To turn
 anonymous access off (for example while the beatmap service is near osu!'s rate limit), set `ANON_RATE_LIMIT=0` (change it

@@ -112,6 +112,36 @@ export function requireGrantChangeAllowed(
 }
 
 /**
+ * Requires that the acting person may set the target's role as requested, following owner > admin > manager. Nobody
+ * may change an owner over HTTP, owners are set only with the CLI. Only an owner may grant the admin role or change an
+ * admin's role (an admin included, themselves too). An admin may otherwise set the manager role and remove it from a
+ * manager. The route has already required at least the admin role.
+ *
+ * @throws {ForbiddenError} If the actor may not make the change.
+ */
+export function requireRoleChangeAllowed(
+    registry: Pick<IRegistryService, "findUser">,
+    actor: { uid: number; role: UserRole },
+    targetUid: number,
+    requested: "admin" | "manager" | null,
+): void {
+    const current = registry.findUser(targetUid)?.role ?? null;
+
+    if (current === "owner") {
+        throw new ForbiddenError("Owners can only be changed with the CLI");
+    }
+
+    if (
+        !hasRole(actor.role, "owner") &&
+        (current === "admin" || requested === "admin")
+    ) {
+        throw new ForbiddenError(
+            "Only an owner can grant or change the admin role",
+        );
+    }
+}
+
+/**
  * The name of the key the request was made with, or `undefined` for an anonymous request.
  */
 export function callerKeyName(res: Response): string | undefined {

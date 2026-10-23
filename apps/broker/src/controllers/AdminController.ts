@@ -20,6 +20,7 @@ import {
     canManageVariant,
     hasRole,
     requireGrantChangeAllowed,
+    requireRoleChangeAllowed,
     requireRole,
     requireVariantManager,
 } from "./adminAccess";
@@ -247,11 +248,14 @@ export class AdminController extends AdminControllerBase {
         res: Response<AdminUser>,
     ): Promise<void> {
         try {
-            const { uid } = requireRole(this.registry, res, "admin");
+            const actor = requireRole(this.registry, res, "admin");
+            const { uid } = actor;
             const { role } = parseBody(roleSetSchema, readJsonBody(req));
             const target = pathUid(req.params.uid);
 
-            await this.admin.setRole(target, role, uid);
+            requireRoleChangeAllowed(this.registry, actor, target, role);
+
+            await this.admin.setRole(target, role);
             await this.applied(req, uid, `role ${role ?? "none"}`);
 
             const user = this.registry.findUser(target);

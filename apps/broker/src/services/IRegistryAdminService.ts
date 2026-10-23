@@ -56,16 +56,11 @@ export interface IRegistryAdminService {
     /** @throws {RegistryChangeError} `invalid` for a bad uid, or `not-found` if the user had no such grant. */
     ungrantUser(uid: number, variant: string): Promise<void>;
     /**
-     * Sets a user's role; `null` removes it.
+     * Sets a user's role; `null` removes it. Who may make the change is checked by the caller, not here.
      *
-     * @param actingUid The user making the change, if there is one. They cannot remove their own admin role.
-     * @throws {RegistryChangeError} `invalid` for a bad uid, or `conflict` for removing one's own admin role.
+     * @throws {RegistryChangeError} `invalid` for a bad uid.
      */
-    setRole(
-        uid: number,
-        role: UserRole | null,
-        actingUid?: number,
-    ): Promise<void>;
+    setRole(uid: number, role: UserRole | null): Promise<void>;
 
     /**
      * @returns The new key and its raw value, which is not stored and cannot be shown again.

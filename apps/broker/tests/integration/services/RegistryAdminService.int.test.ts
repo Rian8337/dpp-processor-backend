@@ -265,33 +265,12 @@ describe("RegistryAdminService (integration)", () => {
             await service.setRole(5, "admin");
             await service.setRole(6, "manager");
             await service.setRole(6, null);
+            await service.setRole(7, "owner");
 
             expect(await service.listUsers()).toEqual([
                 { uid: 5, role: "admin", grants: [] },
+                { uid: 7, role: "owner", grants: [] },
             ]);
-        });
-
-        it("refuses an admin removing their own admin role", async () => {
-            expect.hasAssertions();
-            await service.setRole(5, "admin");
-
-            await expectChangeError(
-                service.setRole(5, null, 5),
-                "conflict",
-                "You cannot remove your own admin role",
-            );
-            await expectChangeError(
-                service.setRole(5, "manager", 5),
-                "conflict",
-                "You cannot remove your own admin role",
-            );
-
-            expect((await repository.findUser(5))?.role).toBe("admin");
-
-            await service.setRole(5, "admin", 5);
-            await service.setRole(5, null, 6);
-
-            expect((await repository.findUser(5))?.role).toBeNull();
         });
     });
 

@@ -5,6 +5,7 @@ import { Controller, Post } from "@dpp/server";
 import {
     calculateReplayFieldsSchema,
     calculateScoreFieldsSchema,
+    maxReplayBytes,
     type GamePPResponse,
 } from "@dpp/shared";
 import express, {
@@ -16,7 +17,6 @@ import multer from "multer";
 import { inject } from "tsyringe";
 import type { z } from "zod";
 
-const maxReplayBytes = 2 * 1024 * 1024;
 const json = express.json({ limit: "64kb" });
 const urlencoded = express.urlencoded({ extended: false, limit: "64kb" });
 const multipart = multer({

@@ -3,6 +3,7 @@ import { dependencyTokens } from "@/dependencies/tokens";
 import { BeatmapService } from "@/services/BeatmapService";
 import type { ICalculationService } from "@/services/ICalculationService";
 import { NotFoundError } from "@/types/errors";
+import { maxRequestBodyBytes } from "@dpp/shared";
 import { Modes } from "@rian8337/osu-base";
 import { calculateFixtureDifficulty } from "@test/utils/attributes";
 import {
@@ -172,7 +173,7 @@ describe("controllers", () => {
         const oversized = await request(app)
             .post("/performance")
             .set("X-Api-Key", testApiKey)
-            .send({ beatmap: { file: "x".repeat(1024 * 1024 + 1) } });
+            .send({ beatmap: { file: "x".repeat(maxRequestBodyBytes + 1) } });
 
         expect(oversized.status).toBe(413);
         expect(oversized.body).toMatchObject({

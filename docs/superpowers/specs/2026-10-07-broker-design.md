@@ -73,7 +73,8 @@ Clients receive broker errors and processor errors in the same shape, so both se
 `@dpp/shared` also exports:
 
 - `processorRoutes`: the forwardable calculation routes (`/difficulty`, `/performance`, `/performance/replay`). The processor's controllers and the broker's proxy both use it.
-- `maxRequestBodyBytes`: 1 MB, used by both apps' body limits.
+- `maxRequestBodyBytes`: 4 MiB, used by both apps' body limits. It holds the largest replay the score service accepts
+  (`maxReplayBytes`, 2 MiB) as base64.
 - `VariantSummary` (see API).
 
 ## Registry database
@@ -276,7 +277,7 @@ Instance URLs, instance counts, and the public flag are not exposed.
 | Status | Code                  | Cause                                                                                                          |
 | ------ | --------------------- | -------------------------------------------------------------------------------------------------------------- |
 | 400    | `INVALID_REQUEST`     | body is not `application/json`                                                                                 |
-| 413    | `INVALID_REQUEST`     | body is larger than 1 MiB                                                                                      |
+| 413    | `INVALID_REQUEST`     | body is larger than 4 MiB                                                                                      |
 | 404    | `INVALID_REQUEST`     | unknown route                                                                                                  |
 | 401    | `UNAUTHORIZED`        | unknown or revoked key, or no key while anonymous access is off                                                |
 | 404    | `VARIANT_NOT_FOUND`   | no such variant or alias, or a private variant the caller is not granted                                       |

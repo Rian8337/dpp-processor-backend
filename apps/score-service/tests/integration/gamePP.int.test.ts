@@ -2,7 +2,11 @@ import { createApp } from "@/app";
 import { dependencyTokens } from "@/dependencies/tokens";
 import type { GamePPResult, IGamePPService } from "@/services/IGamePPService";
 import { ModHidden } from "@rian8337/osu-base";
-import type { CalculateScoreFields, GamePPResponse } from "@dpp/shared";
+import {
+    maxReplayBytes,
+    type CalculateScoreFields,
+    type GamePPResponse,
+} from "@dpp/shared";
 import { createTestContainer } from "@test/utils/container";
 import { testHash } from "@test/utils/rows";
 import request from "supertest";
@@ -186,7 +190,7 @@ describe("game pp endpoints (integration)", () => {
                 (r: request.Test) =>
                     r.attach(
                         "replayfile",
-                        Buffer.alloc(2 * 1024 * 1024 + 1),
+                        Buffer.alloc(maxReplayBytes + 1),
                         "x.odr",
                     ),
             ],

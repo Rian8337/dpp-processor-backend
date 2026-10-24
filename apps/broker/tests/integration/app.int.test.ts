@@ -2,7 +2,7 @@ import { createApp } from "@/app";
 import { dependencyTokens } from "@/dependencies/tokens";
 import { hashApiKey } from "@/registry/keys";
 import { RegistryRepository } from "@/repositories/RegistryRepository";
-import { maxRequestBodyBytes } from "@dpp/shared";
+import { maxReplayBytes, maxRequestBodyBytes } from "@dpp/shared";
 import { Modes } from "@rian8337/osu-base";
 import { freePort } from "@dpp/server/testing";
 import { testConfig, testProcessorApiKey } from "@test/utils/config";
@@ -316,6 +316,23 @@ describe("broker API (integration)", () => {
                     contentType: "application/json",
                     body,
                 },
+            ]);
+        });
+
+        it("forwards a body holding the largest replay", async () => {
+            const body = JSON.stringify({
+                replay: Buffer.alloc(maxReplayBytes).toString("base64"),
+            });
+            const before = live.requests.length;
+
+            await request(app)
+                .post("/variants/droid-live/performance/replay")
+                .set("Content-Type", "application/json")
+                .send(body)
+                .expect(200);
+
+            expect(live.requests.slice(before)).toMatchObject([
+                { path: "/performance/replay", body },
             ]);
         });
 

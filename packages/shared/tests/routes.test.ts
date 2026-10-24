@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { isProcessorRoute, maxRequestBodyBytes, processorRoutes } from "../src";
+import {
+    isProcessorRoute,
+    maxReplayBytes,
+    maxRequestBodyBytes,
+    processorRoutes,
+} from "../src";
 
 describe("processorRoutes", () => {
     it("lists the calculation routes", () => {
@@ -19,7 +24,18 @@ describe("processorRoutes", () => {
 });
 
 describe("maxRequestBodyBytes", () => {
-    it("is 1 MiB", () => {
-        expect(maxRequestBodyBytes).toBe(1_048_576);
+    it("is 4 MiB", () => {
+        expect(maxRequestBodyBytes).toBe(4_194_304);
+    });
+
+    it("fits the largest replay as base64 in a JSON body", () => {
+        const body = JSON.stringify({
+            replay: Buffer.alloc(maxReplayBytes).toString("base64"),
+            strainChart: true,
+        });
+
+        expect(Buffer.byteLength(body)).toBeLessThanOrEqual(
+            maxRequestBodyBytes,
+        );
     });
 });

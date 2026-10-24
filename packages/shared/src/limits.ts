@@ -1,7 +1,12 @@
 /**
- * The largest request body the processor and the broker accept: 1 MiB, enough for a base64 replay.
+ * The largest replay file the score service accepts from the game: 2 MiB.
  */
-export const maxRequestBodyBytes = 1024 * 1024;
+export const maxReplayBytes = 2 * 1024 * 1024;
+
+/**
+ * The largest request body the processor and the broker accept: 4 MiB, enough for the largest replay as base64.
+ */
+export const maxRequestBodyBytes = 4 * 1024 * 1024;
 
 /**
  * The longest variant title, in characters.

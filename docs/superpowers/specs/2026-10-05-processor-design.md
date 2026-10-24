@@ -179,7 +179,7 @@ difficulty_attributes (
 
 ## API
 
-All bodies are JSON; binary data (replays, strain chart PNGs) is base64. The body size limit is 1 MB. Request and response schemas and types live in `@dpp/shared`. Every route except `GET /info` requires the `X-Api-Key` header.
+All bodies are JSON; binary data (replays, strain chart PNGs) is base64. The body size limit is 4 MiB (`maxRequestBodyBytes`). Request and response schemas and types live in `@dpp/shared`. Every route except `GET /info` requires the `X-Api-Key` header.
 
 Common shapes:
 

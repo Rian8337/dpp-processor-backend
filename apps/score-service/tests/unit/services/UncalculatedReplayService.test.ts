@@ -112,6 +112,55 @@ describe("UncalculatedReplayService", () => {
         expect(replays.files.get("uncalculated")!.has("r.odr")).toBe(false);
     });
 
+    // Proves the service passes the flag through.
+    // The integration test owns the guarantee that the Drizzle column is declared.
+    it.each([true, false])(
+        "carries the uncalculated row's attested flag (%s) into the best row",
+        async (attested) => {
+            official.uncalculatedScores = [
+                uncalculatedRow({
+                    replayfilename: "r.odr",
+                    score: 1_000_000,
+                    perfect: 401,
+                    attested,
+                }),
+            ];
+            const insert = vi.spyOn(official, "insertBestScore");
+
+            await service.processFile("r.odr");
+
+            expect(insert).toHaveBeenCalledTimes(1);
+            expect(insert.mock.calls[0]![0]).toMatchObject({ attested });
+        },
+    );
+
+    it.each([
+        [true, false],
+        [false, true],
+    ])(
+        "replaces an existing best row (attested %s) with the uncalculated row's flag (%s)",
+        async (attested, existing) => {
+            official.uncalculatedScores = [
+                uncalculatedRow({
+                    replayfilename: "r.odr",
+                    score: 1_000_000,
+                    perfect: 401,
+                    attested,
+                }),
+            ];
+            official.bestScores = [
+                bestScoreRow({ id: 40, pp: 80, attested: existing }),
+            ];
+            performanceResults = [totals(100), totals(50)];
+
+            await service.processFile("r.odr");
+
+            expect(official.bestScores.map((s) => [s.id, s.attested])).toEqual([
+                [50, attested],
+            ]);
+        },
+    );
+
     it("leaves the leaderboard pp when the score values differ, but still writes the best row", async () => {
         official.scores = [scoreRow({ id: 50, score: 999, pp: null })];
 

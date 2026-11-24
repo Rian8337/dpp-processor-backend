@@ -98,6 +98,47 @@ describe("ScoreRecalculationService", () => {
         expect(broker.calls).toEqual([]);
     });
 
+    // Proves the service passes the flag through.
+    // The integration test owns the guarantee that the Drizzle column is declared.
+    it.each([true, false])(
+        "carries the score's attested flag (%s) into the best row",
+        async (attested) => {
+            official.scores = [scoreRow({ id: 1, pp: null, attested })];
+            official.bestScores = [];
+            const insert = vi.spyOn(official, "insertBestScore");
+
+            await service.recalculate(1);
+
+            expect(insert).toHaveBeenCalledTimes(1);
+            expect(insert.mock.calls[0]![0]).toMatchObject({ attested });
+        },
+    );
+
+    it.each([
+        [true, false],
+        [false, true],
+    ])(
+        "replaces an existing best row (attested %s) with the score's flag (%s)",
+        async (attested, existing) => {
+            official.scores = [scoreRow({ id: 1, pp: null, attested })];
+            // A half multiplier makes the existing best recalculate below the candidate, so it is replaced.
+            official.bestScores = [
+                bestScoreRow({
+                    id: 2,
+                    pp: 10,
+                    ppMultiplier: 0.5,
+                    attested: existing,
+                }),
+            ];
+
+            await service.recalculate(1);
+
+            expect(official.bestScores.map((s) => [s.id, s.attested])).toEqual([
+                [1, attested],
+            ]);
+        },
+    );
+
     it.each([401, 500])(
         "throws RetryLaterError and changes nothing when the beatmap service answers %i",
         async (status) => {

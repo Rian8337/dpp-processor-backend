@@ -176,6 +176,61 @@ describe.skipIf(!(await hasMariaDb()))(
             ).toMatchObject({ id: 5, pp: 20, totalScore: 1500 });
         });
 
+        it.each([true, false])(
+            "round-trips attested %s through insertBestScore and findBestScores",
+            async (attested) => {
+                await repository.insertBestScore(
+                    bestInsert(bestScoreRow({ id: 1, pp: 50, attested })),
+                );
+
+                expect(
+                    (await repository.findBestScores(7, testHash))[0],
+                ).toMatchObject({ attested });
+            },
+        );
+
+        it.each([
+            [true, false],
+            [false, true],
+        ])(
+            "replaces a best row (attested %s) with one of attested %s",
+            async (before, after) => {
+                await repository.insertBestScore(
+                    bestInsert(
+                        bestScoreRow({ id: 1, pp: 50, attested: before }),
+                    ),
+                );
+                await repository.deleteBestScores(7, testHash);
+                await repository.insertBestScore(
+                    bestInsert(bestScoreRow({ id: 2, pp: 60, attested: after })),
+                );
+
+                expect(
+                    (await repository.findBestScores(7, testHash)).map((r) => [
+                        r.id,
+                        r.attested,
+                    ]),
+                ).toEqual([[2, after]]);
+            },
+        );
+
+        it.each([true, false])(
+            "round-trips attested %s on uncalculated rows",
+            async (attested) => {
+                const { db, tables } = database.connection;
+
+                await db
+                    .insert(tables.uncalculatedScores)
+                    .values(
+                        uncalculatedRow({ replayfilename: "a.odr", attested }),
+                    );
+
+                expect(
+                    await repository.findUncalculatedScore("a.odr"),
+                ).toMatchObject({ attested });
+            },
+        );
+
         it("sets and clears a score's pp", async () => {
             const { db, tables } = database.connection;
 

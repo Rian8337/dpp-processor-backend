@@ -29,6 +29,7 @@ const shared = {
     sliderEndHit: 99,
     accuracy: 0.95,
     scoreMultiplier: 1,
+    attested: false,
 };
 
 /**

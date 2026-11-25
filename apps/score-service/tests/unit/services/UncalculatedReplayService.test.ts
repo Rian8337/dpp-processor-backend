@@ -138,7 +138,7 @@ describe("UncalculatedReplayService", () => {
         [true, false],
         [false, true],
     ])(
-        "replaces an existing best row (attested %s) with the uncalculated row's flag (%s)",
+        "replaces an existing best row with the uncalculated row's flag (row attested %s, existing best attested %s)",
         async (attested, existing) => {
             official.uncalculatedScores = [
                 uncalculatedRow({

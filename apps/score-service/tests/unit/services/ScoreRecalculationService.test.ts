@@ -118,7 +118,7 @@ describe("ScoreRecalculationService", () => {
         [true, false],
         [false, true],
     ])(
-        "replaces an existing best row (attested %s) with the score's flag (%s)",
+        "replaces an existing best row with the score's flag (score attested %s, existing best attested %s)",
         async (attested, existing) => {
             official.scores = [scoreRow({ id: 1, pp: null, attested })];
             // A half multiplier makes the existing best recalculate below the candidate, so it is replaced.

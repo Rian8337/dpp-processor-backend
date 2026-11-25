@@ -202,7 +202,9 @@ describe.skipIf(!(await hasMariaDb()))(
                 );
                 await repository.deleteBestScores(7, testHash);
                 await repository.insertBestScore(
-                    bestInsert(bestScoreRow({ id: 2, pp: 60, attested: after })),
+                    bestInsert(
+                        bestScoreRow({ id: 2, pp: 60, attested: after }),
+                    ),
                 );
 
                 expect(

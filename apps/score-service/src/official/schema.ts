@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
     bigint,
+    boolean,
     double,
     float,
     index,
@@ -43,6 +44,9 @@ function sharedScoreColumns() {
         date: timestamp().notNull().defaultNow(),
         accuracy: float().default(0),
         scoreMultiplier: double().notNull().default(1),
+        // Whether the score came from an attested session. Best rows are rebuilt from their source row,
+        // so they must declare it too, or a rewritten best row would reset to 0.
+        attested: boolean().notNull().default(false),
     };
 }
 
